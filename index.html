@@ -2010,188 +2010,225 @@ function downloadReceipt() {
 
   if (!b) { showToast('No booking data', 'error'); return; }
 
+  // Helper: draw one label+value row, returns new y
+  function drawRow(doc, label, val, yPos, labelColor, valColor, margin, W) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...labelColor);
+    doc.text(label, margin, yPos);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...valColor);
+    // Truncate long values to prevent overflow
+    const strVal = String(val || '—');
+    doc.text(strVal, W - margin, yPos, { align: 'right', maxWidth: W - margin * 2 - 40 });
+    return yPos + 7.5;
+  }
+
+  // Helper: section header
+  function drawSectionHeader(doc, title, yPos, margin, W) {
+    doc.setFillColor(245, 238, 220);
+    doc.rect(margin, yPos - 4.5, W - margin * 2, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(140, 100, 30);
+    doc.text(title, margin + 3, yPos);
+    return yPos + 8;
+  }
+
   // A5 portrait
   const doc = new jsPDF({ format: 'a5', unit: 'mm' });
   const W = 148, H = 210;
-  const margin = 14;
+  const margin = 12;
 
   // ── Background ──
-  doc.setFillColor(248, 246, 242);
+  doc.setFillColor(250, 248, 244);
   doc.rect(0, 0, W, H, 'F');
 
-  // ── Top gold header strip ──
-  doc.setFillColor(42, 36, 28);
-  doc.rect(0, 0, W, 42, 'F');
+  // ── Dark header ──
+  doc.setFillColor(30, 24, 16);
+  doc.rect(0, 0, W, 48, 'F');
 
-  // Gold accent line
+  // Gold side accent bars
   doc.setFillColor(212, 168, 80);
-  doc.rect(0, 42, W, 1.5, 'F');
+  doc.rect(0, 0, 3, 48, 'F');
+  doc.rect(W - 3, 0, 3, 48, 'F');
+  doc.rect(0, 48, W, 1.8, 'F');
 
   // Company name
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setTextColor(212, 168, 80);
-  doc.text(s.companyName || 'MPG Booking', W / 2, 14, { align: 'center' });
+  doc.text(s.companyName || 'MPG Booking', W / 2, 13, { align: 'center' });
 
   // Tagline
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(180, 160, 120);
-  doc.text('Mom Please, Let me go — Official Receipt', W / 2, 21, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(170, 148, 100);
+  doc.text('Mom Please, Let me go  |  Official Receipt', W / 2, 20, { align: 'center' });
 
-  // RECEIPT label
+  if (s.companyTaxId) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(140, 120, 80);
+    doc.text('Tax ID: ' + s.companyTaxId, W / 2, 26, { align: 'center' });
+  }
+  if (s.companyAddress) {
+    doc.setFontSize(6);
+    doc.setTextColor(130, 110, 70);
+    doc.text(s.companyAddress, W / 2, 31.5, { align: 'center', maxWidth: W - 30 });
+  }
+
+  // E-RECEIPT label
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text('E-RECEIPT', W / 2, 36, { align: 'center' });
+  doc.text('E-RECEIPT', W / 2, 43, { align: 'center' });
 
-  // ── Booking ID box ──
-  doc.setFillColor(255, 248, 230);
+  // ── Booking ID + Date row ──
+  doc.setFillColor(255, 248, 225);
   doc.setDrawColor(212, 168, 80);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, 50, W - margin * 2, 14, 2, 2, 'FD');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(130, 90, 20);
-  doc.text('BOOKING ID', margin + 6, 57.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(42, 36, 28);
-  doc.text(b.id || '—', W - margin - 6, 57.5, { align: 'right' });
+  doc.setLineWidth(0.6);
+  doc.roundedRect(margin, 53, W - margin * 2, 15, 2.5, 2.5, 'FD');
 
-  // ── RECEIPT DATE ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(140, 100, 30);
+  doc.text('BOOKING ID', margin + 5, 59);
+  doc.setFontSize(10.5);
+  doc.setTextColor(30, 24, 16);
+  doc.text(b.id || '—', margin + 5, 65.5);
+
   const receiptDate = formatReceiptDate(b.createdAt || Date.now());
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(120, 110, 90);
-  doc.text('RECEIPT DATE', margin, 73);
+  doc.setFontSize(7);
+  doc.setTextColor(140, 100, 30);
+  doc.text('RECEIPT DATE', W - margin - 5, 59, { align: 'right' });
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(42, 36, 28);
-  doc.text(receiptDate, W - margin, 73, { align: 'right' });
+  doc.setFontSize(10.5);
+  doc.setTextColor(30, 24, 16);
+  doc.text(receiptDate, W - margin - 5, 65.5, { align: 'right' });
 
-  // Divider
-  doc.setDrawColor(220, 210, 190);
-  doc.setLineWidth(0.3);
-  doc.line(margin, 77, W - margin, 77);
-
-  // ── Customer Details Section ──
-  let y = 85;
+  // ── STATUS badge ──
+  const statusStr = (b.status || 'pending').toUpperCase();
+  const statusColors = { PENDING: [255, 193, 7], CONFIRMED: [82, 196, 26], CANCELLED: [255, 77, 79] };
+  const sc = statusColors[statusStr] || [150, 150, 150];
+  doc.setFillColor(...sc);
+  doc.roundedRect(W / 2 - 14, 58.5, 28, 7, 1.5, 1.5, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(150, 130, 90);
-  doc.text('CUSTOMER DETAILS', margin, y);
+  doc.setFontSize(6.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(statusStr, W / 2, 63.5, { align: 'center' });
 
-  y += 6;
-  const details = [
-    ['Customer', (b.firstname || '') + ' ' + (b.lastname || '')],
-    ['Phone', b.phone || '—'],
-    ['Nickname', b.nickname || '—'],
-  ];
-  if (b.email) details.push(['Email', b.email]);
+  let y = 75;
 
-  details.forEach(([label, val]) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(110, 100, 80);
-    doc.text(label, margin, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 36, 28);
-    doc.text(String(val), W - margin, y, { align: 'right' });
-    y += 7;
-  });
+  // ── CUSTOMER DETAILS ──
+  y = drawSectionHeader(doc, 'CUSTOMER DETAILS', y, margin, W);
+  const lc = [120, 100, 70];
+  const vc = [30, 24, 16];
+  y = drawRow(doc, 'Customer', (b.firstname || '') + ' ' + (b.lastname || ''), y, lc, vc, margin, W);
+  if (b.nickname) y = drawRow(doc, 'Nickname', b.nickname, y, lc, vc, margin, W);
+  y = drawRow(doc, 'Phone', b.phone, y, lc, vc, margin, W);
+  if (b.email) y = drawRow(doc, 'Email', b.email, y, lc, vc, margin, W);
+  if (b.company) y = drawRow(doc, 'Company', b.company, y, lc, vc, margin, W);
 
-  // Divider
-  doc.setDrawColor(220, 210, 190);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1, W - margin, y + 1);
-  y += 8;
+  y += 3;
 
-  // ── Trip Details Section ──
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(150, 130, 90);
-  doc.text('TRIP DETAILS', margin, y);
+  // ── TRIP DETAILS ──
+  y = drawSectionHeader(doc, 'TRIP DETAILS', y, margin, W);
+  y = drawRow(doc, 'Trip', b.tripName, y, lc, vc, margin, W);
 
-  y += 6;
-  const tripRows = [
-    ['Trip', b.tripName || '—'],
-    ['Car', b.car || '1'],
-    ['Seats', Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—')],
-    ['Passengers', String(b.passengers || 1)],
-  ];
-  tripRows.forEach(([label, val]) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(110, 100, 80);
-    doc.text(label, margin, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 36, 28);
-    doc.text(String(val), W - margin, y, { align: 'right' });
-    y += 7;
-  });
+  // Find trip info from state
+  const tripObj = state.trips ? state.trips.find(t => t.id === b.tripId) : null;
+  if (tripObj && tripObj.date) {
+    y = drawRow(doc, 'Trip Date', formatReceiptDate(tripObj.date) + (tripObj.time ? '  ' + tripObj.time : ''), y, lc, vc, margin, W);
+  }
+  if (tripObj && tripObj.destination) {
+    y = drawRow(doc, 'Destination', tripObj.destination, y, lc, vc, margin, W);
+  }
 
-  // Divider
-  doc.setDrawColor(220, 210, 190);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1, W - margin, y + 1);
-  y += 8;
+  // Seats
+  const seatsStr = Array.isArray(b.seats)
+    ? (b.seats.length > 0 ? b.seats.map(s => 'S' + s).join(', ') : '—')
+    : (b.seats ? 'S' + b.seats : '—');
+  y = drawRow(doc, 'Seat(s)', seatsStr, y, lc, vc, margin, W);
+  y = drawRow(doc, 'Passengers', String(b.passengers || 1), y, lc, vc, margin, W);
 
-  // ── Payment Summary ──
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(150, 130, 90);
-  doc.text('PAYMENT SUMMARY', margin, y);
-  y += 6;
+  y += 3;
 
-  const deposit = b.deposit || 0;
-  const additional = b.additionalPayment || 0;
-  const fullAmt = b.totalAmount || 0;
+  // ── PAYMENT SUMMARY ──
+  y = drawSectionHeader(doc, 'PAYMENT SUMMARY', y, margin, W);
+
+  const deposit = Number(b.deposit || 0);
+  const additional = Number(b.additionalPayment || 0);
+  const fullAmt = Number(b.totalAmount || 0);
+  const totalAmt = fullAmt; // total = full amount
 
   const payRows = [
-    ['DEPOSIT AMOUNT', deposit],
-    ['ADDITIONAL PAYMENT', additional],
-    ['FULL AMOUNT', fullAmt],
+    ['Deposit Amount', deposit],
+    ['Additional Payment', additional],
+    ['Full Amount', fullAmt],
   ];
   payRows.forEach(([label, amt]) => {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(110, 100, 80);
+    doc.setFontSize(8.5);
+    doc.setTextColor(...lc);
     doc.text(label, margin, y);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 36, 28);
-    doc.text('THB ' + Number(amt).toLocaleString(), W - margin, y, { align: 'right' });
-    y += 7;
+    doc.setTextColor(...vc);
+    doc.text('THB ' + Number(amt).toLocaleString('en-US'), W - margin, y, { align: 'right' });
+    y += 7.5;
   });
 
-  // ── Total Amount box ──
   y += 2;
-  doc.setFillColor(42, 36, 28);
-  doc.roundedRect(margin, y, W - margin * 2, 16, 2, 2, 'F');
+
+  // ── Total Amount box ──
+  doc.setFillColor(30, 24, 16);
+  doc.roundedRect(margin, y, W - margin * 2, 17, 2.5, 2.5, 'F');
+  doc.setFillColor(212, 168, 80);
+  doc.roundedRect(margin, y, W - margin * 2, 17, 2.5, 2.5, 'S');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(212, 168, 80);
-  doc.text('TOTAL AMOUNT', margin + 8, y + 10);
-  doc.setFontSize(12);
-  doc.text('THB ' + Number(fullAmt).toLocaleString(), W - margin - 6, y + 10, { align: 'right' });
+  doc.text('TOTAL AMOUNT', margin + 7, y + 11);
+  doc.setFontSize(13);
+  doc.setTextColor(255, 255, 255);
+  doc.text('THB ' + Number(totalAmt).toLocaleString('en-US'), W - margin - 6, y + 11, { align: 'right' });
 
-  y += 26;
+  y += 22;
 
-  // ── QR Code if available ──
-  if (s.qrImage && y < H - 45) {
+  // ── Bank info (if available) ──
+  if (s.bankAccountNumber && y < H - 45) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(130, 110, 80);
+    const bankLine = [s.bankName, s.bankAccountName, s.bankAccountNumber].filter(Boolean).join('  |  ');
+    doc.text(bankLine, W / 2, y, { align: 'center', maxWidth: W - 24 });
+    y += 7;
+  }
+
+  // ── QR Code ──
+  if (s.qrImage && y < H - 48) {
     try {
-      doc.addImage(s.qrImage, 'PNG', W / 2 - 18, y, 36, 36);
-      y += 40;
+      const qrSize = 32;
+      doc.addImage(s.qrImage, 'PNG', W / 2 - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 4;
     } catch(e) {}
   }
 
   // ── Footer ──
-  doc.setFillColor(42, 36, 28);
-  doc.rect(0, H - 22, W, 22, 'F');
+  doc.setFillColor(30, 24, 16);
+  doc.rect(0, H - 20, W, 20, 'F');
+  doc.setFillColor(212, 168, 80);
+  doc.rect(0, H - 20, W, 1, 'F');
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(180, 160, 120);
+  doc.setTextColor(170, 148, 100);
   doc.text('Thank you for booking with MPG Booking. This is your official receipt.', W / 2, H - 12, { align: 'center', maxWidth: W - 20 });
-  if (s.companyPhone) { doc.text('Tel: ' + s.companyPhone, W / 2, H - 6, { align: 'center' }); }
+  const contactParts = [s.companyPhone, s.companyAddress].filter(Boolean);
+  if (contactParts.length) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(130, 110, 70);
+    doc.text(contactParts.join('  |  '), W / 2, H - 6, { align: 'center', maxWidth: W - 20 });
+  }
 
   doc.save('MPG-Receipt-' + (b.id || 'booking') + '.pdf');
   showToast('Receipt downloaded!', 'success');
