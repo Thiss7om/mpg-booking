@@ -1,0 +1,2792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPG Booking — จองที่นั่งออนไลน์</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+  :root {
+    /* ── Pastel Palette ── */
+    --pastel-red:    #ffb3b3;   /* soft coral-red */
+    --pastel-red-deep: #ff8fa3;
+    --pastel-blue:   #a8d4f5;   /* sky blue */
+    --pastel-blue-deep: #7bb8e8;
+    --pastel-yellow: #ffe08a;   /* butter yellow */
+    --pastel-yellow-deep: #ffd04d;
+    --pastel-green:  #b5f0c8;   /* mint */
+    --pastel-purple: #d4b8f0;   /* lavender */
+
+    /* ── Backgrounds (soft warm white) ── */
+    --bg-primary:   #fdf8f5;
+    --bg-secondary: #fff5f7;
+    --bg-card:      #ffffff;
+    --bg-elevated:  #fff0f3;
+
+    /* ── Accent = pastel yellow as primary CTA ── */
+    --accent:       #ffb347;
+    --accent-dim:   #f5a020;
+    --accent-glow:  rgba(255,179,71,0.18);
+    --border-accent: rgba(255,179,71,0.4);
+
+    /* ── Text ── */
+    --text-primary:   #3a2a35;
+    --text-secondary: #7a6270;
+    --text-muted:     #bba8b2;
+
+    /* ── Borders ── */
+    --border: rgba(180,140,160,0.18);
+
+    /* ── Status colors (pastel) ── */
+    --red:   #ff6b8a;
+    --green: #52c97a;
+    --blue:  #5aacf0;
+
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Sarabun', 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Soft dot pattern background */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,179,71,0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg-elevated); }
+  ::-webkit-scrollbar-thumb { background: var(--pastel-red-deep); border-radius: 10px; }
+
+  /* Typography */
+  .font-display { font-family: 'Mitr', sans-serif; font-weight: 600; letter-spacing: 0.02em; }
+  .font-mono { font-family: 'DM Mono', monospace; }
+
+  /* Top gradient blob */
+  .gradient-top {
+    background:
+      radial-gradient(ellipse 55% 45% at 15% 0%, rgba(255,179,179,0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 40% at 85% 0%, rgba(168,212,245,0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 35% 30% at 50% 5%,  rgba(255,224,138,0.25) 0%, transparent 55%);
+    position: fixed; top: 0; left: 0; right: 0; height: 340px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    transition: all 0.22s ease;
+    box-shadow: 0 2px 12px rgba(180,120,140,0.07);
+  }
+  .card:hover {
+    border-color: var(--pastel-red-deep);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(255,143,163,0.18);
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--pastel-yellow-deep), var(--accent));
+    color: #3a2a35;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Mitr', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 14px rgba(255,179,71,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,179,71,0.45);
+    filter: brightness(1.05);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled {
+    background: #e8dfe4;
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-outline {
+    background: white;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(180,120,140,0.08);
+  }
+  .btn-outline:hover {
+    border-color: var(--pastel-blue-deep);
+    color: var(--blue);
+    box-shadow: 0 4px 14px rgba(90,172,240,0.2);
+  }
+
+  .btn-danger {
+    background: rgba(255,107,138,0.12);
+    color: var(--red);
+    border: 1.5px solid rgba(255,107,138,0.3);
+    padding: 8px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover { background: rgba(255,107,138,0.22); }
+
+  /* ── Inputs ── */
+  .input-field {
+    background: white;
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.2s;
+    outline: none;
+    box-shadow: 0 2px 6px rgba(180,120,140,0.06);
+  }
+  .input-field:focus {
+    border-color: var(--pastel-blue-deep);
+    box-shadow: 0 0 0 3px rgba(168,212,245,0.35);
+  }
+  .input-field::placeholder { color: var(--text-muted); }
+  .input-field option { background: white; color: var(--text-primary); }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 100px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+  }
+  .badge-gold {
+    background: rgba(255,224,138,0.5);
+    color: #a06c00;
+    border: 1px solid rgba(255,208,77,0.6);
+  }
+  .badge-green {
+    background: rgba(181,240,200,0.5);
+    color: #1a7a40;
+    border: 1px solid rgba(82,201,122,0.4);
+  }
+  .badge-red {
+    background: rgba(255,179,179,0.5);
+    color: #c0003a;
+    border: 1px solid rgba(255,143,163,0.5);
+  }
+  .badge-gray {
+    background: rgba(180,140,160,0.1);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .badge-blue {
+    background: rgba(168,212,245,0.4);
+    color: #1a5fa0;
+    border: 1px solid rgba(123,184,232,0.5);
+  }
+
+  /* ── Navbar ── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(253,248,245,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1.5px solid rgba(255,179,179,0.25);
+    padding: 0 24px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 16px rgba(255,143,163,0.1);
+  }
+
+  /* ── Hero ── */
+  .hero-bg {
+    position: relative;
+    height: 85vh;
+    min-height: 500px;
+    background: linear-gradient(160deg, #fff0f5 0%, #f0f7ff 50%, #fff8e8 100%);
+    overflow: hidden;
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 50% 55% at 80% 35%, rgba(168,212,245,0.3) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 45% at 15% 65%, rgba(255,179,179,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse 30% 30% at 50% 80%, rgba(255,224,138,0.2) 0%, transparent 50%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(255,143,163,0.12) 1.5px, transparent 1.5px);
+    background-size: 36px 36px;
+    opacity: 1;
+  }
+
+  /* Floating blobs in hero */
+  .blob {
+    position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.55;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0px) scale(1); }
+    50%      { transform: translateY(-18px) scale(1.04); }
+  }
+
+  /* ── Trip Cards ── */
+  .trip-card {
+    flex-shrink: 0;
+    width: 280px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    box-shadow: 0 4px 18px rgba(180,120,140,0.08);
+  }
+  .trip-card:hover {
+    transform: scale(1.03) translateY(-4px);
+    border-color: var(--pastel-red-deep);
+    box-shadow: 0 16px 40px rgba(255,143,163,0.22);
+  }
+  .trip-card-img {
+    width: 100%; height: 180px; object-fit: cover;
+    background: var(--bg-elevated);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 40px;
+    position: relative; overflow: hidden;
+  }
+  .trip-card-img::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+    background: linear-gradient(transparent, white);
+  }
+  .scroll-row {
+    display: flex; gap: 16px;
+    overflow-x: auto; padding: 8px 0 16px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-row::-webkit-scrollbar { height: 4px; }
+  .scroll-row::-webkit-scrollbar-thumb { background: var(--pastel-red); border-radius: 10px; }
+  .scroll-row > * { scroll-snap-align: start; }
+
+  /* ── Van Seat Layout ── */
+  .van-container {
+    background: linear-gradient(160deg, #fff5f7, #f0f7ff);
+    border: 2px solid rgba(255,179,179,0.3);
+    border-radius: 20px;
+    padding: 24px;
+    max-width: 320px;
+    margin: 0 auto;
+    box-shadow: 0 8px 28px rgba(255,143,163,0.1);
+  }
+  .van-roof {
+    background: linear-gradient(90deg, var(--pastel-red), var(--pastel-yellow), var(--pastel-blue));
+    border-radius: 50% 50% 0 0;
+    height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white; letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-family: 'Mitr', sans-serif;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .seat {
+    width: 56px; height: 52px;
+    border-radius: 10px 10px 5px 5px;
+    border: 2px solid transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 11px; font-weight: 600;
+    position: relative;
+    user-select: none;
+    font-family: 'Mitr', sans-serif;
+  }
+  .seat::before {
+    content: ''; position: absolute; bottom: -6px; left: 8px; right: 8px; height: 6px;
+    background: inherit; border-radius: 0 0 5px 5px; opacity: 0.7;
+    border: inherit; border-top: none;
+  }
+  .seat-available {
+    background: rgba(181,240,200,0.4);
+    border-color: rgba(82,201,122,0.5);
+    color: #1a7a40;
+  }
+  .seat-available:hover {
+    background: rgba(181,240,200,0.75);
+    border-color: rgba(82,201,122,0.8);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(82,201,122,0.2);
+  }
+  .seat-selected {
+    background: rgba(255,224,138,0.6);
+    border-color: var(--accent);
+    color: #8a5a00;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 14px rgba(255,179,71,0.3);
+  }
+  .seat-booked {
+    background: rgba(255,179,179,0.3);
+    border-color: rgba(255,107,138,0.35);
+    color: #c0003a;
+    cursor: not-allowed;
+  }
+  .seat-staff {
+    background: rgba(168,212,245,0.35);
+    border-color: rgba(90,172,240,0.4);
+    color: #1a5fa0;
+    cursor: not-allowed;
+  }
+  /* Admin seat — slightly smaller to fit passenger names */
+  .admin-seat {
+    width: 56px; height: 56px;
+    overflow: hidden;
+  }
+  .seat-driver {
+    background: rgba(212,184,240,0.3);
+    border-color: rgba(180,140,220,0.4);
+    color: #5a3a80;
+    cursor: not-allowed;
+  }
+
+  /* ── Steps ── */
+  .step-indicator { display: flex; align-items: center; gap: 0; }
+  .step-dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    transition: all 0.3s;
+    font-family: 'Mitr', sans-serif;
+  }
+  .step-dot.active {
+    background: linear-gradient(135deg, var(--pastel-red-deep), var(--accent));
+    color: white;
+    box-shadow: 0 4px 12px rgba(255,143,163,0.4);
+  }
+  .step-dot.done {
+    background: rgba(181,240,200,0.6);
+    color: #1a7a40;
+    border: 2px solid rgba(82,201,122,0.5);
+  }
+  .step-dot.inactive {
+    background: white;
+    color: var(--text-muted);
+    border: 2px solid var(--border);
+  }
+  .step-line { flex: 1; height: 2px; background: var(--border); border-radius: 2px; }
+  .step-line.done {
+    background: linear-gradient(90deg, rgba(82,201,122,0.6), rgba(255,179,71,0.6));
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(180,120,140,0.35);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1.5px solid rgba(255,179,179,0.3);
+    border-radius: 24px;
+    width: 100%; max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(180,120,140,0.2);
+  }
+
+  /* ── Table ── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; padding: 10px 16px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted);
+    border-bottom: 2px solid rgba(255,179,179,0.2);
+    font-family: 'Mitr', sans-serif;
+  }
+  .data-table td {
+    padding: 14px 16px; font-size: 13px;
+    border-bottom: 1px solid rgba(180,140,160,0.08);
+    color: var(--text-secondary);
+  }
+  .data-table tr:hover td { background: rgba(255,224,138,0.08); }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2.5px solid rgba(255,179,179,0.3);
+    border-top-color: var(--pastel-red-deep);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    z-index: 999; display: flex; flex-direction: column; gap: 8px;
+  }
+  .toast {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    min-width: 260px; max-width: 340px;
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 8px 28px rgba(180,120,140,0.15);
+    color: var(--text-secondary);
+  }
+  .toast.success { border-left: 4px solid var(--green); }
+  .toast.error   { border-left: 4px solid var(--red); }
+  .toast.info    { border-left: 4px solid var(--blue); }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; min-height: 100vh;
+    background: linear-gradient(180deg, #fff5f7 0%, #f5f0ff 100%);
+    border-right: 1.5px solid rgba(255,179,179,0.2);
+    padding: 80px 0 24px;
+    position: fixed; left: 0; top: 0;
+    box-shadow: 2px 0 20px rgba(255,143,163,0.07);
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 20px; cursor: pointer;
+    color: var(--text-secondary); font-size: 13px; font-weight: 500;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    font-family: 'Sarabun', sans-serif;
+    margin: 1px 0;
+  }
+  .sidebar-item:hover {
+    color: var(--text-primary);
+    background: rgba(255,179,179,0.1);
+  }
+  .sidebar-item.active {
+    color: #c0003a;
+    background: rgba(255,179,179,0.18);
+    border-left-color: var(--pastel-red-deep);
+    font-weight: 600;
+  }
+  .admin-content { margin-left: 240px; padding: 80px 32px 32px; }
+
+  /* ── Animations ── */
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .slide-in { animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .admin-content { margin-left: 0; padding: 80px 16px 32px; }
+    .trip-card { width: 240px; }
+    .modal-box { max-height: 95vh; }
+  }
+
+  /* ── Upload Zone ── */
+  .upload-zone {
+    border: 2px dashed rgba(255,143,163,0.4);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255,224,138,0.05);
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--pastel-red-deep);
+    background: rgba(255,179,179,0.1);
+  }
+
+  /* ── Payment Card ── */
+  .payment-card {
+    background: linear-gradient(135deg, #fff8f0, #fff0f5);
+    border: 1.5px solid rgba(255,179,179,0.3);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(255,143,163,0.08);
+  }
+
+  /* ── Section heading ── */
+  .section-heading {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-heading h2 {
+    font-family: 'Mitr', sans-serif;
+    font-size: 26px; font-weight: 600;
+    background: linear-gradient(135deg, var(--pastel-red-deep), var(--pastel-blue-deep));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .section-heading span { color: var(--text-muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* ── QR box ── */
+  .qr-box {
+    width: 140px; height: 140px; background: white;
+    border-radius: 12px; border: 2px solid rgba(255,179,179,0.3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+  }
+
+  /* ── Stat cards ── */
+  .stat-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(180,120,140,0.07);
+    transition: all 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,143,163,0.15); }
+  .stat-card::before {
+    content: ''; position: absolute; top: -24px; right: -24px;
+    width: 90px; height: 90px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,179,179,0.25), rgba(168,212,245,0.2));
+  }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    display: flex; gap: 4px; overflow-x: auto;
+    padding: 5px; background: rgba(255,179,179,0.12);
+    border-radius: 14px; margin-bottom: 20px;
+    border: 1px solid rgba(255,179,179,0.2);
+  }
+  .tab-bar::-webkit-scrollbar { height: 0; }
+  .tab-btn {
+    flex-shrink: 0; padding: 8px 16px;
+    border-radius: 10px; border: none; cursor: pointer;
+    font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 500;
+    transition: all 0.15s; background: transparent; color: var(--text-secondary);
+  }
+  .tab-btn.active {
+    background: white;
+    color: var(--text-primary);
+    box-shadow: 0 2px 10px rgba(255,143,163,0.2);
+    font-weight: 600;
+  }
+
+  /* ── Receipt ── */
+  .receipt {
+    background: white; color: #111;
+    padding: 40px; border-radius: 16px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    max-width: 400px; margin: 0 auto;
+  }
+
+  /* ── Colored strip on cards ── */
+  .card-strip {
+    height: 4px; border-radius: 4px 4px 0 0;
+    background: linear-gradient(90deg, var(--pastel-red), var(--pastel-yellow), var(--pastel-blue));
+  }
+</style>
+</head>
+<body>
+
+<div class="gradient-top"></div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================
+     NAVBAR
+============================================ -->
+<nav class="navbar" id="navbar-user">
+  <div class="flex items-center gap-8">
+    <div class="font-display text-2xl" style="cursor:pointer" onclick="showView('home')">
+      <span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span><span style="font-size:14px; color: var(--text-secondary); font-weight:400; margin-left:6px; letter-spacing:0.05em;">BOOKING</span>
+    </div>
+    <div class="hidden md:flex items-center gap-6" style="font-size: 13px; color: var(--text-secondary);">
+      <span style="cursor:pointer; transition:color 0.2s" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" onclick="showView('home')">Trips</span>
+      <span style="cursor:pointer; transition:color 0.2s" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" onclick="openSearchModal()">My Booking</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="openSearchModal()">🔍 Find Booking</button> -->
+    <button class="btn-outline" style="font-size:16px; padding:7px 10px; line-height:1;" onclick="showView('admin-login')" title="Admin Portal">⚙️</button>
+  </div>
+</nav>
+
+<nav class="navbar" id="navbar-admin" style="display:none;">
+  <div class="flex items-center gap-8">
+    <div class="font-display text-2xl">
+      <span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span><span style="font-size:14px; color: var(--text-secondary); font-weight:400; margin-left:6px; letter-spacing:0.05em;">BOOKING</span>
+      <span style="font-size:11px; color: var(--text-muted); font-family:'DM Sans',sans-serif; font-weight:400; letter-spacing:0.08em; margin-left:8px; text-transform:uppercase;">Admin Portal</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminLogout()">← Exit Admin</button>
+    <div id="navbar-admin-user" style="display:none; font-size:12px; color: var(--text-muted); padding: 0 4px;"></div>
+  </div>
+</nav>
+
+<!-- ============================================
+     VIEW: HOME
+============================================ -->
+<div id="view-home" class="fade-in">
+  <!-- Hero -->
+  <div class="hero-bg" style="padding-top: 64px;">
+    <div class="hero-grid"></div>
+    <div style="position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40px 24px;">
+      <div class="badge badge-gold mb-4">✦ Mom Please, Let me go</div>
+      <h1 class="font-display" style="font-size: clamp(52px, 10vw, 110px); line-height: 0.9; margin-bottom: 16px;">
+        จากคนแปลกหน้า<br><span style="color: var(--accent);">กลาย</span><br>เป็นเพื่อนกัน
+      </h1>
+      <p style="color: var(--text-secondary); font-size: 16px; max-width: 420px; line-height: 1.6; margin-bottom: 32px;">
+        มาเที่ยวคนเดียว แต่กลับไปเป็นแก๊งค์เลย.
+      </p>
+      <div class="flex gap-3 flex-wrap justify-center">
+        <button class="btn-primary" style="font-size:15px; padding:14px 32px;" onclick="document.getElementById('trips-section').scrollIntoView({behavior:'smooth'})">
+          Browse Trips ↓
+        </button>
+        <button class="btn-outline" style="font-size:15px; padding:14px 32px;" onclick="openSearchModal()">
+          Find My Booking
+        </button>
+      </div>
+    </div>
+    <!-- Scroll indicator -->
+    <div style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); color: var(--text-muted); font-size:11px; letter-spacing:0.1em; animation: bounce 2s infinite;">
+      <!-- SCROLL -->
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
+    <div style="max-width: 1200px; margin: 0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()">
+      <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
+        <option value="">All Categories</option>
+        <option value="beach">🏖 Beach</option>
+        <option value="mountain">⛰ Mountain</option>
+        <option value="city">🏙 City Tour</option>
+        <option value="temple">🛕 Cultural</option>
+        <option value="waterfall">💧 Waterfall</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Trips Section -->
+  <div id="trips-section" style="max-width:1200px; margin:0 auto; padding: 48px 24px;">
+
+    <!-- Featured Trips -->
+    <div class="section-heading">
+      <h2>FEATURED TRIPS</h2>
+      <span></span>
+    </div>
+    <div class="scroll-row" id="featured-trips">
+      <div style="color: var(--text-muted); font-size:13px; padding:20px; display:flex; align-items:center; gap:8px;">
+        <div class="spinner"></div> Loading trips...
+      </div>
+    </div>
+
+    <!-- All Trips Grid -->
+    <div class="section-heading mt-10">
+      <h2>ALL TRIPS</h2>
+      <span id="trips-count">0 Available</span>
+    </div>
+    <div id="all-trips" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:16px;">
+      <!-- Loaded dynamically -->
+    </div>
+
+    <div id="no-trips" style="display:none; text-align:center; padding:60px 20px; color: var(--text-muted);">
+      <div style="font-size:48px; margin-bottom:16px;">🌍</div>
+      <div style="font-size:15px;">No trips found. Try different filters.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     VIEW: BOOKING FLOW
+============================================ -->
+<div id="view-booking" style="display:none;" class="fade-in">
+  <div style="max-width: 720px; margin: 0 auto; padding: 88px 24px 48px;">
+    <!-- Steps -->
+    <div class="step-indicator mb-8" id="booking-steps">
+      <div class="step-dot" id="step-1-dot">1</div>
+      <div class="step-line" id="step-1-line"></div>
+      <div class="step-dot inactive" id="step-2-dot">2</div>
+      <div class="step-line" id="step-2-line"></div>
+      <div class="step-dot inactive" id="step-3-dot">3</div>
+      <div class="step-line" id="step-3-line"></div>
+      <div class="step-dot inactive" id="step-4-dot">4</div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:space-between; margin-bottom:32px; font-size:11px; color: var(--text-muted); letter-spacing:0.05em;">
+      <span>DETAILS</span><span>PAYMENT</span><span>UPLOAD SLIP</span><span>SEATS</span>
+    </div>
+
+    <!-- Trip Summary Card -->
+    <div class="card p-4 mb-6" id="booking-trip-summary">
+      <!-- populated dynamically -->
+    </div>
+
+    <!-- Step 1: Customer Details -->
+    <div id="booking-step-1" class="fade-in">
+      <h2 class="font-display text-3xl mb-6" style="color: var(--text-primary);">YOUR DETAILS</h2>
+      <div style="display:grid; gap:16px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">ชื่อเล่น (Nickname) *</label>
+          <input class="input-field" id="b-nickname" placeholder="เช่น โอ, เอ, บิ๊ก" style="border-color: rgba(255,179,71,0.5);">
+          <div style="font-size:10px; color: var(--text-muted); margin-top:4px;">ชื่อเล่นจะแสดงบนแผนผังที่นั่ง</div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div>
+            <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">First Name *</label>
+            <input class="input-field" id="b-firstname" placeholder="John">
+          </div>
+          <div>
+            <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Last Name *</label>
+            <input class="input-field" id="b-lastname" placeholder="Doe">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Phone Number *</label>
+          <input class="input-field" id="b-phone" placeholder="+66 8X XXX XXXX" type="tel">
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Email Address</label>
+          <input class="input-field" id="b-email" placeholder="john@email.com" type="email">
+        </div>
+        <div style="padding: 12px 0; border-top: 1px solid var(--border);">
+          <label style="font-size:11px; color: var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:8px;">📄 For Tax Invoice (Optional)</label>
+          <div style="display:grid; gap:10px;">
+            <input class="input-field" id="b-company" placeholder="Company name">
+            <input class="input-field" id="b-taxid" placeholder="Tax ID / Registration number">
+            <input class="input-field" id="b-address" placeholder="Business address">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Number of Passengers *</label>
+          <select class="input-field" id="b-passengers">
+            <option value="1">1 Passenger</option>
+            <option value="2">2 Passengers</option>
+            <option value="3">3 Passengers</option>
+            <option value="4">4 Passengers</option>
+            <option value="5">5 Passengers</option>
+            <option value="6">6 Passengers</option>
+          </select>
+        </div>
+        <button class="btn-primary" style="width:100%; padding:14px;" onclick="goToStep(2)">Continue to Payment →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Payment -->
+    <div id="booking-step-2" style="display:none;" class="fade-in">
+      <h2 class="font-display text-3xl mb-2" style="color: var(--text-primary);">PAYMENT</h2>
+      <p style="color: var(--text-muted); font-size:13px; margin-bottom:24px;">Complete your payment using one of the methods below.</p>
+      <div id="payment-methods-display">
+        <!-- Loaded from settings -->
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button class="btn-outline" style="flex:1;" onclick="goToStep(1)">← Back</button>
+        <button class="btn-primary" style="flex:2;" onclick="goToStep(3)">I've Paid → Upload Slip</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Upload Slip -->
+    <div id="booking-step-3" style="display:none;" class="fade-in">
+      <h2 class="font-display text-3xl mb-2" style="color: var(--text-primary);">UPLOAD SLIP</h2>
+      <p style="color: var(--text-muted); font-size:13px; margin-bottom:24px;">Upload your payment confirmation slip.</p>
+      <div class="upload-zone" id="slip-upload-zone" onclick="document.getElementById('slip-file-input').click()">
+        <div style="font-size:36px; margin-bottom:12px;">📸</div>
+        <div style="font-size:14px; color: var(--text-secondary); margin-bottom:4px;">Tap to upload payment slip</div>
+        <div style="font-size:11px; color: var(--text-muted);">PNG, JPG, PDF up to 5MB</div>
+        <div id="slip-preview" style="display:none; margin-top:16px;"></div>
+      </div>
+      <input type="file" id="slip-file-input" accept="image/*,.pdf" style="display:none;" onchange="handleSlipUpload(this)">
+      <div class="flex gap-3 mt-6">
+        <button class="btn-outline" style="flex:1;" onclick="goToStep(2)">← Back</button>
+        <button class="btn-primary" style="flex:2;" id="step3-next-btn" onclick="goToStep(4)" disabled>Choose Seats →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Seat Selection -->
+    <div id="booking-step-4" style="display:none;" class="fade-in">
+      <h2 class="font-display text-3xl mb-2" style="color: var(--text-primary);">PICK YOUR SEATS</h2>
+      <p style="color: var(--text-muted); font-size:13px; margin-bottom:8px;">Select <span id="seats-needed" style="color: var(--accent); font-weight:600;">1</span> seat(s) for your booking.</p>
+
+      <!-- Legend -->
+      <div class="flex gap-4 flex-wrap mb-6" style="font-size:11px;">
+        <span style="display:flex; align-items:center; gap:6px; color: var(--green);">■ Available</span>
+        <span style="display:flex; align-items:center; gap:6px; color: var(--accent);">■ Selected</span>
+        <span style="display:flex; align-items:center; gap:6px; color: var(--red);">■ Booked</span>
+        <span style="display:flex; align-items:center; gap:6px; color: #9696dc;">■ Staff</span>
+      </div>
+
+      <!-- Van Layout -->
+      <div class="van-container mb-6">
+        <div class="van-roof">🚐 VAN — 10 SEATS</div>
+        <!-- Front Row: Driver + 1 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding: 0 8px;">
+          <div class="seat" id="seat-1" onclick="toggleSeat(1)" title="Seat 1">
+            <span style="font-size:16px;">💺</span>
+            <span>S1</span>
+          </div>
+          <div style="color: var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
+          <div class="seat seat-driver" title="Driver">
+            <span style="font-size:18px;">🧑‍✈️</span>
+            <span>Driver</span>
+          </div>
+        </div>
+        <!-- Divider -->
+        <div style="border-top: 1px dashed rgba(255,255,255,0.08); margin-bottom: 20px; position:relative;">
+          <span style="position:absolute; top:-9px; left:50%; transform:translateX(-50%); background: var(--bg-elevated); padding:0 8px; font-size:9px; color: var(--text-muted); letter-spacing:0.1em;">PASSENGER SECTION</span>
+        </div>
+        <!-- Row 2: 3 seats -->
+        <div style="display:flex; justify-content:space-around; margin-bottom:24px;">
+          <div class="seat" id="seat-2" onclick="toggleSeat(2)"><span style="font-size:16px;">💺</span><span>S2</span></div>
+          <div class="seat" id="seat-3" onclick="toggleSeat(3)"><span style="font-size:16px;">💺</span><span>S3</span></div>
+          <div class="seat" id="seat-4" onclick="toggleSeat(4)"><span style="font-size:16px;">💺</span><span>S4</span></div>
+        </div>
+        <!-- Row 3: 3 seats -->
+        <div style="display:flex; justify-content:space-around; margin-bottom:24px;">
+          <div class="seat" id="seat-5" onclick="toggleSeat(5)"><span style="font-size:16px;">💺</span><span>S5</span></div>
+          <div class="seat" id="seat-6" onclick="toggleSeat(6)"><span style="font-size:16px;">💺</span><span>S6</span></div>
+          <div class="seat" id="seat-7" onclick="toggleSeat(7)"><span style="font-size:16px;">💺</span><span>S7</span></div>
+        </div>
+        <!-- Row 4: 3 seats -->
+        <div style="display:flex; justify-content:space-around;">
+          <div class="seat" id="seat-8" onclick="toggleSeat(8)"><span style="font-size:16px;">💺</span><span>S8</span></div>
+          <div class="seat" id="seat-9" onclick="toggleSeat(9)"><span style="font-size:16px;">💺</span><span>S9</span></div>
+          <div class="seat" id="seat-10" onclick="toggleSeat(10)"><span style="font-size:16px;">💺</span><span>S10</span></div>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-elevated); border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px; color: var(--text-secondary);">
+        Selected: <span id="selected-seats-display" style="color: var(--accent); font-weight:600;">None</span>
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn-outline" style="flex:1;" onclick="goToStep(3)">← Back</button>
+        <button class="btn-primary" style="flex:2;" id="confirm-booking-btn" disabled onclick="confirmBooking()">
+          Confirm Booking ✓
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     VIEW: BOOKING CONFIRMATION
+============================================ -->
+<div id="view-confirmation" style="display:none;" class="fade-in">
+  <div style="max-width:560px; margin:0 auto; padding: 88px 24px 48px; text-align:center;">
+    <div style="font-size:64px; margin-bottom:16px;">🎉</div>
+    <h2 class="font-display text-5xl mb-3" style="color: var(--green);">BOOKED!</h2>
+    <p style="color: var(--text-secondary); margin-bottom:32px;">Your adventure is confirmed. Save your booking ID below.</p>
+    <div class="card p-6 mb-6" style="background: var(--accent-glow); border-color: var(--border-accent);">
+      <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;">Booking ID</div>
+      <div class="font-display font-mono text-3xl" id="confirmed-booking-id" style="color: var(--accent); letter-spacing:0.1em;"></div>
+    </div>
+    <div class="card p-4 mb-6 text-left" id="confirmation-details"></div>
+    <div class="flex gap-3 justify-center flex-wrap">
+      <button class="btn-outline" onclick="downloadReceipt()">📄 Download Receipt</button>
+      <button class="btn-primary" onclick="showView('home')">Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     VIEW: ADMIN LOGIN
+============================================ -->
+<div id="view-admin-login" style="display:none;" class="fade-in">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+    <div style="width:100%; max-width:380px;">
+      <div class="text-center mb-8">
+        <div class="font-display text-4xl mb-2"><span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span></div>
+        <div style="color: var(--text-muted); font-size:13px;">MPG Booking Management Portal</div>
+      </div>
+
+      <!-- STEP A: Username / Password -->
+      <div class="card p-8" id="login-step-credentials">
+        <div style="margin-bottom:16px;">
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">USERNAME</label>
+          <input class="input-field" id="admin-username" placeholder="admin">
+        </div>
+        <div style="margin-bottom:24px;">
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">PASSWORD</label>
+          <input class="input-field" id="admin-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+        <button class="btn-primary" style="width:100%; padding:14px;" onclick="adminLogin()" id="login-btn">
+          Sign In
+        </button>
+        <div id="login-error" style="display:none; margin-top:12px; color: var(--red); font-size:13px; text-align:center;"></div>
+      </div>
+
+      <!-- STEP B: OTP Verification -->
+      <div class="card p-8" id="login-step-otp" style="display:none;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="font-size:36px; margin-bottom:8px;">📧</div>
+          <div style="font-weight:600; font-size:15px; color: var(--text-primary);">ยืนยัน Email OTP</div>
+          <div id="otp-sent-msg" style="color: var(--text-muted); font-size:12px; margin-top:6px;"></div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">รหัส OTP (6 หลัก)</label>
+          <input class="input-field" id="admin-otp" placeholder="000000" maxlength="6" style="text-align:center; font-size:24px; letter-spacing:8px; font-family:'DM Mono',monospace;" onkeydown="if(event.key==='Enter')adminVerifyOTP()">
+        </div>
+        <button class="btn-primary" style="width:100%; padding:14px;" onclick="adminVerifyOTP()" id="otp-verify-btn">
+          ยืนยัน OTP
+        </button>
+        <div style="text-align:center; margin-top:12px;">
+          <button onclick="adminRequestOTPResend()" style="background:none; border:none; color: var(--blue); font-size:12px; cursor:pointer; text-decoration:underline;">ส่ง OTP ใหม่อีกครั้ง</button>
+          &nbsp;·&nbsp;
+          <button onclick="backToCredentials()" style="background:none; border:none; color: var(--text-muted); font-size:12px; cursor:pointer;">← กลับ</button>
+        </div>
+        <div id="otp-error" style="display:none; margin-top:12px; color: var(--red); font-size:13px; text-align:center;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     VIEW: ADMIN DASHBOARD
+============================================ -->
+<div id="view-admin" style="display:none;" class="fade-in">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div style="padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom:8px;">
+      <div class="font-display text-xl" style="color: var(--accent);">ADMIN PANEL</div>
+      <div id="admin-user-display" style="font-size:11px; color: var(--text-muted); margin-top:4px;"></div>
+    </div>
+    <div class="sidebar-item active" onclick="switchAdminTab('dashboard')" id="nav-dashboard">
+      <span>📊</span> Dashboard
+    </div>
+    <div class="sidebar-item" onclick="switchAdminTab('trips')" id="nav-trips">
+      <span>🗺</span> Manage Trips
+    </div>
+    <div class="sidebar-item" onclick="switchAdminTab('bookings')" id="nav-bookings">
+      <span>📋</span> Bookings
+    </div>
+    <div class="sidebar-item" onclick="switchAdminTab('payments')" id="nav-payments">
+      <span>💳</span> Payment Settings
+    </div>
+    <div class="sidebar-item" onclick="switchAdminTab('logs')" id="nav-logs">
+      <span>📝</span> Activity Logs
+    </div>
+    <div class="sidebar-item" onclick="switchAdminTab('admin-users')" id="nav-admin-users">
+      <span>👥</span> Admin Users
+    </div>
+    <div style="position:absolute; bottom:24px; left:0; right:0; padding:0 20px;">
+      <button class="btn-outline" style="width:100%; font-size:12px;" onclick="adminLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="admin-content">
+
+    <!-- DASHBOARD TAB -->
+    <div id="admin-tab-dashboard" class="fade-in">
+      <div class="section-heading">
+        <h2>DASHBOARD</h2>
+        <span id="dashboard-date"></span>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-bottom:32px;">
+        <div class="stat-card">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Total Trips</div>
+          <div class="font-display text-4xl" id="stat-trips" style="color: var(--accent);">—</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Total Bookings</div>
+          <div class="font-display text-4xl" id="stat-bookings" style="color: var(--text-primary);">—</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Pending Review</div>
+          <div class="font-display text-4xl" id="stat-pending" style="color: var(--accent);">—</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Confirmed</div>
+          <div class="font-display text-4xl" id="stat-confirmed" style="color: var(--green);">—</div>
+        </div>
+      </div>
+      <div class="section-heading">
+        <h2>RECENT BOOKINGS</h2>
+      </div>
+      <div class="card" style="overflow:auto;">
+        <table class="data-table" id="recent-bookings-table">
+          <thead>
+            <tr>
+              <th>Booking ID</th><th>Customer</th><th>Trip</th><th>Seats</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recent-bookings-body">
+            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRIPS TAB -->
+    <div id="admin-tab-trips" style="display:none;" class="fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="section-heading mb-0">
+          <h2>MANAGE TRIPS</h2>
+        </div>
+        <button class="btn-primary" onclick="openTripModal()">+ Add Trip</button>
+      </div>
+      <div class="card" style="overflow:auto;">
+        <table class="data-table" id="trips-table">
+          <thead>
+            <tr>
+              <th>Trip</th><th>Date</th><th>Price</th><th>Seats</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="trips-table-body">
+            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BOOKINGS TAB -->
+    <div id="admin-tab-bookings" style="display:none;" class="fade-in">
+      <div class="section-heading">
+        <h2>ALL BOOKINGS</h2>
+      </div>
+      <div class="flex gap-3 mb-4 flex-wrap">
+        <input class="input-field" style="flex:1; min-width:180px;" placeholder="Search by name, ID, trip..." id="admin-booking-search" oninput="filterAdminBookings()">
+        <select class="input-field" style="width:160px;" id="admin-booking-status-filter" onchange="filterAdminBookings()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="card" style="overflow:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Customer</th><th>Trip</th><th>Seats</th><th>Slip</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="all-bookings-body">
+            <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYMENTS TAB -->
+    <div id="admin-tab-payments" style="display:none;" class="fade-in">
+      <div class="section-heading">
+        <h2>PAYMENT SETTINGS</h2>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px;">
+        <!-- QR Code -->
+        <div class="card p-6">
+          <h3 style="font-size:14px; font-weight:600; margin-bottom:16px; color: var(--text-primary);">QR Code Payment</h3>
+          <div class="qr-box mb-4" id="qr-display">
+            <div style="color:#999; font-size:12px; text-align:center;">No QR uploaded</div>
+          </div>
+          <div class="upload-zone" onclick="document.getElementById('qr-upload').click()">
+            <div style="font-size:11px; color: var(--text-muted);">Click to upload QR image</div>
+          </div>
+          <input type="file" id="qr-upload" accept="image/*" style="display:none;" onchange="handleQRUpload(this)">
+        </div>
+        <!-- Bank Transfer -->
+        <div class="card p-6">
+          <h3 style="font-size:14px; font-weight:600; margin-bottom:16px; color: var(--text-primary);">Bank Transfer</h3>
+          <div style="display:grid; gap:10px;">
+            <div>
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Bank Name</label>
+              <input class="input-field" id="bank-name" placeholder="Kasikorn Bank">
+            </div>
+            <div>
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Name</label>
+              <input class="input-field" id="bank-account-name" placeholder="MPG Booking Co.">
+            </div>
+            <div>
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Number</label>
+              <input class="input-field" id="bank-account-number" placeholder="XXX-X-XXXXX-X">
+            </div>
+            <button class="btn-primary" onclick="savePaymentSettings()">Save Bank Details</button>
+          </div>
+        </div>
+        <!-- Company Info for Receipts -->
+        <div class="card p-6">
+          <h3 style="font-size:14px; font-weight:600; margin-bottom:16px; color: var(--text-primary);">Company Info (for Receipts)</h3>
+          <div style="display:grid; gap:10px;">
+            <input class="input-field" id="co-name" placeholder="Company Name">
+            <input class="input-field" id="co-taxid" placeholder="Tax ID">
+            <input class="input-field" id="co-address" placeholder="Address">
+            <input class="input-field" id="co-phone" placeholder="Phone">
+            <button class="btn-primary" onclick="saveCompanyInfo()">Save Info</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS TAB -->
+    <div id="admin-tab-logs" style="display:none;" class="fade-in">
+      <div class="section-heading">
+        <h2>ACTIVITY LOGS</h2>
+      </div>
+      <div class="card" style="overflow:auto; max-height:70vh;">
+        <table class="data-table">
+          <thead>
+            <tr><th>Timestamp</th><th>Admin</th><th>Action</th><th>Details</th></tr>
+          </thead>
+          <tbody id="logs-body">
+            <tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ADMIN USERS TAB -->
+    <div id="admin-tab-admin-users" style="display:none;" class="fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="section-heading mb-0">
+          <h2>ADMIN USERS</h2>
+        </div>
+        <button class="btn-primary" onclick="openAddAdminModal()">+ เพิ่ม Admin</button>
+      </div>
+      <div class="card" style="overflow:auto; margin-bottom:24px;">
+        <table class="data-table" id="admin-users-table">
+          <thead>
+            <tr>
+              <th>Username</th><th>Role</th><th>Email</th><th>Last Login</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-body">
+            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end admin-content -->
+</div><!-- end view-admin -->
+
+<!-- ============================================
+     MODALS
+============================================ -->
+
+<!-- Search/Find Booking Modal -->
+<div id="modal-search" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-display text-2xl">FIND BOOKING</h3>
+      <button onclick="closeModal('modal-search')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <input class="input-field mb-4" id="search-booking-id" placeholder="Enter Booking ID (e.g. BK-XXXXXX)">
+    <button class="btn-primary" style="width:100%;" onclick="searchBooking()">Search</button>
+    <div id="search-result" style="margin-top:20px; display:none;"></div>
+  </div>
+</div>
+
+<!-- Trip Details Modal (User) -->
+<div id="modal-trip" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div id="trip-img-modal" style="height:220px; background: var(--bg-elevated); border-radius:16px 16px 0 0; overflow:hidden; position:relative;">
+      <div style="position:absolute; top:16px; right:16px;">
+        <button onclick="closeModal('modal-trip')" style="background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
+      </div>
+    </div>
+    <div id="trip-modal-content" class="p-6"></div>
+  </div>
+</div>
+
+<!-- Admin: Add/Edit Trip Modal -->
+<div id="modal-trip-admin" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-display text-2xl" id="trip-modal-title">ADD TRIP</h3>
+      <button onclick="closeModal('modal-trip-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid; gap:12px;">
+      <input type="hidden" id="trip-edit-id">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Trip Name *</label>
+          <input class="input-field" id="trip-name" placeholder="Pai Canyon Tour">
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Destination *</label>
+          <input class="input-field" id="trip-destination" placeholder="Pai, Mae Hong Son">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Departure Date *</label>
+          <input class="input-field" id="trip-date" type="date">
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Departure Time</label>
+          <input class="input-field" id="trip-time" type="time" value="07:00">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Price (THB) *</label>
+          <input class="input-field" id="trip-price" type="number" placeholder="1200">
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Total Seats</label>
+          <input class="input-field" id="trip-seats" type="number" value="9" min="1" max="9">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Category</label>
+        <select class="input-field" id="trip-category">
+          <option value="beach">🏖 Beach</option>
+          <option value="mountain">⛰ Mountain</option>
+          <option value="city">🏙 City Tour</option>
+          <option value="temple">🛕 Cultural</option>
+          <option value="waterfall">💧 Waterfall</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Description</label>
+        <textarea class="input-field" id="trip-description" rows="3" placeholder="Describe the trip..."></textarea>
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Image URL (or leave blank)</label>
+        <input class="input-field" id="trip-image" placeholder="https://... or emoji like 🏔">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Status</label>
+        <select class="input-field" id="trip-status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="full">Full</option>
+        </select>
+      </div>
+      <div class="flex gap-3 mt-2">
+        <button class="btn-outline" style="flex:1;" onclick="closeModal('modal-trip-admin')">Cancel</button>
+        <button class="btn-primary" style="flex:2;" onclick="saveTrip()">Save Trip</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin: Edit Booking Modal -->
+<div id="modal-edit-booking" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-display text-2xl">EDIT BOOKING</h3>
+      <button onclick="closeModal('modal-edit-booking')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="edit-booking-id">
+    <div style="display:grid; gap:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">First Name</label>
+          <input class="input-field" id="edit-firstname">
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Last Name</label>
+          <input class="input-field" id="edit-lastname">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Phone</label>
+        <input class="input-field" id="edit-phone">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Email</label>
+        <input class="input-field" id="edit-email">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Seats (comma-separated)</label>
+        <input class="input-field" id="edit-seats" placeholder="1,2,3">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Status</label>
+        <select class="input-field" id="edit-status">
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Admin Note</label>
+        <textarea class="input-field" id="edit-note" rows="2" placeholder="Internal note..."></textarea>
+      </div>
+      <div class="flex gap-3">
+        <button class="btn-outline" style="flex:1;" onclick="closeModal('modal-edit-booking')">Cancel</button>
+        <button class="btn-primary" style="flex:2;" onclick="saveBookingEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin: Seat Management Modal -->
+<div id="modal-seats-admin" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6" style="max-width:400px;">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-display text-2xl">🚐 MANAGE SEATS</h3>
+      <button onclick="closeModal('modal-seats-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <p style="color: var(--text-muted); font-size:13px; margin-bottom:14px;" id="admin-seats-trip-info"></p>
+
+    <!-- Van Layout for Admin -->
+    <div class="van-container mb-4" id="admin-van-container">
+      <div class="van-roof">🚐 VAN — 10 SEATS</div>
+      <!-- Front Row -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:0 8px;">
+        <div class="seat admin-seat" id="admin-seat-1" onclick="toggleAdminSeatNew(1)" title="Seat 1">
+          <span style="font-size:13px;">💺</span><span id="admin-seat-label-1">S1</span>
+        </div>
+        <div style="color:var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
+        <div class="seat seat-driver"><span style="font-size:16px;">🧑‍✈️</span><span style="font-size:10px;">Driver</span></div>
+      </div>
+      <div style="border-top:1px dashed rgba(180,140,160,0.2); margin-bottom:16px; position:relative;">
+        <span style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:var(--bg-card); padding:0 8px; font-size:9px; color:var(--text-muted); letter-spacing:0.1em;">PASSENGER SECTION</span>
+      </div>
+      <!-- Row 2 -->
+      <div style="display:flex; justify-content:space-around; margin-bottom:16px;">
+        <div class="seat admin-seat" id="admin-seat-2" onclick="toggleAdminSeatNew(2)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-2">S2</span></div>
+        <div class="seat admin-seat" id="admin-seat-3" onclick="toggleAdminSeatNew(3)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-3">S3</span></div>
+        <div class="seat admin-seat" id="admin-seat-4" onclick="toggleAdminSeatNew(4)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-4">S4</span></div>
+      </div>
+      <!-- Row 3 -->
+      <div style="display:flex; justify-content:space-around; margin-bottom:16px;">
+        <div class="seat admin-seat" id="admin-seat-5" onclick="toggleAdminSeatNew(5)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-5">S5</span></div>
+        <div class="seat admin-seat" id="admin-seat-6" onclick="toggleAdminSeatNew(6)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-6">S6</span></div>
+        <div class="seat admin-seat" id="admin-seat-7" onclick="toggleAdminSeatNew(7)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-7">S7</span></div>
+      </div>
+      <!-- Row 4 -->
+      <div style="display:flex; justify-content:space-around;">
+        <div class="seat admin-seat" id="admin-seat-8" onclick="toggleAdminSeatNew(8)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-8">S8</span></div>
+        <div class="seat admin-seat" id="admin-seat-9" onclick="toggleAdminSeatNew(9)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-9">S9</span></div>
+        <div class="seat admin-seat" id="admin-seat-10" onclick="toggleAdminSeatNew(10)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-10">S10</span></div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-bottom:14px; color:var(--text-secondary);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(181,240,200,0.6);border:1px solid rgba(82,201,122,0.6);border-radius:3px;margin-right:4px;"></span>ว่าง</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,179,179,0.5);border:1px solid rgba(255,107,138,0.5);border-radius:3px;margin-right:4px;"></span>จองแล้ว</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(168,212,245,0.5);border:1px solid rgba(90,172,240,0.5);border-radius:3px;margin-right:4px;"></span>Staff</span>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">กดที่นั่งว่างเพื่อตั้งเป็น Staff / กดอีกครั้งเพื่อยกเลิก</div>
+    <button class="btn-primary" style="width:100%;" onclick="saveAdminSeats()">💾 บันทึกการตั้งค่าที่นั่ง</button>
+  </div>
+</div>
+
+<!-- View Slip Modal -->
+<div id="modal-view-slip" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-display text-2xl">PAYMENT SLIP</h3>
+      <button onclick="closeModal('modal-view-slip')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <div id="slip-view-content" style="text-align:center; padding:20px; color: var(--text-muted);">
+      Loading slip...
+    </div>
+  </div>
+</div>
+
+<!-- Add Admin User Modal -->
+<div id="modal-add-admin" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6" style="max-width:420px;">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-display text-2xl">➕ เพิ่ม Admin User</h3>
+      <button onclick="closeModal('modal-add-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid; gap:12px;">
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Username *</label>
+        <input class="input-field" id="new-admin-username" placeholder="staff.mpg">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Password *</label>
+        <input class="input-field" id="new-admin-password" type="password" placeholder="รหัสผ่านอย่างน้อย 8 ตัว">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Email (สำหรับรับ OTP) *</label>
+        <input class="input-field" id="new-admin-email" type="email" placeholder="staff@company.com">
+      </div>
+      <div>
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Role</label>
+        <select class="input-field" id="new-admin-role">
+          <option value="staff">Staff</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div id="add-admin-error" style="display:none; color: var(--red); font-size:12px; padding:8px; background: rgba(255,107,138,0.1); border-radius:8px;"></div>
+      <div class="flex gap-3 mt-2">
+        <button class="btn-outline" style="flex:1;" onclick="closeModal('modal-add-admin')">ยกเลิก</button>
+        <button class="btn-primary" style="flex:2;" onclick="saveNewAdminUser()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION — Replace with your GAS Web App URL
+// ============================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw05qeAeY42F8i0xhL_AaCODC9Y4Q8OFUxR1kzReWaOF2Db3_6iK8KHaXn8NbgFb2Oj/exec';
+
+// For demo mode (no GAS backend), set this to true
+const DEMO_MODE = false;
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  view: 'home',
+  trips: [],
+  filteredTrips: [],
+  adminLoggedIn: false,
+  adminUser: null,
+  adminToken: '',
+  currentBooking: {
+    tripId: null,
+    trip: null,
+    step: 1,
+    customer: {},
+    selectedSeats: [],
+    slipData: null,
+    passengers: 1
+  },
+  confirmedBooking: null,
+  allBookings: [],
+  filteredBookings: [],
+  adminSeats: {},
+  editingTripId: null,
+  settings: {
+    bankName: '',
+    bankAccountName: '',
+    bankAccountNumber: '',
+    qrImage: null,
+    companyName: 'MPG Booking',
+    companyTaxId: '',
+    companyAddress: '',
+    companyPhone: ''
+  }
+};
+
+// Demo data
+const DEMO_TRIPS = [
+  { id: 'T001', name: 'Pai Canyon Sunrise', destination: 'Pai, Mae Hong Son', date: '2025-08-15', time: '05:30', price: 1200, seats: 9, booked: 3, category: 'mountain', description: 'Watch the sunrise over the breathtaking Pai Canyon. A magical experience you\'ll never forget.', image: '🏔', status: 'active' },
+  { id: 'T002', name: 'Railay Beach Escape', destination: 'Railay, Krabi', date: '2025-08-20', time: '07:00', price: 2800, seats: 9, booked: 9, category: 'beach', description: 'Pristine white sand, emerald waters, and towering limestone cliffs. A tropical paradise.', image: '🏖', status: 'full' },
+  { id: 'T003', name: 'Doi Inthanon Summit', destination: 'Chiang Mai', date: '2025-08-22', time: '06:00', price: 1500, seats: 9, booked: 5, category: 'mountain', description: 'Thailand\'s highest peak adventure. Misty forests, royal gardens, and stunning views.', image: '⛰', status: 'active' },
+  { id: 'T004', name: 'Erawan Waterfall', destination: 'Kanchanaburi', date: '2025-08-25', time: '07:30', price: 1800, seats: 9, booked: 2, category: 'waterfall', description: 'Seven-tiered emerald waterfall in a lush national park. Perfect for swimming and nature lovers.', image: '💧', status: 'active' },
+  { id: 'T005', name: 'Old City Temple Tour', destination: 'Chiang Mai City', date: '2025-08-28', time: '08:00', price: 800, seats: 9, booked: 7, category: 'temple', description: 'Explore over 300 ancient temples in the heart of Chiang Mai\'s old city.', image: '🛕', status: 'active' },
+  { id: 'T006', name: 'Similan Islands Day Trip', destination: 'Similan, Phang Nga', date: '2025-09-05', time: '06:00', price: 3200, seats: 9, booked: 4, category: 'beach', description: 'Crystal clear waters and world-class snorkeling at the legendary Similan Islands.', image: '🐠', status: 'active' },
+];
+
+const DEMO_BOOKINGS = [
+  { id: 'BK-A1B2C3', tripId: 'T001', tripName: 'Pai Canyon Sunrise', firstname: 'Somporn', lastname: 'Chaiyaphum', phone: '0812345678', email: 'somporn@email.com', seats: [2,3], passengers: 2, status: 'confirmed', createdAt: '2025-07-20 14:30', note: '' },
+  { id: 'BK-D4E5F6', tripId: 'T003', tripName: 'Doi Inthanon Summit', firstname: 'Alice', lastname: 'Johnson', phone: '0823456789', email: 'alice@email.com', seats: [1], passengers: 1, status: 'pending', createdAt: '2025-07-21 09:15', note: '' },
+  { id: 'BK-G7H8I9', tripId: 'T001', tripName: 'Pai Canyon Sunrise', firstname: 'Korn', lastname: 'Boonsong', phone: '0834567890', email: 'korn@email.com', seats: [5], passengers: 1, status: 'confirmed', createdAt: '2025-07-22 16:45', note: '' },
+];
+
+// ============================================================
+// API CALLS (with demo fallback)
+// ============================================================
+async function apiCall(action, data = {}) {
+  if (DEMO_MODE) return demoHandler(action, data);
+  try {
+    // Inject auth token & adminUser for admin calls
+    if (state.adminToken && !data.token) data.token = state.adminToken;
+    if (state.adminUser && !data.adminUser) data.adminUser = state.adminUser.username || 'admin';
+
+    const flat = { action };
+    for (const [k, v] of Object.entries(data)) {
+      flat[k] = (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v;
+    }
+    const params = new URLSearchParams(flat);
+    const res = await fetch(GAS_URL + '?' + params.toString(), {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { console.error('Non-JSON response:', text); return { success: false, error: 'Invalid server response' }; }
+  } catch (e) {
+    console.error('API Error:', e);
+    showToast('Connection error. Check your deployment URL.', 'error');
+    return { success: false, error: e.message };
+  }
+}
+
+function demoHandler(action, data) {
+  switch (action) {
+    case 'getTrips': return { success: true, data: DEMO_TRIPS };
+    case 'getSettings': return { success: true, data: state.settings };
+    case 'getBookings': return { success: true, data: DEMO_BOOKINGS };
+    case 'getBookingById': {
+      const b = DEMO_BOOKINGS.find(b => b.id === data.id);
+      return b ? { success: true, data: b } : { success: false, error: 'Not found' };
+    }
+    case 'getSeats': {
+      const booked = DEMO_BOOKINGS.filter(b => b.tripId === data.tripId && b.status !== 'cancelled').flatMap(b => b.seats);
+      return { success: true, booked, staff: [] };
+    }
+    case 'createBooking': {
+      const newId = 'BK-' + Math.random().toString(36).substring(2,8).toUpperCase();
+      const booking = { id: newId, ...data, status: 'pending', createdAt: new Date().toLocaleString() };
+      DEMO_BOOKINGS.push(booking);
+      return { success: true, bookingId: newId, booking };
+    }
+    case 'updateBooking': {
+      const idx = DEMO_BOOKINGS.findIndex(b => b.id === data.id);
+      if (idx >= 0) { Object.assign(DEMO_BOOKINGS[idx], data); return { success: true }; }
+      return { success: false };
+    }
+    case 'adminLogin': {
+      if (data.username === 'admin.mpg2026!' && data.passwordHash === CryptoJS.SHA256('adminmpg@2026#').toString()) {
+        return { success: true, needsOTP: true, username: data.username, role: 'superadmin' };
+      }
+      return { success: false, error: 'Invalid credentials' };
+    }
+    case 'adminRequestOTP': {
+      // Demo: skip real email
+      return { success: true, maskedEmail: 'th***@gmail.com', message: 'Demo mode — use OTP: 123456' };
+    }
+    case 'adminVerifyOTP': {
+      if (data.otp === '123456') {
+        return { success: true, token: 'demo-token', user: { username: data.username, role: 'superadmin' } };
+      }
+      return { success: false, error: 'Invalid OTP (Demo: use 123456)' };
+    }
+    case 'saveTrip': {
+      if (data.id) {
+        const idx = DEMO_TRIPS.findIndex(t => t.id === data.id);
+        if (idx >= 0) Object.assign(DEMO_TRIPS[idx], data);
+      } else {
+        data.id = 'T' + String(DEMO_TRIPS.length + 1).padStart(3, '0');
+        data.booked = 0;
+        DEMO_TRIPS.push(data);
+      }
+      return { success: true };
+    }
+    case 'deleteTrip': {
+      const idx = DEMO_TRIPS.findIndex(t => t.id === data.id);
+      if (idx >= 0) DEMO_TRIPS.splice(idx, 1);
+      return { success: true };
+    }
+    case 'saveSettings': {
+      Object.assign(state.settings, data);
+      return { success: true };
+    }
+    case 'getLogs': return { success: true, data: [
+      { timestamp: '2025-07-22 10:00', admin: 'admin', action: 'Login', detail: 'Admin logged in' },
+      { timestamp: '2025-07-22 10:05', admin: 'admin', action: 'Trip Added', detail: 'Added Pai Canyon Sunrise' },
+    ]};
+    case 'saveAdminSeats': {
+      state.adminSeats[data.tripId] = data.staffSeats;
+      return { success: true };
+    }
+    case 'getAdminUsers': return { success: true, data: [
+      { username: 'admin.mpg2026!', role: 'superadmin', email: 'thosapon.som@gmail.com', lastLogin: new Date().toISOString(), active: true },
+    ]};
+    case 'addAdminUser': return { success: true };
+    case 'deleteAdminUser': return { success: true };
+    default: return { success: false, error: 'Unknown action' };
+  }
+}
+
+// ============================================================
+// VIEW MANAGEMENT
+// ============================================================
+function switchNavbar(mode) {
+  // mode: 'user' or 'admin'
+  document.getElementById('navbar-user').style.display = mode === 'user' ? '' : 'none';
+  document.getElementById('navbar-admin').style.display = mode === 'admin' ? '' : 'none';
+  if (mode === 'admin' && state.adminUser) {
+    const el = document.getElementById('navbar-admin-user');
+    if (el) { el.textContent = '👤 ' + (state.adminUser.username || 'admin'); el.style.display = ''; }
+  }
+}
+
+function showView(viewName) {
+  ['home','booking','confirmation','admin-login','admin'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('view-' + viewName);
+  if (target) { target.style.display = ''; target.className = target.className.replace('fade-in','') + ' fade-in'; }
+  state.view = viewName;
+  // Switch navbar based on view
+  const adminViews = ['admin-login', 'admin'];
+  switchNavbar(adminViews.includes(viewName) ? 'admin' : 'user');
+  window.scrollTo(0,0);
+}
+
+// ============================================================
+// HOME / TRIPS
+// ============================================================
+async function loadTrips() {
+  const res = await apiCall('getTrips');
+  if (res.success) {
+    state.trips = res.data;
+    state.filteredTrips = res.data;
+    renderTrips();
+  }
+}
+
+function filterTrips() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  const cat = document.getElementById('categoryFilter').value;
+  state.filteredTrips = state.trips.filter(t => {
+    const matchQ = !query || t.name.toLowerCase().includes(query) || t.destination.toLowerCase().includes(query);
+    const matchCat = !cat || t.category === cat;
+    return matchQ && matchCat;
+  });
+  renderTrips();
+}
+
+function renderTrips() {
+  const featured = document.getElementById('featured-trips');
+  const allGrid = document.getElementById('all-trips');
+  const count = document.getElementById('trips-count');
+  const noTrips = document.getElementById('no-trips');
+
+  const active = state.filteredTrips.filter(t => t.status !== 'inactive');
+  count.textContent = active.length + ' Available';
+
+  if (active.length === 0) {
+    featured.innerHTML = '';
+    allGrid.innerHTML = '';
+    noTrips.style.display = '';
+    return;
+  }
+  noTrips.style.display = 'none';
+
+  // Featured (first 4)
+  featured.innerHTML = active.slice(0,6).map(t => tripCardHTML(t, true)).join('');
+  // All
+  allGrid.innerHTML = active.map(t => tripCardHTML(t, false)).join('');
+}
+
+function tripCardHTML(trip, small) {
+  const isFull = trip.status === 'full' || trip.booked >= trip.seats;
+  const avail = Math.max(0, trip.seats - trip.booked);
+  const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
+
+  return `<div class="trip-card${small ? '' : ''}" onclick="openTripModal('${trip.id}')">
+    <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
+      <span style="font-size:56px;">${trip.image || catEmoji}</span>
+    </div>
+    <div style="padding:14px;">
+      <div class="flex justify-between items-start mb-1">
+        <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
+        ${isFull ? '<span class="badge badge-red">FULL</span>' : '<span class="badge badge-green">' + avail + ' left</span>'}
+      </div>
+      <div style="font-weight:600; font-size:14px; margin:8px 0 4px; color: var(--text-primary);">${trip.name}</div>
+      <div style="font-size:12px; color: var(--text-muted); margin-bottom:8px;">📍 ${trip.destination}</div>
+      <div style="font-size:11px; color: var(--text-secondary); margin-bottom:12px;">📅 ${formatDate(trip.date)} · ${trip.time || ''}</div>
+      <div class="flex justify-between items-center">
+        <span style="font-family: 'Bebas Neue'; font-size:22px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
+        <button class="btn-primary" style="padding:6px 14px; font-size:12px;" ${isFull ? 'disabled' : ''} onclick="event.stopPropagation(); startBooking('${trip.id}')">
+          ${isFull ? 'Full' : 'Book Now'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function getGradient(cat) {
+  const g = { beach:'#0d4f6b, #1a8c7a', mountain:'#1a2a1a, #2d4a1e', city:'#1a1a2e, #2d2d4e', temple:'#2e1a0d, #4e3010', waterfall:'#0d2e3a, #1a4a5a' };
+  return g[cat] || '#1a1a2a, #2a2a3a';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+async function openTripModal(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  const isFull = trip.status === 'full' || trip.booked >= trip.seats;
+  const avail = Math.max(0, trip.seats - trip.booked);
+  const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
+
+  document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
+  document.getElementById('trip-img-modal').innerHTML = `
+    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
+    <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
+  `;
+  document.getElementById('trip-modal-content').innerHTML = `
+    <div class="flex gap-2 flex-wrap mb-3">
+      <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
+      ${isFull ? '<span class="badge badge-red">FULL — No seats available</span>' : '<span class="badge badge-green">' + avail + ' seats available</span>'}
+    </div>
+    <h2 style="font-family: Bebas Neue; font-size:30px; margin-bottom:4px;">${trip.name}</h2>
+    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px;">📍 ${trip.destination} &nbsp;·&nbsp; 📅 ${formatDate(trip.date)} ${trip.time ? '· ' + trip.time : ''}</p>
+    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description available.'}</p>
+    <div class="flex justify-between items-center">
+      <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
+      <button class="btn-primary" style="padding:12px 28px;" ${isFull ? 'disabled' : ''} onclick="closeModal('modal-trip'); startBooking('${trip.id}')">
+        ${isFull ? '— Fully Booked —' : 'Book Now →'}
+      </button>
+    </div>
+  `;
+  document.getElementById('modal-trip').style.display = 'flex';
+}
+
+// ============================================================
+// BOOKING FLOW
+// ============================================================
+async function startBooking(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  state.currentBooking = { tripId, trip, step: 1, customer: {}, selectedSeats: [], slipData: null, passengers: 1 };
+
+  // Render trip summary
+  document.getElementById('booking-trip-summary').innerHTML = `
+    <div class="flex gap-3 items-center">
+      <div style="font-size:36px; width:52px; height:52px; background: linear-gradient(135deg, ${getGradient(trip.category)}); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${trip.image || '🌍'}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600; font-size:14px;">${trip.name}</div>
+        <div style="font-size:12px; color: var(--text-muted);">📍 ${trip.destination} · 📅 ${formatDate(trip.date)}</div>
+      </div>
+      <div style="font-family: Bebas Neue; font-size:24px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</div>
+    </div>
+  `;
+
+  showView('booking');
+  goToStep(1);
+}
+
+function goToStep(step) {
+  // Validate current step before proceeding
+  if (step > state.currentBooking.step) {
+    const valid = validateStep(state.currentBooking.step);
+    if (!valid) return;
+  }
+
+  [1,2,3,4].forEach(s => {
+    document.getElementById('booking-step-' + s).style.display = s === step ? '' : 'none';
+    const dot = document.getElementById('step-' + s + '-dot');
+    if (s < step) { dot.className = 'step-dot done'; dot.textContent = '✓'; }
+    else if (s === step) { dot.className = 'step-dot active'; dot.textContent = s; }
+    else { dot.className = 'step-dot inactive'; dot.textContent = s; }
+
+    if (s < 4) {
+      const line = document.getElementById('step-' + s + '-line');
+      line.className = 'step-line' + (s < step ? ' done' : '');
+    }
+  });
+
+  state.currentBooking.step = step;
+
+  if (step === 2) loadPaymentDisplay();
+  if (step === 4) loadSeatsForBooking();
+}
+
+function validateStep(step) {
+  if (step === 1) {
+    const nn = document.getElementById('b-nickname').value.trim();
+    const fn = document.getElementById('b-firstname').value.trim();
+    const ln = document.getElementById('b-lastname').value.trim();
+    const ph = document.getElementById('b-phone').value.trim();
+    if (!nn || !fn || !ln || !ph) { showToast('กรุณากรอกข้อมูลให้ครบ (ชื่อเล่น, ชื่อ, นามสกุล, เบอร์โทร)', 'error'); return false; }
+    state.currentBooking.customer = {
+      nickname: nn,
+      firstname: fn, lastname: ln, phone: ph,
+      email: document.getElementById('b-email').value.trim(),
+      company: document.getElementById('b-company').value.trim(),
+      taxId: document.getElementById('b-taxid').value.trim(),
+      address: document.getElementById('b-address').value.trim(),
+      passengers: parseInt(document.getElementById('b-passengers').value)
+    };
+    state.currentBooking.passengers = state.currentBooking.customer.passengers;
+  }
+  return true;
+}
+
+async function loadPaymentDisplay() {
+  const res = await apiCall('getSettings');
+  if (res.success) {
+    const s = res.data;
+    const trip = state.currentBooking.trip;
+    const total = trip.price * state.currentBooking.passengers;
+    let html = `<div style="text-align:center; margin-bottom:20px;">
+      <div style="font-size:13px; color: var(--text-muted); margin-bottom:4px;">Total Amount</div>
+      <div style="font-family: Bebas Neue; font-size:48px; color: var(--accent);">฿${total.toLocaleString()}</div>
+      <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} passenger(s) × ฿${trip.price.toLocaleString()}</div>
+    </div>`;
+
+    if (s.qrImage) {
+      html += `<div class="payment-card text-center mb-4">
+        <div style="font-size:13px; font-weight:600; margin-bottom:12px;">📱 QR Code Payment</div>
+        <img src="${s.qrImage}" style="max-width:180px; border-radius:8px; margin:0 auto; display:block;">
+      </div>`;
+    }
+    if (s.bankAccountNumber) {
+      html += `<div class="payment-card mb-4">
+        <div style="font-size:13px; font-weight:600; margin-bottom:12px;">🏦 Bank Transfer</div>
+        <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
+          <div><span style="color: var(--text-muted);">Bank:</span> ${s.bankName}</div>
+          <div><span style="color: var(--text-muted);">Account:</span> ${s.bankAccountName}</div>
+          <div class="font-mono" style="font-size:16px; color: var(--accent);">${s.bankAccountNumber}</div>
+        </div>
+      </div>`;
+    }
+    if (!s.qrImage && !s.bankAccountNumber) {
+      html += `<div class="payment-card text-center" style="color: var(--text-muted);">💳 Payment details will appear here once configured by admin.</div>`;
+    }
+    document.getElementById('payment-methods-display').innerHTML = html;
+  }
+}
+
+function handleSlipUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    state.currentBooking.slipData = e.target.result;
+    const preview = document.getElementById('slip-preview');
+    preview.style.display = '';
+    if (file.type.startsWith('image/')) {
+      preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:8px;">`;
+    } else {
+      preview.innerHTML = `<div style="color: var(--green); font-size:13px; margin-top:8px;">✓ ${file.name} uploaded</div>`;
+    }
+    document.getElementById('step3-next-btn').disabled = false;
+    showToast('Slip uploaded!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadSeatsForBooking() {
+  const res = await apiCall('getSeats', { tripId: state.currentBooking.tripId });
+  const booked = res.booked || [];
+  const staff = res.staff || (state.adminSeats[state.currentBooking.tripId] || []);
+  document.getElementById('seats-needed').textContent = state.currentBooking.passengers;
+
+  for (let i = 1; i <= 10; i++) {
+    const el = document.getElementById('seat-' + i);
+    if (!el) continue;
+    el.className = 'seat';
+    if (booked.includes(i)) { el.className += ' seat-booked'; el.onclick = null; }
+    else if (staff.includes(i)) { el.className += ' seat-staff'; el.onclick = null; }
+    else { el.className += ' seat-available'; el.onclick = () => toggleSeat(i); }
+  }
+  state.currentBooking.selectedSeats = [];
+  updateSeatDisplay();
+}
+
+function toggleSeat(seatNum) {
+  const el = document.getElementById('seat-' + seatNum);
+  if (!el || el.classList.contains('seat-booked') || el.classList.contains('seat-staff') || el.classList.contains('seat-driver')) return;
+
+  const selected = state.currentBooking.selectedSeats;
+  const idx = selected.indexOf(seatNum);
+  if (idx >= 0) {
+    selected.splice(idx, 1);
+    el.className = 'seat seat-available';
+    el.onclick = () => toggleSeat(seatNum);
+  } else {
+    if (selected.length >= state.currentBooking.passengers) {
+      showToast(`Select only ${state.currentBooking.passengers} seat(s)`, 'info');
+      return;
+    }
+    selected.push(seatNum);
+    el.className = 'seat seat-selected';
+  }
+  updateSeatDisplay();
+}
+
+function updateSeatDisplay() {
+  const sel = state.currentBooking.selectedSeats;
+  document.getElementById('selected-seats-display').textContent = sel.length ? sel.map(s => 'Seat ' + s).join(', ') : 'None';
+  document.getElementById('confirm-booking-btn').disabled = sel.length !== state.currentBooking.passengers;
+}
+
+async function confirmBooking() {
+  const { trip, customer, selectedSeats, slipData } = state.currentBooking;
+  const bookingData = {
+    tripId: trip.id,
+    tripName: trip.name,
+    ...customer,
+    seats: selectedSeats,
+    slipData: slipData || '',
+    totalAmount: trip.price * customer.passengers
+  };
+
+  const res = await apiCall('createBooking', bookingData);
+  if (res.success) {
+    state.confirmedBooking = res.booking || { id: res.bookingId, ...bookingData };
+    state.confirmedBooking.id = res.bookingId || res.booking?.id;
+    showConfirmation(state.confirmedBooking);
+    // Update local trip data
+    const t = state.trips.find(t => t.id === trip.id);
+    if (t) t.booked = (t.booked || 0) + selectedSeats.length;
+  } else {
+    showToast('Booking failed: ' + (res.error || 'Unknown error'), 'error');
+  }
+}
+
+function showConfirmation(booking) {
+  document.getElementById('confirmed-booking-id').textContent = booking.id;
+  document.getElementById('confirmation-details').innerHTML = `
+    <div style="display:grid; gap:8px; font-size:13px; color: var(--text-secondary);">
+      <div class="flex justify-between"><span>ทริป</span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
+      ${booking.nickname ? `<div class="flex justify-between"><span>ชื่อเล่น</span><span style="color: var(--accent); font-weight:500;">${booking.nickname}</span></div>` : ''}
+      <div class="flex justify-between"><span>ชื่อ-นามสกุล</span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
+      <div class="flex justify-between"><span>โทรศัพท์</span><span>${booking.phone}</span></div>
+      <div class="flex justify-between"><span>ที่นั่ง</span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
+      <div class="flex justify-between"><span>ยอดชำระ</span><span style="color: var(--accent); font-weight:600;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
+      <div class="flex justify-between"><span>สถานะ</span><span class="badge badge-gold">รอยืนยัน</span></div>
+    </div>
+  `;
+  showView('confirmation');
+}
+
+function downloadReceipt() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ format: 'a5' });
+  const b = state.confirmedBooking;
+  const s = state.settings;
+
+  doc.setFillColor(10, 10, 15);
+  doc.rect(0, 0, 148, 210, 'F');
+  doc.setTextColor(232, 184, 75);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RECEIPT', 74, 20, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setTextColor(200, 200, 200);
+  doc.text(s.companyName || 'MPG Booking', 74, 30, { align: 'center' });
+  if (s.companyTaxId) doc.text('Tax ID: ' + s.companyTaxId, 74, 36, { align: 'center' });
+  doc.setDrawColor(232, 184, 75);
+  doc.setLineWidth(0.5);
+  doc.line(15, 42, 133, 42);
+  doc.setFontSize(9);
+  doc.setTextColor(150, 150, 160);
+  const rows = [
+    ['Booking ID:', b.id],
+    ['Date:', new Date(b.createdAt || Date.now()).toLocaleDateString()],
+    ['Customer:', b.firstname + ' ' + b.lastname],
+    ['Phone:', b.phone],
+    ['Trip:', b.tripName],
+    ['Seats:', Array.isArray(b.seats) ? b.seats.join(', ') : b.seats],
+    ['Passengers:', String(b.passengers || 1)],
+  ];
+  let y = 52;
+  rows.forEach(([label, val]) => {
+    doc.setTextColor(120, 120, 130);
+    doc.text(label, 15, y);
+    doc.setTextColor(220, 220, 220);
+    doc.text(val, 75, y);
+    y += 10;
+  });
+  doc.line(15, y + 2, 133, y + 2);
+  y += 12;
+  doc.setFontSize(14);
+  doc.setTextColor(232, 184, 75);
+  doc.text('TOTAL AMOUNT', 15, y);
+  doc.setFont('helvetica', 'bold');
+  doc.text('฿' + Number(b.totalAmount || 0).toLocaleString(), 133, y, { align: 'right' });
+  y += 16;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 90);
+  doc.text('Thank you for booking with MPG Booking. This is your official receipt.', 74, y, { align: 'center' });
+  doc.save('MPG-Receipt-' + b.id + '.pdf');
+  showToast('Receipt downloaded!', 'success');
+}
+
+// ============================================================
+// SEARCH BOOKING
+// ============================================================
+function openSearchModal() {
+  document.getElementById('modal-search').style.display = 'flex';
+  document.getElementById('search-result').style.display = 'none';
+  document.getElementById('search-booking-id').value = '';
+}
+
+async function searchBooking() {
+  const id = document.getElementById('search-booking-id').value.trim().toUpperCase();
+  if (!id) { showToast('Enter a booking ID', 'info'); return; }
+  const res = await apiCall('getBookingById', { id });
+  const el = document.getElementById('search-result');
+  el.style.display = '';
+  if (res.success && res.data) {
+    const b = res.data;
+    const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' };
+    el.innerHTML = `
+      <div class="card p-4">
+        <div class="flex justify-between items-center mb-3">
+          <span class="font-mono" style="color: var(--accent); font-size:14px;">${b.id}</span>
+          <span class="badge ${statusColors[b.status] || 'badge-gray'}">${b.status}</span>
+        </div>
+        <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
+          <div><span style="color: var(--text-muted);">Name:</span> ${b.firstname} ${b.lastname}</div>
+          <div><span style="color: var(--text-muted);">Trip:</span> ${b.tripName}</div>
+          <div><span style="color: var(--text-muted);">Seats:</span> <span style="color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(', ') : b.seats}</span></div>
+          <div><span style="color: var(--text-muted);">Booked:</span> ${b.createdAt || 'N/A'}</div>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `<div style="text-align:center; color: var(--red); font-size:13px; padding:20px;">❌ Booking not found. Check your ID.</div>`;
+  }
+}
+
+// ============================================================
+// ADMIN — 2-Step Login (Credentials → OTP)
+// ============================================================
+let _loginUsername = '';  // store temporarily between steps
+
+async function adminLogin() {
+  const username = document.getElementById('admin-username').value.trim();
+  const password = document.getElementById('admin-password').value;
+  if (!username || !password) { showLoginError('กรุณากรอก username และ password'); return; }
+
+  const passwordHash = CryptoJS.SHA256(password).toString();
+  const btn = document.getElementById('login-btn');
+  btn.innerHTML = '<div class="spinner" style="width:16px; height:16px; display:inline-block;"></div> กำลังตรวจสอบ...';
+  btn.disabled = true;
+
+  const res = await apiCall('adminLogin', { username, passwordHash });
+
+  btn.innerHTML = 'Sign In';
+  btn.disabled = false;
+
+  if (res.success && res.needsOTP) {
+    _loginUsername = username;
+    // Request OTP from server
+    const otpRes = await apiCall('adminRequestOTP', { username });
+    if (otpRes.success) {
+      document.getElementById('login-step-credentials').style.display = 'none';
+      document.getElementById('login-step-otp').style.display = '';
+      document.getElementById('otp-sent-msg').textContent = 'ส่งรหัส OTP ไปยัง ' + (otpRes.maskedEmail || 'email ของคุณ');
+      document.getElementById('admin-otp').value = '';
+      document.getElementById('admin-otp').focus();
+    } else {
+      showLoginError(otpRes.error || 'ไม่สามารถส่ง OTP ได้');
+    }
+  } else {
+    showLoginError(res.error || 'Invalid credentials');
+  }
+}
+
+async function adminVerifyOTP() {
+  const otp = document.getElementById('admin-otp').value.trim();
+  if (!otp || otp.length < 6) { showOTPError('กรุณากรอกรหัส OTP 6 หลัก'); return; }
+
+  const btn = document.getElementById('otp-verify-btn');
+  btn.innerHTML = '<div class="spinner" style="width:16px; height:16px; display:inline-block;"></div> กำลังยืนยัน...';
+  btn.disabled = true;
+
+  const res = await apiCall('adminVerifyOTP', { username: _loginUsername, otp });
+
+  btn.innerHTML = 'ยืนยัน OTP';
+  btn.disabled = false;
+
+  if (res.success) {
+    state.adminLoggedIn = true;
+    state.adminUser = res.user || { username: _loginUsername };
+    state.adminToken = res.token || '';
+    document.getElementById('admin-user-display').textContent = _loginUsername;
+    document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const navUser = document.getElementById('navbar-admin-user');
+    if (navUser) { navUser.textContent = '👤 ' + _loginUsername; navUser.style.display = ''; }
+    // Reset login form
+    backToCredentials();
+    showView('admin');
+    loadAdminData();
+  } else {
+    showOTPError(res.error || 'รหัส OTP ไม่ถูกต้อง');
+  }
+}
+
+async function adminRequestOTPResend() {
+  if (!_loginUsername) return;
+  const res = await apiCall('adminRequestOTP', { username: _loginUsername });
+  if (res.success) {
+    showToast('ส่ง OTP ใหม่แล้ว ตรวจสอบ email ของคุณ', 'success');
+    document.getElementById('admin-otp').value = '';
+  } else {
+    showToast(res.error || 'ไม่สามารถส่ง OTP ได้', 'error');
+  }
+}
+
+function backToCredentials() {
+  document.getElementById('login-step-credentials').style.display = '';
+  document.getElementById('login-step-otp').style.display = 'none';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('otp-error').style.display = 'none';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = '';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function showOTPError(msg) {
+  const el = document.getElementById('otp-error');
+  el.textContent = msg;
+  el.style.display = '';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function adminLogout() {
+  state.adminLoggedIn = false;
+  state.adminUser = null;
+  state.adminToken = '';
+  showView('home');
+  showToast('ออกจากระบบแล้ว', 'info');
+}
+
+function switchAdminTab(tab) {
+  ['dashboard','trips','bookings','payments','logs','admin-users'].forEach(t => {
+    const el = document.getElementById('admin-tab-' + t);
+    const nav = document.getElementById('nav-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    if (nav) nav.className = 'sidebar-item' + (t === tab ? ' active' : '');
+  });
+  if (tab === 'trips') loadAdminTrips();
+  if (tab === 'bookings') loadAdminBookings();
+  if (tab === 'payments') loadPaymentSettings();
+  if (tab === 'logs') loadLogs();
+  if (tab === 'admin-users') loadAdminUsers();
+}
+
+async function loadAdminData() {
+  const [tripsRes, bookingsRes] = await Promise.all([
+    apiCall('getTrips'),
+    apiCall('getBookings')
+  ]);
+  if (tripsRes.success) {
+    state.trips = tripsRes.data;
+    document.getElementById('stat-trips').textContent = tripsRes.data.length;
+  }
+  if (bookingsRes.success) {
+    state.allBookings = bookingsRes.data;
+    state.filteredBookings = bookingsRes.data;
+    const total = bookingsRes.data.length;
+    const pending = bookingsRes.data.filter(b => b.status === 'pending').length;
+    const confirmed = bookingsRes.data.filter(b => b.status === 'confirmed').length;
+    document.getElementById('stat-bookings').textContent = total;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-confirmed').textContent = confirmed;
+    renderRecentBookings(bookingsRes.data.slice(-5).reverse());
+  }
+}
+
+function renderRecentBookings(bookings) {
+  const tbody = document.getElementById('recent-bookings-body');
+  if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:24px;">No bookings yet</td></tr>'; return; }
+  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
+  tbody.innerHTML = bookings.map(b => `
+    <tr>
+      <td class="font-mono" style="color: var(--accent); font-size:12px;">${b.id}</td>
+      <td>${b.firstname} ${b.lastname}</td>
+      <td style="font-size:12px;">${b.tripName || '—'}</td>
+      <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(',') : b.seats}</td>
+      <td><span class="badge ${statusBadge(b.status)}">${b.status}</span></td>
+      <td>
+        <div class="flex gap-2">
+          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="openEditBooking('${b.id}')">Edit</button>
+          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadAdminTrips() {
+  const res = await apiCall('getTrips');
+  if (!res.success) return;
+  state.trips = res.data;
+  const tbody = document.getElementById('trips-table-body');
+  const statusBadge = (s) => ({ active: 'badge-green', inactive: 'badge-gray', full: 'badge-red' }[s] || 'badge-gray');
+  tbody.innerHTML = res.data.map(t => `
+    <tr>
+      <td>
+        <div style="font-weight:500; font-size:13px;">${t.name}</div>
+        <div style="font-size:11px; color: var(--text-muted);">📍 ${t.destination}</div>
+      </td>
+      <td style="font-size:12px;">${formatDate(t.date)}</td>
+      <td style="color: var(--accent); font-weight:600;">฿${Number(t.price).toLocaleString()}</td>
+      <td style="font-size:12px;">${t.booked || 0}/${t.seats}</td>
+      <td><span class="badge ${statusBadge(t.status)}">${t.status}</span></td>
+      <td>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="openTripModal_admin('${t.id}')">Edit</button>
+          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="openAdminSeats('${t.id}')">Seats</button>
+          <button class="btn-danger" style="padding:4px 10px; font-size:11px;" onclick="deleteTrip('${t.id}')">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadAdminBookings() {
+  const res = await apiCall('getBookings');
+  if (!res.success) return;
+  state.allBookings = res.data;
+  state.filteredBookings = res.data;
+  renderAdminBookings(res.data);
+}
+
+function filterAdminBookings() {
+  const q = document.getElementById('admin-booking-search').value.toLowerCase();
+  const s = document.getElementById('admin-booking-status-filter').value;
+  state.filteredBookings = state.allBookings.filter(b => {
+    const matchQ = !q || b.id?.toLowerCase().includes(q) || (b.firstname + ' ' + b.lastname).toLowerCase().includes(q) || b.tripName?.toLowerCase().includes(q);
+    const matchS = !s || b.status === s;
+    return matchQ && matchS;
+  });
+  renderAdminBookings(state.filteredBookings);
+}
+
+function renderAdminBookings(bookings) {
+  const tbody = document.getElementById('all-bookings-body');
+  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
+  if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:24px;">No bookings</td></tr>'; return; }
+  tbody.innerHTML = bookings.map(b => `
+    <tr>
+      <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
+      <td style="font-size:12px;">${b.nickname ? '<span style="color:var(--accent);font-weight:600;">' + b.nickname + '</span><br>' : ''}${b.firstname} ${b.lastname}<br><span style="color: var(--text-muted);">${b.phone}</span></td>
+      <td style="font-size:12px;">${b.tripName || '—'}</td>
+      <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(',') : b.seats}</td>
+      <td>
+        ${b.slipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="viewSlip('${b.id}')">View</button>` : '<span style="color: var(--text-muted); font-size:11px;">None</span>'}
+      </td>
+      <td><span class="badge ${statusBadge(b.status)}">${b.status}</span></td>
+      <td>
+        <div class="flex gap-1 flex-wrap">
+          <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="openEditBooking('${b.id}')">Edit</button>
+          <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
+          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>
+          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'cancelled')">✕</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function quickUpdateStatus(bookingId, newStatus) {
+  const res = await apiCall('updateBooking', { id: bookingId, status: newStatus });
+  if (res.success) {
+    showToast(`Booking ${newStatus}!`, 'success');
+    loadAdminBookings();
+    logAction('Status Updated', `Booking ${bookingId} → ${newStatus}`);
+  }
+}
+
+function openEditBooking(id) {
+  const b = state.allBookings.find(x => x.id === id) || DEMO_BOOKINGS.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('edit-booking-id').value = b.id;
+  document.getElementById('edit-firstname').value = b.firstname || '';
+  document.getElementById('edit-lastname').value = b.lastname || '';
+  document.getElementById('edit-phone').value = b.phone || '';
+  document.getElementById('edit-email').value = b.email || '';
+  document.getElementById('edit-seats').value = Array.isArray(b.seats) ? b.seats.join(',') : (b.seats || '');
+  document.getElementById('edit-status').value = b.status || 'pending';
+  document.getElementById('edit-note').value = b.note || '';
+  document.getElementById('modal-edit-booking').style.display = 'flex';
+}
+
+async function saveBookingEdit() {
+  const id = document.getElementById('edit-booking-id').value;
+  const data = {
+    id,
+    firstname: document.getElementById('edit-firstname').value,
+    lastname: document.getElementById('edit-lastname').value,
+    phone: document.getElementById('edit-phone').value,
+    email: document.getElementById('edit-email').value,
+    seats: document.getElementById('edit-seats').value.split(',').map(s => parseInt(s.trim())).filter(Boolean),
+    status: document.getElementById('edit-status').value,
+    note: document.getElementById('edit-note').value
+  };
+  const res = await apiCall('updateBooking', data);
+  if (res.success) {
+    closeModal('modal-edit-booking');
+    showToast('Booking updated!', 'success');
+    loadAdminBookings();
+    logAction('Booking Edited', `Edited booking ${id}`);
+  }
+}
+
+function viewSlip(bookingId) {
+  const b = state.allBookings.find(x => x.id === bookingId);
+  const content = document.getElementById('slip-view-content');
+  if (b?.slipData) {
+    content.innerHTML = `<img src="${b.slipData}" style="max-width:100%; border-radius:8px;">`;
+  } else {
+    content.innerHTML = '<div style="color: var(--text-muted);">No slip available</div>';
+  }
+  document.getElementById('modal-view-slip').style.display = 'flex';
+}
+
+function generateBookingReceipt(bookingId) {
+  const b = state.allBookings.find(x => x.id === bookingId) || DEMO_BOOKINGS.find(x => x.id === bookingId);
+  if (!b) return;
+  state.confirmedBooking = b;
+  downloadReceipt();
+}
+
+function openTripModal(tripId) {
+  // Check if this is called from admin or user context
+  if (state.adminLoggedIn && state.view === 'admin') {
+    openTripModal_admin(tripId);
+    return;
+  }
+  // User trip modal - delegate to the original function
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  openUserTripModal(tripId);
+}
+
+function openUserTripModal(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  const isFull = trip.status === 'full' || trip.booked >= trip.seats;
+  const avail = Math.max(0, trip.seats - trip.booked);
+  const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
+
+  document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
+  document.getElementById('trip-img-modal').innerHTML = `
+    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
+    <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
+  `;
+  document.getElementById('trip-modal-content').innerHTML = `
+    <div class="flex gap-2 flex-wrap mb-3">
+      <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
+      ${isFull ? '<span class="badge badge-red">FULL</span>' : '<span class="badge badge-green">' + avail + ' left</span>'}
+    </div>
+    <h2 style="font-family: Bebas Neue; font-size:30px; margin-bottom:4px;">${trip.name}</h2>
+    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px;">📍 ${trip.destination} · 📅 ${formatDate(trip.date)} ${trip.time ? '· ' + trip.time : ''}</p>
+    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description.'}</p>
+    <div class="flex justify-between items-center">
+      <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
+      <button class="btn-primary" style="padding:12px 28px;" ${isFull ? 'disabled' : ''} onclick="closeModal('modal-trip'); startBooking('${trip.id}')">
+        ${isFull ? '— Fully Booked —' : 'Book Now →'}
+      </button>
+    </div>
+  `;
+  document.getElementById('modal-trip').style.display = 'flex';
+}
+
+function openTripModal_admin(tripId) {
+  state.editingTripId = tripId || null;
+  if (tripId) {
+    const t = state.trips.find(x => x.id === tripId);
+    if (!t) return;
+    document.getElementById('trip-modal-title').textContent = 'EDIT TRIP';
+    document.getElementById('trip-edit-id').value = t.id;
+    document.getElementById('trip-name').value = t.name;
+    document.getElementById('trip-destination').value = t.destination;
+    document.getElementById('trip-date').value = t.date;
+    document.getElementById('trip-time').value = t.time || '';
+    document.getElementById('trip-price').value = t.price;
+    document.getElementById('trip-seats').value = t.seats;
+    document.getElementById('trip-category').value = t.category;
+    document.getElementById('trip-description').value = t.description || '';
+    document.getElementById('trip-image').value = t.image || '';
+    document.getElementById('trip-status').value = t.status;
+  } else {
+    document.getElementById('trip-modal-title').textContent = 'ADD TRIP';
+    document.getElementById('trip-edit-id').value = '';
+    ['trip-name','trip-destination','trip-description','trip-image'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('trip-date').value = '';
+    document.getElementById('trip-time').value = '07:00';
+    document.getElementById('trip-price').value = '';
+    document.getElementById('trip-seats').value = 9;
+    document.getElementById('trip-category').value = 'mountain';
+    document.getElementById('trip-status').value = 'active';
+  }
+  document.getElementById('modal-trip-admin').style.display = 'flex';
+}
+
+function openTripModal() { openTripModal_admin(null); }
+
+async function saveTrip() {
+  const id = document.getElementById('trip-edit-id').value;
+  const data = {
+    id: id || undefined,
+    name: document.getElementById('trip-name').value.trim(),
+    destination: document.getElementById('trip-destination').value.trim(),
+    date: document.getElementById('trip-date').value,
+    time: document.getElementById('trip-time').value,
+    price: parseFloat(document.getElementById('trip-price').value) || 0,
+    seats: parseInt(document.getElementById('trip-seats').value) || 9,
+    category: document.getElementById('trip-category').value,
+    description: document.getElementById('trip-description').value.trim(),
+    image: document.getElementById('trip-image').value.trim(),
+    status: document.getElementById('trip-status').value
+  };
+  if (!data.name || !data.destination || !data.date || !data.price) {
+    showToast('Fill in required fields', 'error'); return;
+  }
+  const res = await apiCall('saveTrip', data);
+  if (res.success) {
+    closeModal('modal-trip-admin');
+    showToast(id ? 'Trip updated!' : 'Trip added!', 'success');
+    await loadAdminTrips();
+    await loadTrips();
+    logAction(id ? 'Trip Edited' : 'Trip Added', data.name);
+  }
+}
+
+async function deleteTrip(tripId) {
+  if (!confirm('Delete this trip?')) return;
+  const res = await apiCall('deleteTrip', { id: tripId });
+  if (res.success) {
+    showToast('Trip deleted', 'info');
+    await loadAdminTrips();
+    await loadTrips();
+    logAction('Trip Deleted', tripId);
+  }
+}
+
+// Build a map: seatNumber → nickname (or name) for display in admin seat map
+function buildSeatNameMap(tripId) {
+  const map = {};
+  (state.allBookings || [])
+    .filter(b => b.tripId === tripId && b.status !== 'cancelled')
+    .forEach(b => {
+      const seats = Array.isArray(b.seats) ? b.seats : [];
+      // Prefer nickname, fallback to firstname + initial
+      const name = b.nickname ? String(b.nickname) : ((b.firstname || '') + (b.lastname ? ' ' + b.lastname.charAt(0) + '.' : '')).trim();
+      seats.forEach((s, idx) => {
+        map[parseInt(s)] = idx === 0 ? name : (name + '(' + (idx+1) + ')');
+      });
+    });
+  return map;
+}
+
+function applyAdminSeatStyle(seatNum, isBooked, isStaff, nameMap) {
+  const el = document.getElementById('admin-seat-' + seatNum);
+  const label = document.getElementById('admin-seat-label-' + seatNum);
+  if (!el || !label) return;
+
+  // Remove all state classes
+  el.classList.remove('seat-available', 'seat-booked', 'seat-staff', 'seat-selected');
+  el.style.cursor = 'pointer';
+
+  if (isBooked) {
+    el.classList.add('seat-booked');
+    el.style.cursor = 'not-allowed';
+    el.onclick = null;
+    const name = nameMap[seatNum] || '';
+    // Show name in booked seat — truncate to fit
+    label.innerHTML = `<span style="font-size:9px; line-height:1.2; display:block; word-break:break-all; max-width:46px;">${name || 'จองแล้ว'}</span>`;
+    // Hide emoji icon for booked seats to give more space for name
+    el.querySelector('span:first-child').style.display = 'none';
+  } else if (isStaff) {
+    el.classList.add('seat-staff');
+    el.querySelector('span:first-child').style.display = '';
+    label.textContent = 'Staff';
+    el.onclick = () => toggleAdminSeatNew(seatNum);
+  } else {
+    el.classList.add('seat-available');
+    el.querySelector('span:first-child').style.display = '';
+    label.textContent = 'S' + seatNum;
+    el.onclick = () => toggleAdminSeatNew(seatNum);
+  }
+}
+
+async function openAdminSeats(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  document.getElementById('admin-seats-trip-info').textContent = trip ? `${trip.name} — ${formatDate(trip.date)}` : tripId;
+
+  const res = await apiCall('getSeats', { tripId });
+  const booked = res.booked || [];
+  const staff = state.adminSeats[tripId] || res.staff || [];
+  // Use server-side seatNameMap (built with nicknames)
+  const nameMap = res.seatNameMap || buildSeatNameMap(tripId);
+
+  // Store tripId for save
+  document.getElementById('admin-van-container').dataset.tripId = tripId;
+
+  for (let i = 1; i <= 10; i++) {
+    applyAdminSeatStyle(i, booked.includes(i), staff.includes(i), nameMap);
+  }
+
+  document.getElementById('modal-seats-admin').style.display = 'flex';
+}
+
+function toggleAdminSeatNew(seatNum) {
+  const tripId = document.getElementById('admin-van-container').dataset.tripId;
+  if (!tripId) return;
+  if (!state.adminSeats[tripId]) state.adminSeats[tripId] = [];
+  const idx = state.adminSeats[tripId].indexOf(seatNum);
+  if (idx >= 0) {
+    state.adminSeats[tripId].splice(idx, 1);
+  } else {
+    state.adminSeats[tripId].push(seatNum);
+  }
+  const nameMap = buildSeatNameMap(tripId);
+  const isStaff = state.adminSeats[tripId].includes(seatNum);
+  applyAdminSeatStyle(seatNum, false, isStaff, nameMap);
+}
+
+// Keep old toggleAdminSeat for compatibility
+function toggleAdminSeat(el, tripId, seatNum) {
+  toggleAdminSeatNew(seatNum);
+}
+
+async function saveAdminSeats() {
+  const tripId = document.getElementById('admin-van-container')?.dataset.tripId;
+  if (!tripId) return;
+  const res = await apiCall('saveAdminSeats', { tripId, staffSeats: state.adminSeats[tripId] || [] });
+  if (res.success) {
+    closeModal('modal-seats-admin');
+    showToast('Seat settings saved!', 'success');
+    logAction('Seats Updated', `Trip ${tripId}`);
+  }
+}
+
+async function loadPaymentSettings() {
+  const res = await apiCall('getSettings');
+  if (!res.success) return;
+  const s = res.data;
+  ['bankName','bankAccountName','bankAccountNumber'].forEach(k => {
+    const el = document.getElementById('bank-' + k.replace(/([A-Z])/g, '-$1').toLowerCase());
+    if (el && s[k]) el.value = s[k];
+  });
+  if (s.companyName) document.getElementById('co-name').value = s.companyName;
+  if (s.companyTaxId) document.getElementById('co-taxid').value = s.companyTaxId;
+  if (s.companyAddress) document.getElementById('co-address').value = s.companyAddress;
+  if (s.companyPhone) document.getElementById('co-phone').value = s.companyPhone;
+  if (s.qrImage) {
+    document.getElementById('qr-display').innerHTML = `<img src="${s.qrImage}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
+  }
+}
+
+function handleQRUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    state.settings.qrImage = e.target.result;
+    document.getElementById('qr-display').innerHTML = `<img src="${e.target.result}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
+    apiCall('saveSettings', { qrImage: e.target.result });
+    showToast('QR uploaded!', 'success');
+    logAction('QR Updated', 'Payment QR code updated');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function savePaymentSettings() {
+  const data = {
+    bankName: document.getElementById('bank-name').value,
+    bankAccountName: document.getElementById('bank-account-name').value,
+    bankAccountNumber: document.getElementById('bank-account-number').value
+  };
+  Object.assign(state.settings, data);
+  const res = await apiCall('saveSettings', data);
+  if (res.success) { showToast('Bank details saved!', 'success'); logAction('Payment Settings', 'Bank info updated'); }
+}
+
+async function saveCompanyInfo() {
+  const data = {
+    companyName: document.getElementById('co-name').value,
+    companyTaxId: document.getElementById('co-taxid').value,
+    companyAddress: document.getElementById('co-address').value,
+    companyPhone: document.getElementById('co-phone').value
+  };
+  Object.assign(state.settings, data);
+  const res = await apiCall('saveSettings', data);
+  if (res.success) { showToast('Company info saved!', 'success'); logAction('Company Info', 'Updated company details'); }
+}
+
+async function loadLogs() {
+  const res = await apiCall('getLogs');
+  const tbody = document.getElementById('logs-body');
+  if (!res.success || !res.data.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding:24px;">No logs</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res.data.reverse().map(l => `
+    <tr>
+      <td class="font-mono" style="font-size:11px; color: var(--text-muted);">${l.timestamp}</td>
+      <td style="font-size:12px;">${l.admin}</td>
+      <td><span class="badge badge-gold">${l.action}</span></td>
+      <td style="font-size:12px; color: var(--text-secondary);">${l.detail}</td>
+    </tr>`).join('');
+}
+
+function logAction(action, detail) {
+  // In real deployment, this would call GAS to log
+  if (!DEMO_MODE) apiCall('addLog', { action, detail, admin: state.adminUser?.username || 'admin' });
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', (e) => { if (e.target === el) el.style.display = 'none'; });
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(message, type = 'info') {
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span style="font-size:14px; color: ${type==='success' ? 'var(--green)' : type==='error' ? 'var(--red)' : 'var(--accent)'};">${icons[type]}</span>
+    <span style="color: var(--text-secondary);">${message}</span>
+  `;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'none'; toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ============================================================
+// ADMIN USERS MANAGEMENT
+// ============================================================
+async function loadAdminUsers() {
+  const res = await apiCall('getAdminUsers');
+  const tbody = document.getElementById('admin-users-body');
+  if (!res.success || !res.data) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">ไม่สามารถโหลดข้อมูลได้</td></tr>';
+    return;
+  }
+  if (!res.data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">ไม่มีข้อมูล</td></tr>';
+    return;
+  }
+  const roleBadge = r => r === 'superadmin' ? '<span class="badge badge-red">superadmin</span>' :
+                         r === 'admin'      ? '<span class="badge badge-gold">admin</span>' :
+                                             '<span class="badge badge-blue">staff</span>';
+  tbody.innerHTML = res.data.map(a => `
+    <tr>
+      <td style="font-weight:500; font-family:'DM Mono',monospace; font-size:12px;">${a.username}</td>
+      <td>${roleBadge(a.role)}</td>
+      <td style="font-size:12px; color:var(--text-muted);">${a.email || '—'}</td>
+      <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? new Date(a.lastLogin).toLocaleString('th-TH') : '—'}</td>
+      <td><span class="badge ${String(a.active) !== 'FALSE' && a.active !== false ? 'badge-green' : 'badge-gray'}">${String(a.active) !== 'FALSE' && a.active !== false ? 'Active' : 'Inactive'}</span></td>
+      <td>
+        ${a.role === 'superadmin' ? '<span style="color:var(--text-muted); font-size:11px;">Protected</span>' :
+          `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="deleteAdminUser('${a.username}')">ลบ</button>`}
+      </td>
+    </tr>`).join('');
+}
+
+function openAddAdminModal() {
+  document.getElementById('new-admin-username').value = '';
+  document.getElementById('new-admin-password').value = '';
+  document.getElementById('new-admin-email').value = '';
+  document.getElementById('new-admin-role').value = 'staff';
+  document.getElementById('add-admin-error').style.display = 'none';
+  document.getElementById('modal-add-admin').style.display = 'flex';
+}
+
+async function saveNewAdminUser() {
+  const username = document.getElementById('new-admin-username').value.trim();
+  const password = document.getElementById('new-admin-password').value;
+  const email    = document.getElementById('new-admin-email').value.trim();
+  const role     = document.getElementById('new-admin-role').value;
+
+  const errEl = document.getElementById('add-admin-error');
+  if (!username || !password || !email) {
+    errEl.textContent = 'กรุณากรอกข้อมูลให้ครบทุกช่อง';
+    errEl.style.display = '';
+    return;
+  }
+  if (password.length < 8) {
+    errEl.textContent = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+    errEl.style.display = '';
+    return;
+  }
+
+  const passwordHash = CryptoJS.SHA256(password).toString();
+  const res = await apiCall('addAdminUser', { username, passwordHash, email, role });
+  if (res.success) {
+    closeModal('modal-add-admin');
+    showToast('เพิ่ม Admin "' + username + '" สำเร็จ', 'success');
+    logAction('Admin Added', `New admin: ${username} (${role})`);
+    loadAdminUsers();
+  } else {
+    errEl.textContent = res.error || 'เกิดข้อผิดพลาด';
+    errEl.style.display = '';
+  }
+}
+
+async function deleteAdminUser(username) {
+  if (!confirm('ลบ Admin "' + username + '" ออกจากระบบ?')) return;
+  const res = await apiCall('deleteAdminUser', { username });
+  if (res.success) {
+    showToast('ลบ Admin "' + username + '" แล้ว', 'info');
+    logAction('Admin Deleted', username);
+    loadAdminUsers();
+  } else {
+    showToast(res.error || 'เกิดข้อผิดพลาด', 'error');
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  showView('home');
+  loadTrips();
+
+  // Init step dots
+  document.getElementById('step-1-dot').className = 'step-dot active';
+
+  // Drag support for upload zone
+  const zone = document.getElementById('slip-upload-zone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const dt = e.dataTransfer;
+      if (dt.files.length) { document.getElementById('slip-file-input').files = dt.files; handleSlipUpload({ files: dt.files }); }
+    });
+  }
+
+  if (DEMO_MODE) {
+    setTimeout(() => showToast('Running in demo mode — connect your GAS backend to go live!', 'info'), 1500);
+  }
+});
+
+// Override openTripModal for user view
+const _openTripModal = openTripModal;
+window.openTripModal = function(tripId) {
+  if (state.view === 'admin') { openTripModal_admin(tripId); }
+  else { openUserTripModal(tripId); }
+};
+</script>
+</body>
+</html>
