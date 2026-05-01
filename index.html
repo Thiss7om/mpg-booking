@@ -1453,7 +1453,7 @@
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbx7Jl272CMHnzwMrgC7MfPs7HNDqIb_9mGYAFMcWX0ChA6ws-w_Yr1Mig38Uyk4i1vTJA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJz-fpFx6xNeFjd1dlFT-niZwrI5yhGdMtj5tnnRM40h-zdhdxE-AEzOU7foJcf4skog/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1837,7 +1837,7 @@ async function loadPaymentDisplay() {
     let html = `<div style="text-align:center; margin-bottom:20px;">
       <div style="font-size:13px; color: var(--text-muted); margin-bottom:4px;">Total Amount</div>
       <div style="font-family: Bebas Neue; font-size:48px; color: var(--accent);">฿${total.toLocaleString()}</div>
-      <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} passenger(s) × ฿${trip.price.toLocaleString()}</div>
+      <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} passenger(s) × ${trip.price.toLocaleString()}</div>
     </div>`;
 
     if (s.qrImage) {
