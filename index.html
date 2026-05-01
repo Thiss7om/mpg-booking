@@ -1703,14 +1703,27 @@ function renderTrips() {
   allGrid.innerHTML = active.map(t => tripCardHTML(t, false)).join('');
 }
 
+function getTripFirstImage(trip) {
+  if (!trip.image) return null;
+  try {
+    const arr = JSON.parse(trip.image);
+    if (Array.isArray(arr) && arr[0] && arr[0].startsWith('data:')) return arr[0];
+  } catch(e) {}
+  if (typeof trip.image === 'string' && trip.image.startsWith('data:')) return trip.image;
+  return null;
+}
+
 function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
+  const firstImg = getTripFirstImage(trip);
 
   return `<div class="trip-card${small ? '' : ''}" onclick="openTripModal('${trip.id}')">
     <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
-      <span style="font-size:56px;">${trip.image || catEmoji}</span>
+      ${firstImg
+        ? `<img src="${firstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">`
+        : `<span style="font-size:56px;">${catEmoji}</span>`}
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
@@ -1748,11 +1761,14 @@ async function openTripModal(tripId) {
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
 
-  document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
-  document.getElementById('trip-img-modal').innerHTML = `
-    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
-    <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
-  `;
+  const firstImg1 = getTripFirstImage(trip);
+  const imgEl = document.getElementById('trip-img-modal');
+  imgEl.style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
+  imgEl.innerHTML = firstImg1
+    ? `<img src="${firstImg1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+       <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.55); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px; z-index:2;">✕</button>`
+    : `<div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${catEmoji}</div>
+       <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>`;
   document.getElementById('trip-modal-content').innerHTML = `
     <div class="flex gap-2 flex-wrap mb-3">
       <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
@@ -1780,9 +1796,13 @@ async function startBooking(tripId) {
   state.currentBooking = { tripId, trip, step: 1, customer: {}, selectedSeats: [], slipData: null, passengers: 1 };
 
   // Render trip summary
+  const bookingFirstImg = getTripFirstImage(trip);
+  const bookingThumbInner = bookingFirstImg
+    ? `<img src="${bookingFirstImg}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+    : `<span style="font-size:28px;">${({ beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍')}</span>`;
   document.getElementById('booking-trip-summary').innerHTML = `
     <div class="flex gap-3 items-center">
-      <div style="font-size:36px; width:52px; height:52px; background: linear-gradient(135deg, ${getGradient(trip.category)}); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${trip.image || '🌍'}</div>
+      <div style="width:52px; height:52px; background: linear-gradient(135deg, ${getGradient(trip.category)}); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;">${bookingThumbInner}</div>
       <div style="flex:1;">
         <div style="font-weight:600; font-size:14px;">${trip.name}</div>
         <div style="font-size:12px; color: var(--text-muted);">📍 ${trip.destination} · 📅 ${formatDate(trip.date)}</div>
@@ -2387,11 +2407,20 @@ function openUserTripModal(tripId) {
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
 
-  document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
-  document.getElementById('trip-img-modal').innerHTML = `
-    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
-    <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
-  `;
+  const modalFirstImg = getTripFirstImage(trip);
+  const modalImgEl = document.getElementById('trip-img-modal');
+  modalImgEl.style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
+  if (modalFirstImg) {
+    modalImgEl.innerHTML = `
+      <img src="${modalFirstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+      <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.55); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px; z-index:2;">✕</button>
+    `;
+  } else {
+    modalImgEl.innerHTML = `
+      <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${catEmoji}</div>
+      <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
+    `;
+  }
   document.getElementById('trip-modal-content').innerHTML = `
     <div class="flex gap-2 flex-wrap mb-3">
       <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
