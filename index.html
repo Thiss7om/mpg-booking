@@ -1431,7 +1431,7 @@
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbynjOhchQHKXl_YbEkG2kVtOQLn6d5QyqgRTfkZI0WwOh5hm0G7OG1XnB5GZOigFueglg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx7YRenVFMja60UwZQMhZbSgg-qWm0GtC3lRiYXiwWNH9bQIR06uzlPezmE44AGk1HYag/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2010,13 +2010,13 @@ function showConfirmation(booking) {
   document.getElementById('confirmed-booking-id').textContent = booking.id;
   document.getElementById('confirmation-details').innerHTML = `
     <div style="display:grid; gap:8px; font-size:13px; color: var(--text-secondary);">
-      <div class="flex justify-between"><span>ทริป</span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
-      ${booking.nickname ? `<div class="flex justify-between"><span>ชื่อเล่น</span><span style="color: var(--accent); font-weight:500;">${booking.nickname}</span></div>` : ''}
-      <div class="flex justify-between"><span>ชื่อ-นามสกุล</span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
-      <div class="flex justify-between"><span>โทรศัพท์</span><span>${booking.phone}</span></div>
-      <div class="flex justify-between"><span>ที่นั่ง</span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
-      <div class="flex justify-between"><span>ยอดชำระ</span><span style="color: var(--accent); font-weight:600;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
-      <div class="flex justify-between"><span>สถานะ</span><span class="badge badge-gold">รอยืนยัน</span></div>
+      <div class="flex justify-between"><span>ทริป : </span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
+      ${booking.nickname ? `<div class="flex justify-between"><span>ชื่อเล่น : </span><span style="color: var(--accent); font-weight:500;">${booking.nickname}</span></div>` : ''}
+      <div class="flex justify-between"><span>ชื่อ-นามสกุล : </span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
+      <div class="flex justify-between"><span>โทรศัพท์ : </span><span>${booking.phone}</span></div>
+      <div class="flex justify-between"><span>ที่นั่ง : </span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
+      <div class="flex justify-between"><span>ยอดชำระ </span><span style="color: var(--accent); font-weight:400;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
+      <div class="flex justify-between"><span>สถานะ </span><span class="badge badge-gold">รอยืนยัน</span></div>
     </div>
   `;
   showView('confirmation');
