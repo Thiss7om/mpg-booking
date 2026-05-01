@@ -2010,13 +2010,13 @@ function showConfirmation(booking) {
   document.getElementById('confirmed-booking-id').textContent = booking.id;
   document.getElementById('confirmation-details').innerHTML = `
     <div style="display:grid; gap:8px; font-size:13px; color: var(--text-secondary);">
-      <div class="flex justify-between"><span>ทริป : </span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
+      <div class="flex justify-between"><span>ทริป</span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
       ${booking.nickname ? `<div class="flex justify-between"><span>ชื่อเล่น : </span><span style="color: var(--accent); font-weight:500;">${booking.nickname}</span></div>` : ''}
-      <div class="flex justify-between"><span>ชื่อ-นามสกุล : </span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
-      <div class="flex justify-between"><span>โทรศัพท์ : </span><span>${booking.phone}</span></div>
-      <div class="flex justify-between"><span>ที่นั่ง : </span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
-      <div class="flex justify-between"><span>ยอดชำระ </span><span style="color: var(--accent); font-weight:400;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
-      <div class="flex justify-between"><span>สถานะ </span><span class="badge badge-gold">รอยืนยัน</span></div>
+      <div class="flex justify-between"><span>ชื่อ-นามสกุล</span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
+      <div class="flex justify-between"><span>โทรศัพท์</span><span>${booking.phone}</span></div>
+      <div class="flex justify-between"><span>ที่นั่ง</span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
+      <div class="flex justify-between"><span>ยอดชำระ</span><span style="color: var(--accent); font-weight:400;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
+      <div class="flex justify-between"><span>สถานะ</span><span class="badge badge-gold">รอยืนยัน</span></div>
     </div>
   `;
   showView('confirmation');
