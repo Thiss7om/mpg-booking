@@ -645,10 +645,10 @@
     <div class="font-display text-2xl" style="cursor:pointer" onclick="showView('home')">
       <span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span><span style="font-size:14px; color: var(--text-secondary); font-weight:400; margin-left:6px; letter-spacing:0.05em;">BOOKING</span>
     </div>
-    <div class="hidden md:flex items-center gap-6" style="font-size: 13px; color: var(--text-secondary);">
+    <!-- <div class="hidden md:flex items-center gap-6" style="font-size: 13px; color: var(--text-secondary);">
       <span style="cursor:pointer; transition:color 0.2s" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" onclick="showView('home')">Trips</span>
       <span style="cursor:pointer; transition:color 0.2s" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" onclick="openSearchModal()">My Booking</span>
-    </div>
+    </div> -->
   </div>
   <div class="flex items-center gap-3">
     <!-- <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="openSearchModal()">🔍 Find Booking</button> -->
@@ -679,7 +679,9 @@
     <div style="position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40px 24px;">
       <div class="badge badge-gold mb-4">✦ Mom Please, Let me go</div>
       <h1 class="font-display" style="font-size: clamp(52px, 10vw, 110px); line-height: 0.9; margin-bottom: 16px;">
-        จากคนแปลกหน้า<br><span style="color: var(--accent);">กลาย</span><br>เป็นเพื่อนกัน
+        <span style="color: #ff6b8a;">จากคนแปลกหน้า</span><br>
+        <span style="color: #ffe08a;">กลาย</span><br>
+        <span style="color: #5aacf0;">เป็นเพื่อนกัน</span>
       </h1>
       <p style="color: var(--text-secondary); font-size: 16px; max-width: 420px; line-height: 1.6; margin-bottom: 32px;">
         มาเที่ยวคนเดียว แต่กลับไปเป็นแก๊งค์เลย.
@@ -702,15 +704,15 @@
   <!-- Search Bar -->
   <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
     <div style="max-width: 1200px; margin: 0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-      <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()">
-      <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
+      <!-- <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()"> -->
+      <!-- <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
         <option value="">All Categories</option>
         <option value="beach">🏖 Beach</option>
         <option value="mountain">⛰ Mountain</option>
         <option value="city">🏙 City Tour</option>
         <option value="temple">🛕 Cultural</option>
         <option value="waterfall">💧 Waterfall</option>
-      </select>
+      </select> -->
     </div>
   </div>
 
