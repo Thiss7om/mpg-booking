@@ -676,8 +676,8 @@
   <!-- Hero -->
   <div class="hero-bg" style="padding-top: 64px;">
     <div class="hero-grid"></div>
-    <div style="position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40px 24px;">
-      <div class="badge badge-gold mb-4">✦ Mom Please, Let me go</div>
+    <div style="position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40 24px;">
+      <div class="badge badge-gold mb-4">✦ Mom Please, Let me go ✦</div>
       <h1 class="font-display" style="font-size: clamp(52px, 10vw, 110px); line-height: 0.9; margin-bottom: 16px;">
         <span style="color: #ff6b8a;">จากคนแปลกหน้า</span><br>
         <span style="color: #ffe08a;">กลาย</span><br>
@@ -704,15 +704,15 @@
   <!-- Search Bar -->
   <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
     <div style="max-width: 1200px; margin: 0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-      <!-- <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()"> -->
-      <!-- <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
+      <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="Search Trips..." oninput="filterTrips()">
+      <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
         <option value="">All Categories</option>
         <option value="beach">🏖 Beach</option>
         <option value="mountain">⛰ Mountain</option>
         <option value="city">🏙 City Tour</option>
         <option value="temple">🛕 Cultural</option>
         <option value="waterfall">💧 Waterfall</option>
-      </select> -->
+      </select>
     </div>
   </div>
 
@@ -1239,7 +1239,7 @@
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Total Seats</label>
-          <input class="input-field" id="trip-seats" type="number" value="9" min="1" max="100" oninput="updateVanCount(this.value)">
+          <input class="input-field" id="trip-seats" type="number" value="10" min="1" max="100" oninput="updateVanCount(this.value)">
           <div id="van-count-hint" style="font-size:10px; color:var(--accent); margin-top:4px; font-weight:600;"></div>
         </div>
       </div>
@@ -1433,7 +1433,7 @@
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby-vQRN9S7WWW4AZE3NNnkXaeTzK6AQ-z-gurlVvXCo_ffFYS--pwPXtf2xZx4H86u8cA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbytDfZXzaz-nQUWrdrBhNU6DRPrdbGGu7BOAlia3mfp7QUdIGHs9wUxBhXHQHx03QEEQg/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1545,7 +1545,7 @@ function demoHandler(action, data) {
     }
     case 'createBooking': {
       const newId = 'BK-' + Math.random().toString(36).substring(2,8).toUpperCase();
-      const booking = { id: newId, ...data, status: 'pending', createdAt: new Date().toLocaleString() };
+      const booking = { id: newId, ...data, status: 'pending', createdAt: new Date().toLocaleString('th-TH', { timeZone:'Asia/Bangkok' }) };
       DEMO_BOOKINGS.push(booking);
       return { success: true, bookingId: newId, booking };
     }
@@ -1728,7 +1728,7 @@ function getGradient(cat) {
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  return d.toLocaleDateString('th-TH', { day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Bangkok' });
 }
 
 async function openTripModal(tripId) {
@@ -2047,7 +2047,7 @@ function downloadReceipt() {
   doc.setTextColor(150, 150, 160);
   const rows = [
     ['Booking ID:', b.id],
-    ['Date:', new Date(b.createdAt || Date.now()).toLocaleDateString()],
+    ['Date:', new Date(b.createdAt || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok' })],
     ['Customer:', b.firstname + ' ' + b.lastname],
     ['Phone:', b.phone],
     ['Trip:', b.tripName],
@@ -2170,7 +2170,7 @@ async function adminVerifyOTP() {
     state.adminUser = res.user || { username: _loginUsername };
     state.adminToken = res.token || '';
     document.getElementById('admin-user-display').textContent = _loginUsername;
-    document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Bangkok' });
     const navUser = document.getElementById('navbar-admin-user');
     if (navUser) { navUser.textContent = '👤 ' + _loginUsername; navUser.style.display = ''; }
     // Reset login form
@@ -2977,7 +2977,7 @@ async function loadLogs() {
   }
   tbody.innerHTML = res.data.reverse().map(l => `
     <tr>
-      <td class="font-mono" style="font-size:11px; color: var(--text-muted);">${l.timestamp}</td>
+      <td class="font-mono" style="font-size:11px; color: var(--text-muted);">${l.timestamp ? new Date(l.timestamp).toLocaleString('th-TH', { timeZone:'Asia/Bangkok' }) : l.timestamp}</td>
       <td style="font-size:12px;">${l.admin}</td>
       <td><span class="badge badge-gold">${l.action}</span></td>
       <td style="font-size:12px; color: var(--text-secondary);">${l.detail}</td>
@@ -3041,7 +3041,7 @@ async function loadAdminUsers() {
       <td style="font-weight:500; font-family:'DM Mono',monospace; font-size:12px;">${a.username}</td>
       <td>${roleBadge(a.role)}</td>
       <td style="font-size:12px; color:var(--text-muted);">${a.email || '—'}</td>
-      <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? new Date(a.lastLogin).toLocaleString('th-TH') : '—'}</td>
+      <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? new Date(a.lastLogin).toLocaleString('th-TH', { timeZone:'Asia/Bangkok' }) : '—'}</td>
       <td><span class="badge ${String(a.active) !== 'FALSE' && a.active !== false ? 'badge-green' : 'badge-gray'}">${String(a.active) !== 'FALSE' && a.active !== false ? 'Active' : 'Inactive'}</span></td>
       <td>
         ${a.role === 'superadmin' ? '<span style="color:var(--text-muted); font-size:11px;">Protected</span>' :
@@ -3136,5 +3136,10 @@ window.openTripModal = function(tripId) {
   else { openUserTripModal(tripId); }
 };
 </script>
+<!-- Copyright -->
+<div style="position:fixed; bottom:14px; right:18px; z-index:9999; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.5; pointer-events:none; user-select:none; letter-spacing:0.03em;">
+  Copyright &copy; Thiss7om
+</div>
+
 </body>
 </html>
