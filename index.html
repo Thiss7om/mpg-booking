@@ -299,7 +299,20 @@
   .scroll-row::-webkit-scrollbar-thumb { background: var(--pastel-red); border-radius: 10px; }
   .scroll-row > * { scroll-snap-align: start; }
 
-  /* ── Van Seat Layout ── */
+  /* ── User Multi-Van container ── */
+  #user-vans-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+  #user-vans-container > .van-container {
+    scroll-snap-align: start;
+  }
+  #user-vans-container::-webkit-scrollbar { height: 4px; }
+  #user-vans-container::-webkit-scrollbar-thumb { background: var(--pastel-red); border-radius: 10px; }
+
+
   .van-container {
     background: linear-gradient(160deg, #fff5f7, #f0f7ff);
     border: 2px solid rgba(255,179,179,0.3);
@@ -687,7 +700,7 @@
   </div>
 
   <!-- Search Bar -->
-  <!-- <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
+  <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
     <div style="max-width: 1200px; margin: 0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
       <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()">
       <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
@@ -699,7 +712,7 @@
         <option value="waterfall">💧 Waterfall</option>
       </select>
     </div>
-  </div> -->
+  </div>
 
   <!-- Trips Section -->
   <div id="trips-section" style="max-width:1200px; margin:0 auto; padding: 48px 24px;">
@@ -848,43 +861,9 @@
         <span style="display:flex; align-items:center; gap:6px; color: #9696dc;">■ Staff</span>
       </div>
 
-      <!-- Van Layout -->
-      <div class="van-container mb-6">
-        <div class="van-roof">🚐 VAN — 10 SEATS</div>
-        <!-- Front Row: Driver + 1 -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding: 0 8px;">
-          <div class="seat" id="seat-1" onclick="toggleSeat(1)" title="Seat 1">
-            <span style="font-size:16px;">💺</span>
-            <span>S1</span>
-          </div>
-          <div style="color: var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
-          <div class="seat seat-driver" title="Driver">
-            <span style="font-size:18px;">🧑‍✈️</span>
-            <span>Driver</span>
-          </div>
-        </div>
-        <!-- Divider -->
-        <div style="border-top: 1px dashed rgba(255,255,255,0.08); margin-bottom: 20px; position:relative;">
-          <span style="position:absolute; top:-9px; left:5%; transform:translateX(-50%); background: var(--bg-elevated); padding:0 8px; font-size:9px; color: var(--text-muted); letter-spacing:0.1em;">Door</span>
-        </div>
-        <!-- Row 2: 3 seats -->
-        <div style="display:flex; justify-content:space-around; margin-bottom:24px;">
-          <div class="seat" id="seat-2" onclick="toggleSeat(2)"><span style="font-size:16px;">💺</span><span>S2</span></div>
-          <div class="seat" id="seat-3" onclick="toggleSeat(3)"><span style="font-size:16px;">💺</span><span>S3</span></div>
-          <div class="seat" id="seat-4" onclick="toggleSeat(4)"><span style="font-size:16px;">💺</span><span>S4</span></div>
-        </div>
-        <!-- Row 3: 3 seats -->
-        <div style="display:flex; justify-content:space-around; margin-bottom:24px;">
-          <div class="seat" id="seat-5" onclick="toggleSeat(5)"><span style="font-size:16px;">💺</span><span>S5</span></div>
-          <div class="seat" id="seat-6" onclick="toggleSeat(6)"><span style="font-size:16px;">💺</span><span>S6</span></div>
-          <div class="seat" id="seat-7" onclick="toggleSeat(7)"><span style="font-size:16px;">💺</span><span>S7</span></div>
-        </div>
-        <!-- Row 4: 3 seats -->
-        <div style="display:flex; justify-content:space-around;">
-          <div class="seat" id="seat-8" onclick="toggleSeat(8)"><span style="font-size:16px;">💺</span><span>S8</span></div>
-          <div class="seat" id="seat-9" onclick="toggleSeat(9)"><span style="font-size:16px;">💺</span><span>S9</span></div>
-          <div class="seat" id="seat-10" onclick="toggleSeat(10)"><span style="font-size:16px;">💺</span><span>S10</span></div>
-        </div>
+      <!-- Van Layout — generated dynamically based on trip.seats -->
+      <div id="user-vans-container" style="display:flex; flex-wrap:wrap; gap:16px; justify-content:center; margin-bottom:24px;">
+        <!-- populated by loadSeatsForBooking() -->
       </div>
 
       <div style="background: var(--bg-elevated); border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px; color: var(--text-secondary);">
@@ -1495,12 +1474,12 @@ let state = {
 
 // Demo data
 const DEMO_TRIPS = [
-  { id: 'T001', name: 'Pai Canyon Sunrise', destination: 'Pai, Mae Hong Son', date: '2025-08-15', time: '05:30', price: 1200, seats: 9, booked: 3, category: 'mountain', description: 'Watch the sunrise over the breathtaking Pai Canyon. A magical experience you\'ll never forget.', image: '🏔', status: 'active' },
-  { id: 'T002', name: 'Railay Beach Escape', destination: 'Railay, Krabi', date: '2025-08-20', time: '07:00', price: 2800, seats: 9, booked: 9, category: 'beach', description: 'Pristine white sand, emerald waters, and towering limestone cliffs. A tropical paradise.', image: '🏖', status: 'full' },
-  { id: 'T003', name: 'Doi Inthanon Summit', destination: 'Chiang Mai', date: '2025-08-22', time: '06:00', price: 1500, seats: 9, booked: 5, category: 'mountain', description: 'Thailand\'s highest peak adventure. Misty forests, royal gardens, and stunning views.', image: '⛰', status: 'active' },
-  { id: 'T004', name: 'Erawan Waterfall', destination: 'Kanchanaburi', date: '2025-08-25', time: '07:30', price: 1800, seats: 9, booked: 2, category: 'waterfall', description: 'Seven-tiered emerald waterfall in a lush national park. Perfect for swimming and nature lovers.', image: '💧', status: 'active' },
-  { id: 'T005', name: 'Old City Temple Tour', destination: 'Chiang Mai City', date: '2025-08-28', time: '08:00', price: 800, seats: 9, booked: 7, category: 'temple', description: 'Explore over 300 ancient temples in the heart of Chiang Mai\'s old city.', image: '🛕', status: 'active' },
-  { id: 'T006', name: 'Similan Islands Day Trip', destination: 'Similan, Phang Nga', date: '2025-09-05', time: '06:00', price: 3200, seats: 9, booked: 4, category: 'beach', description: 'Crystal clear waters and world-class snorkeling at the legendary Similan Islands.', image: '🐠', status: 'active' },
+  { id: 'T001', name: 'Pai Canyon Sunrise', destination: 'Pai, Mae Hong Son', date: '2025-08-15', time: '05:30', price: 1200, seats: 10, booked: 3, category: 'mountain', description: 'Watch the sunrise over the breathtaking Pai Canyon. A magical experience you\'ll never forget.', image: '🏔', status: 'active' },
+  { id: 'T002', name: 'Railay Beach Escape', destination: 'Railay, Krabi', date: '2025-08-20', time: '07:00', price: 2800, seats: 10, booked: 9, category: 'beach', description: 'Pristine white sand, emerald waters, and towering limestone cliffs. A tropical paradise.', image: '🏖', status: 'full' },
+  { id: 'T003', name: 'Doi Inthanon Summit', destination: 'Chiang Mai', date: '2025-08-22', time: '06:00', price: 1500, seats: 10, booked: 5, category: 'mountain', description: 'Thailand\'s highest peak adventure. Misty forests, royal gardens, and stunning views.', image: '⛰', status: 'active' },
+  { id: 'T004', name: 'Erawan Waterfall', destination: 'Kanchanaburi', date: '2025-08-25', time: '07:30', price: 1800, seats: 10, booked: 2, category: 'waterfall', description: 'Seven-tiered emerald waterfall in a lush national park. Perfect for swimming and nature lovers.', image: '💧', status: 'active' },
+  { id: 'T005', name: 'Old City Temple Tour', destination: 'Chiang Mai City', date: '2025-08-28', time: '08:00', price: 800, seats: 10, booked: 7, category: 'temple', description: 'Explore over 300 ancient temples in the heart of Chiang Mai\'s old city.', image: '🛕', status: 'active' },
+  { id: 'T006', name: 'Similan Islands Day Trip', destination: 'Similan, Phang Nga', date: '2025-09-05', time: '06:00', price: 3200, seats: 10, booked: 4, category: 'beach', description: 'Crystal clear waters and world-class snorkeling at the legendary Similan Islands.', image: '🐠', status: 'active' },
 ];
 
 const DEMO_BOOKINGS = [
@@ -1922,16 +1901,63 @@ async function loadSeatsForBooking() {
   const staff = res.staff || (state.adminSeats[state.currentBooking.tripId] || []);
   document.getElementById('seats-needed').textContent = state.currentBooking.passengers;
 
-  for (let i = 1; i <= 10; i++) {
-    const el = document.getElementById('seat-' + i);
-    if (!el) continue;
-    el.className = 'seat';
-    if (booked.includes(i)) { el.className += ' seat-booked'; el.onclick = null; }
-    else if (staff.includes(i)) { el.className += ' seat-staff'; el.onclick = null; }
-    else { el.className += ' seat-available'; el.onclick = () => toggleSeat(i); }
-  }
+  const totalSeats = parseInt(state.currentBooking.trip.seats) || 10;
+  const seatsPerVan = 10;
+  const numVans = Math.ceil(totalSeats / seatsPerVan);
   state.currentBooking.selectedSeats = [];
+
+  let html = '';
+  for (let v = 0; v < numVans; v++) {
+    const startSeat = v * seatsPerVan + 1;
+    const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
+    const seatsInVan = endSeat - startSeat + 1;
+    const vanNum = v + 1;
+
+    // Front seat
+    const frontSeat = startSeat;
+    const frontStatus = booked.includes(frontSeat) ? 'booked' : staff.includes(frontSeat) ? 'staff' : 'available';
+
+    // Passenger rows
+    const pasSeats = [];
+    for (let s = startSeat + 1; s <= endSeat; s++) pasSeats.push(s);
+    let pasRowsHTML = '';
+    for (let i = 0; i < pasSeats.length; i += 3) {
+      const row = pasSeats.slice(i, i + 3);
+      pasRowsHTML += `<div style="display:flex; justify-content:space-around; margin-bottom:20px;">
+        ${row.map(s => userSeatHTML(s, booked, staff)).join('')}
+      </div>`;
+    }
+
+    html += `
+    <div class="van-container" style="flex: 0 0 auto; min-width: 280px; max-width: 320px;">
+      <div class="van-roof">🚐 คันที่ ${vanNum}${numVans > 1 ? ' / ' + numVans : ''} — ${seatsInVan} ที่นั่ง</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding: 0 8px;">
+        ${userSeatHTML(frontSeat, booked, staff)}
+        <div style="color: var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
+        <div class="seat seat-driver" title="Driver">
+          <span style="font-size:18px;">🧑‍✈️</span>
+          <span>Driver</span>
+        </div>
+      </div>
+      <div style="border-top: 1px dashed rgba(180,140,160,0.2); margin-bottom: 20px; position:relative;">
+        <span style="position:absolute; top:-9px; left:5%; transform:translateX(-50%); background: var(--bg-elevated); padding:0 8px; font-size:9px; color: var(--text-muted); letter-spacing:0.1em;">Door</span>
+      </div>
+      ${pasRowsHTML}
+    </div>`;
+  }
+
+  document.getElementById('user-vans-container').innerHTML = html;
   updateSeatDisplay();
+}
+
+function userSeatHTML(seatNum, booked, staff) {
+  if (booked.includes(seatNum)) {
+    return `<div class="seat seat-booked" title="Seat ${seatNum}"><span style="font-size:16px;">💺</span><span>S${seatNum}</span></div>`;
+  }
+  if (staff.includes(seatNum)) {
+    return `<div class="seat seat-staff" title="Seat ${seatNum}"><span style="font-size:16px;">💺</span><span>Staff</span></div>`;
+  }
+  return `<div class="seat seat-available" id="seat-${seatNum}" onclick="toggleSeat(${seatNum})" title="Seat ${seatNum}"><span style="font-size:16px;">💺</span><span>S${seatNum}</span></div>`;
 }
 
 function toggleSeat(seatNum) {
@@ -1943,7 +1969,6 @@ function toggleSeat(seatNum) {
   if (idx >= 0) {
     selected.splice(idx, 1);
     el.className = 'seat seat-available';
-    el.onclick = () => toggleSeat(seatNum);
   } else {
     if (selected.length >= state.currentBooking.passengers) {
       showToast(`Select only ${state.currentBooking.passengers} seat(s)`, 'info');
