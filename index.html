@@ -1453,7 +1453,7 @@
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJz-fpFx6xNeFjd1dlFT-niZwrI5yhGdMtj5tnnRM40h-zdhdxE-AEzOU7foJcf4skog/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbynjOhchQHKXl_YbEkG2kVtOQLn6d5QyqgRTfkZI0WwOh5hm0G7OG1XnB5GZOigFueglg/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1520,18 +1520,33 @@ async function apiCall(action, data = {}) {
     if (state.adminToken && !data.token) data.token = state.adminToken;
     if (state.adminUser && !data.adminUser) data.adminUser = state.adminUser.username || 'admin';
 
-    const flat = { action };
-    for (const [k, v] of Object.entries(data)) {
-      flat[k] = (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v;
+    // Actions ที่เป็น read-only ไม่มีข้อมูลใหญ่ → GET
+    const GET_ACTIONS = ['getTrips','getTripById','getSeats','getSettings','getBookingById','getBookings','getLogs','getAdminUsers'];
+    const useGet = GET_ACTIONS.includes(action) && !data.slipData;
+
+    if (useGet) {
+      const flat = { action };
+      for (const [k, v] of Object.entries(data)) {
+        flat[k] = (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v;
+      }
+      const params = new URLSearchParams(flat);
+      const res = await fetch(GAS_URL + '?' + params.toString(), { method: 'GET', redirect: 'follow' });
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch(e) { console.error('Non-JSON response:', text); return { success: false, error: 'Invalid server response' }; }
+    } else {
+      // POST สำหรับ write actions และ actions ที่มีข้อมูลใหญ่ (slipData base64)
+      const payload = { action, ...data };
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain' }, // text/plain หลีกเลี่ยง CORS preflight
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch(e) { console.error('Non-JSON response:', text); return { success: false, error: 'Invalid server response' }; }
     }
-    const params = new URLSearchParams(flat);
-    const res = await fetch(GAS_URL + '?' + params.toString(), {
-      method: 'GET',
-      redirect: 'follow'
-    });
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch(e) { console.error('Non-JSON response:', text); return { success: false, error: 'Invalid server response' }; }
   } catch (e) {
     console.error('API Error:', e);
     showToast('Connection error. Check your deployment URL.', 'error');
