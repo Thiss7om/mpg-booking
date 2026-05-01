@@ -604,16 +604,10 @@
 
   /* ── Receipt ── */
   .receipt {
-    background: #faf8f4;
-    color: #2a241c;
-    padding: 40px;
-    border-radius: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    max-width: 400px;
-    margin: 0 auto;
-    border: 1px solid rgba(180,140,60,0.2);
-    box-shadow: 0 4px 24px rgba(42,36,28,0.1);
+    background: white; color: #111;
+    padding: 40px; border-radius: 16px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    max-width: 400px; margin: 0 auto;
   }
 
   /* ── Colored strip on cards ── */
@@ -921,8 +915,8 @@
     </div>
     <div class="card p-4 mb-6 text-left" id="confirmation-details"></div>
     <div class="flex gap-3 justify-center flex-wrap">
-      <button class="btn-primary" style="padding:12px 28px; font-size:14px;" onclick="downloadReceipt()">⬇ Download E-Receipt (PDF)</button>
-      <button class="btn-outline" onclick="showView('home')">Back to Home</button>
+      <button class="btn-outline" onclick="downloadReceipt()">📄 Download Receipt</button>
+      <button class="btn-primary" onclick="showView('home')">Back to Home</button>
     </div>
   </div>
 </div>
@@ -1264,7 +1258,8 @@
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Total Seats</label>
-          <input class="input-field" id="trip-seats" type="number" value="9" min="1" max="9">
+          <input class="input-field" id="trip-seats" type="number" value="9" min="1" max="100" oninput="updateVanCount(this.value)">
+          <div id="van-count-hint" style="font-size:10px; color:var(--accent); margin-top:4px; font-weight:600;"></div>
         </div>
       </div>
       <div>
@@ -1282,8 +1277,31 @@
         <textarea class="input-field" id="trip-description" rows="3" placeholder="Describe the trip..."></textarea>
       </div>
       <div>
-        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Image URL (or leave blank)</label>
-        <input class="input-field" id="trip-image" placeholder="https://... or emoji like 🏔">
+        <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">รูปภาพทริป (สูงสุด 3 รูป)</label>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+          <div id="trip-img-slot-0" onclick="document.getElementById('trip-img-input-0').click()" style="height:80px; border:2px dashed rgba(232,184,75,0.4); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:rgba(232,184,75,0.05); transition:all 0.2s; position:relative; overflow:hidden;">
+            <span style="font-size:22px; opacity:0.5;">📷</span>
+            <span style="font-size:9px; color:var(--text-muted); margin-top:2px;">รูปที่ 1</span>
+            <input type="file" id="trip-img-input-0" accept="image/*" style="display:none" onchange="handleTripImageUpload(0,this)">
+            <img id="trip-img-preview-0" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:8px;">
+            <button id="trip-img-remove-0" onclick="removeTripImage(event,0)" style="display:none; position:absolute; top:2px; right:2px; background:rgba(255,80,80,0.85); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; line-height:18px; text-align:center; z-index:2;">✕</button>
+          </div>
+          <div id="trip-img-slot-1" onclick="document.getElementById('trip-img-input-1').click()" style="height:80px; border:2px dashed rgba(232,184,75,0.4); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:rgba(232,184,75,0.05); transition:all 0.2s; position:relative; overflow:hidden;">
+            <span style="font-size:22px; opacity:0.5;">📷</span>
+            <span style="font-size:9px; color:var(--text-muted); margin-top:2px;">รูปที่ 2</span>
+            <input type="file" id="trip-img-input-1" accept="image/*" style="display:none" onchange="handleTripImageUpload(1,this)">
+            <img id="trip-img-preview-1" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:8px;">
+            <button id="trip-img-remove-1" onclick="removeTripImage(event,1)" style="display:none; position:absolute; top:2px; right:2px; background:rgba(255,80,80,0.85); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; line-height:18px; text-align:center; z-index:2;">✕</button>
+          </div>
+          <div id="trip-img-slot-2" onclick="document.getElementById('trip-img-input-2').click()" style="height:80px; border:2px dashed rgba(232,184,75,0.4); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:rgba(232,184,75,0.05); transition:all 0.2s; position:relative; overflow:hidden;">
+            <span style="font-size:22px; opacity:0.5;">📷</span>
+            <span style="font-size:9px; color:var(--text-muted); margin-top:2px;">รูปที่ 3</span>
+            <input type="file" id="trip-img-input-2" accept="image/*" style="display:none" onchange="handleTripImageUpload(2,this)">
+            <img id="trip-img-preview-2" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:8px;">
+            <button id="trip-img-remove-2" onclick="removeTripImage(event,2)" style="display:none; position:absolute; top:2px; right:2px; background:rgba(255,80,80,0.85); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; line-height:18px; text-align:center; z-index:2;">✕</button>
+          </div>
+        </div>
+        <input type="hidden" id="trip-image">
       </div>
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Status</label>
@@ -1354,55 +1372,30 @@
 
 <!-- Admin: Seat Management Modal -->
 <div id="modal-seats-admin" class="modal-overlay" style="display:none;">
-  <div class="modal-box p-6" style="max-width:400px;">
+  <div class="modal-box p-6" style="max-width:720px; max-height:90vh; overflow-y:auto;">
     <div class="flex justify-between items-center mb-3">
       <h3 class="font-display text-2xl">🚐 MANAGE SEATS</h3>
-      <button onclick="closeModal('modal-seats-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button onclick="captureSeatsImage()" style="background:rgba(232,184,75,0.15); border:1px solid rgba(232,184,75,0.4); color:var(--accent); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-weight:600;">📸 บันทึกรูปที่นั่ง</button>
+        <button onclick="closeModal('modal-seats-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+      </div>
     </div>
     <p style="color: var(--text-muted); font-size:13px; margin-bottom:14px;" id="admin-seats-trip-info"></p>
 
-    <!-- Van Layout for Admin -->
-    <div class="van-container mb-4" id="admin-van-container">
-      <div class="van-roof">🚐 VAN — 10 SEATS</div>
-      <!-- Front Row -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:0 8px;">
-        <div class="seat admin-seat" id="admin-seat-1" onclick="toggleAdminSeatNew(1)" title="Seat 1">
-          <span style="font-size:13px;">💺</span><span id="admin-seat-label-1">S1</span>
-        </div>
-        <div style="color:var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
-        <div class="seat seat-driver"><span style="font-size:16px;">🧑‍✈️</span><span style="font-size:10px;">Driver</span></div>
-      </div>
-      <div style="border-top:1px dashed rgba(180,140,160,0.2); margin-bottom:16px; position:relative;">
-        <span style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:var(--bg-card); padding:0 8px; font-size:9px; color:var(--text-muted); letter-spacing:0.1em;">PASSENGER SECTION</span>
-      </div>
-      <!-- Row 2 -->
-      <div style="display:flex; justify-content:space-around; margin-bottom:16px;">
-        <div class="seat admin-seat" id="admin-seat-2" onclick="toggleAdminSeatNew(2)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-2">S2</span></div>
-        <div class="seat admin-seat" id="admin-seat-3" onclick="toggleAdminSeatNew(3)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-3">S3</span></div>
-        <div class="seat admin-seat" id="admin-seat-4" onclick="toggleAdminSeatNew(4)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-4">S4</span></div>
-      </div>
-      <!-- Row 3 -->
-      <div style="display:flex; justify-content:space-around; margin-bottom:16px;">
-        <div class="seat admin-seat" id="admin-seat-5" onclick="toggleAdminSeatNew(5)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-5">S5</span></div>
-        <div class="seat admin-seat" id="admin-seat-6" onclick="toggleAdminSeatNew(6)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-6">S6</span></div>
-        <div class="seat admin-seat" id="admin-seat-7" onclick="toggleAdminSeatNew(7)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-7">S7</span></div>
-      </div>
-      <!-- Row 4 -->
-      <div style="display:flex; justify-content:space-around;">
-        <div class="seat admin-seat" id="admin-seat-8" onclick="toggleAdminSeatNew(8)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-8">S8</span></div>
-        <div class="seat admin-seat" id="admin-seat-9" onclick="toggleAdminSeatNew(9)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-9">S9</span></div>
-        <div class="seat admin-seat" id="admin-seat-10" onclick="toggleAdminSeatNew(10)"><span style="font-size:13px;">💺</span><span id="admin-seat-label-10">S10</span></div>
-      </div>
-    </div>
-
     <!-- Legend -->
-    <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-bottom:14px; color:var(--text-secondary);">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-bottom:12px; color:var(--text-secondary);">
       <span><span style="display:inline-block;width:10px;height:10px;background:rgba(181,240,200,0.6);border:1px solid rgba(82,201,122,0.6);border-radius:3px;margin-right:4px;"></span>ว่าง</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,179,179,0.5);border:1px solid rgba(255,107,138,0.5);border-radius:3px;margin-right:4px;"></span>จองแล้ว</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:rgba(168,212,245,0.5);border:1px solid rgba(90,172,240,0.5);border-radius:3px;margin-right:4px;"></span>Staff</span>
     </div>
     <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">กดที่นั่งว่างเพื่อตั้งเป็น Staff / กดอีกครั้งเพื่อยกเลิก</div>
-    <button class="btn-primary" style="width:100%;" onclick="saveAdminSeats()">💾 บันทึกการตั้งค่าที่นั่ง</button>
+
+    <!-- Multi-van container (generated dynamically) -->
+    <div id="admin-van-container" style="display:flex; flex-wrap:wrap; gap:16px; justify-content:center;"></div>
+
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn-primary" style="flex:1;" onclick="saveAdminSeats()">💾 บันทึกการตั้งค่าที่นั่ง</button>
+    </div>
   </div>
 </div>
 
@@ -1714,14 +1707,10 @@ function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
-  const isImageUrl = trip.image && (trip.image.startsWith('http') || trip.image.startsWith('data:'));
-  const cardImgContent = isImageUrl
-    ? `<img src="${trip.image}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="font-size:56px;display:none;align-items:center;justify-content:center;width:100%;height:100%;">${catEmoji}</span>`
-    : `<span style="font-size:56px;">${trip.image || catEmoji}</span>`;
 
   return `<div class="trip-card${small ? '' : ''}" onclick="openTripModal('${trip.id}')">
     <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
-      ${cardImgContent}
+      <span style="font-size:56px;">${trip.image || catEmoji}</span>
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
@@ -1758,11 +1747,10 @@ async function openTripModal(tripId) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
-  const isImgUrl = trip.image && (trip.image.startsWith('http') || trip.image.startsWith('data:'));
 
   document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
   document.getElementById('trip-img-modal').innerHTML = `
-    ${isImgUrl ? `<img src="${trip.image}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>`}
+    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
     <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
   `;
   document.getElementById('trip-modal-content').innerHTML = `
@@ -1993,244 +1981,57 @@ function showConfirmation(booking) {
   showView('confirmation');
 }
 
-function formatReceiptDate(dateInput) {
-  // Format date as DD/MM/YYYY in Bangkok timezone
-  const d = dateInput ? new Date(dateInput) : new Date();
-  const bkk = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-  const dd = String(bkk.getDate()).padStart(2, '0');
-  const mm = String(bkk.getMonth() + 1).padStart(2, '0');
-  const yyyy = bkk.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
 function downloadReceipt() {
   const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ format: 'a5' });
   const b = state.confirmedBooking;
   const s = state.settings;
 
-  if (!b) { showToast('No booking data', 'error'); return; }
-
-  // Helper: draw one label+value row, returns new y
-  function drawRow(doc, label, val, yPos, labelColor, valColor, margin, W) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...labelColor);
-    doc.text(label, margin, yPos);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...valColor);
-    // Truncate long values to prevent overflow
-    const strVal = String(val || '—');
-    doc.text(strVal, W - margin, yPos, { align: 'right', maxWidth: W - margin * 2 - 40 });
-    return yPos + 7.5;
-  }
-
-  // Helper: section header
-  function drawSectionHeader(doc, title, yPos, margin, W) {
-    doc.setFillColor(245, 238, 220);
-    doc.rect(margin, yPos - 4.5, W - margin * 2, 8, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(140, 100, 30);
-    doc.text(title, margin + 3, yPos);
-    return yPos + 8;
-  }
-
-  // A5 portrait
-  const doc = new jsPDF({ format: 'a5', unit: 'mm' });
-  const W = 148, H = 210;
-  const margin = 12;
-
-  // ── Background ──
-  doc.setFillColor(250, 248, 244);
-  doc.rect(0, 0, W, H, 'F');
-
-  // ── Dark header ──
-  doc.setFillColor(30, 24, 16);
-  doc.rect(0, 0, W, 48, 'F');
-
-  // Gold side accent bars
-  doc.setFillColor(212, 168, 80);
-  doc.rect(0, 0, 3, 48, 'F');
-  doc.rect(W - 3, 0, 3, 48, 'F');
-  doc.rect(0, 48, W, 1.8, 'F');
-
-  // Company name
+  doc.setFillColor(10, 10, 15);
+  doc.rect(0, 0, 148, 210, 'F');
+  doc.setTextColor(232, 184, 75);
+  doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(212, 168, 80);
-  doc.text(s.companyName || 'MPG Booking', W / 2, 13, { align: 'center' });
-
-  // Tagline
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(170, 148, 100);
-  doc.text('Mom Please, Let me go  |  Official Receipt', W / 2, 20, { align: 'center' });
-
-  if (s.companyTaxId) {
-    doc.setFontSize(6.5);
-    doc.setTextColor(140, 120, 80);
-    doc.text('Tax ID: ' + s.companyTaxId, W / 2, 26, { align: 'center' });
-  }
-  if (s.companyAddress) {
-    doc.setFontSize(6);
-    doc.setTextColor(130, 110, 70);
-    doc.text(s.companyAddress, W / 2, 31.5, { align: 'center', maxWidth: W - 30 });
-  }
-
-  // E-RECEIPT label
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
-  doc.text('E-RECEIPT', W / 2, 43, { align: 'center' });
-
-  // ── Booking ID + Date row ──
-  doc.setFillColor(255, 248, 225);
-  doc.setDrawColor(212, 168, 80);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(margin, 53, W - margin * 2, 15, 2.5, 2.5, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(140, 100, 30);
-  doc.text('BOOKING ID', margin + 5, 59);
-  doc.setFontSize(10.5);
-  doc.setTextColor(30, 24, 16);
-  doc.text(b.id || '—', margin + 5, 65.5);
-
-  const receiptDate = formatReceiptDate(b.createdAt || Date.now());
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(140, 100, 30);
-  doc.text('RECEIPT DATE', W - margin - 5, 59, { align: 'right' });
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10.5);
-  doc.setTextColor(30, 24, 16);
-  doc.text(receiptDate, W - margin - 5, 65.5, { align: 'right' });
-
-  // ── STATUS badge ──
-  const statusStr = (b.status || 'pending').toUpperCase();
-  const statusColors = { PENDING: [255, 193, 7], CONFIRMED: [82, 196, 26], CANCELLED: [255, 77, 79] };
-  const sc = statusColors[statusStr] || [150, 150, 150];
-  doc.setFillColor(...sc);
-  doc.roundedRect(W / 2 - 14, 58.5, 28, 7, 1.5, 1.5, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text(statusStr, W / 2, 63.5, { align: 'center' });
-
-  let y = 75;
-
-  // ── CUSTOMER DETAILS ──
-  y = drawSectionHeader(doc, 'CUSTOMER DETAILS', y, margin, W);
-  const lc = [120, 100, 70];
-  const vc = [30, 24, 16];
-  y = drawRow(doc, 'Customer', (b.firstname || '') + ' ' + (b.lastname || ''), y, lc, vc, margin, W);
-  if (b.nickname) y = drawRow(doc, 'Nickname', b.nickname, y, lc, vc, margin, W);
-  y = drawRow(doc, 'Phone', b.phone, y, lc, vc, margin, W);
-  if (b.email) y = drawRow(doc, 'Email', b.email, y, lc, vc, margin, W);
-  if (b.company) y = drawRow(doc, 'Company', b.company, y, lc, vc, margin, W);
-
-  y += 3;
-
-  // ── TRIP DETAILS ──
-  y = drawSectionHeader(doc, 'TRIP DETAILS', y, margin, W);
-  y = drawRow(doc, 'Trip', b.tripName, y, lc, vc, margin, W);
-
-  // Find trip info from state
-  const tripObj = state.trips ? state.trips.find(t => t.id === b.tripId) : null;
-  if (tripObj && tripObj.date) {
-    y = drawRow(doc, 'Trip Date', formatReceiptDate(tripObj.date) + (tripObj.time ? '  ' + tripObj.time : ''), y, lc, vc, margin, W);
-  }
-  if (tripObj && tripObj.destination) {
-    y = drawRow(doc, 'Destination', tripObj.destination, y, lc, vc, margin, W);
-  }
-
-  // Seats
-  const seatsStr = Array.isArray(b.seats)
-    ? (b.seats.length > 0 ? b.seats.map(s => 'S' + s).join(', ') : '—')
-    : (b.seats ? 'S' + b.seats : '—');
-  y = drawRow(doc, 'Seat(s)', seatsStr, y, lc, vc, margin, W);
-  y = drawRow(doc, 'Passengers', String(b.passengers || 1), y, lc, vc, margin, W);
-
-  y += 3;
-
-  // ── PAYMENT SUMMARY ──
-  y = drawSectionHeader(doc, 'PAYMENT SUMMARY', y, margin, W);
-
-  const deposit = Number(b.deposit || 0);
-  const additional = Number(b.additionalPayment || 0);
-  const fullAmt = Number(b.totalAmount || 0);
-  const totalAmt = fullAmt; // total = full amount
-
-  const payRows = [
-    ['Deposit Amount', deposit],
-    ['Additional Payment', additional],
-    ['Full Amount', fullAmt],
-  ];
-  payRows.forEach(([label, amt]) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...lc);
-    doc.text(label, margin, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...vc);
-    doc.text('THB ' + Number(amt).toLocaleString('en-US'), W - margin, y, { align: 'right' });
-    y += 7.5;
-  });
-
-  y += 2;
-
-  // ── Total Amount box ──
-  doc.setFillColor(30, 24, 16);
-  doc.roundedRect(margin, y, W - margin * 2, 17, 2.5, 2.5, 'F');
-  doc.setFillColor(212, 168, 80);
-  doc.roundedRect(margin, y, W - margin * 2, 17, 2.5, 2.5, 'S');
-  doc.setFont('helvetica', 'bold');
+  doc.text('RECEIPT', 74, 20, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setTextColor(200, 200, 200);
+  doc.text(s.companyName || 'MPG Booking', 74, 30, { align: 'center' });
+  if (s.companyTaxId) doc.text('Tax ID: ' + s.companyTaxId, 74, 36, { align: 'center' });
+  doc.setDrawColor(232, 184, 75);
+  doc.setLineWidth(0.5);
+  doc.line(15, 42, 133, 42);
   doc.setFontSize(9);
-  doc.setTextColor(212, 168, 80);
-  doc.text('TOTAL AMOUNT', margin + 7, y + 11);
-  doc.setFontSize(13);
-  doc.setTextColor(255, 255, 255);
-  doc.text('THB ' + Number(totalAmt).toLocaleString('en-US'), W - margin - 6, y + 11, { align: 'right' });
-
-  y += 22;
-
-  // ── Bank info (if available) ──
-  if (s.bankAccountNumber && y < H - 45) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(130, 110, 80);
-    const bankLine = [s.bankName, s.bankAccountName, s.bankAccountNumber].filter(Boolean).join('  |  ');
-    doc.text(bankLine, W / 2, y, { align: 'center', maxWidth: W - 24 });
-    y += 7;
-  }
-
-  // ── QR Code ──
-  if (s.qrImage && y < H - 48) {
-    try {
-      const qrSize = 32;
-      doc.addImage(s.qrImage, 'PNG', W / 2 - qrSize / 2, y, qrSize, qrSize);
-      y += qrSize + 4;
-    } catch(e) {}
-  }
-
-  // ── Footer ──
-  doc.setFillColor(30, 24, 16);
-  doc.rect(0, H - 20, W, 20, 'F');
-  doc.setFillColor(212, 168, 80);
-  doc.rect(0, H - 20, W, 1, 'F');
+  doc.setTextColor(150, 150, 160);
+  const rows = [
+    ['Booking ID:', b.id],
+    ['Date:', new Date(b.createdAt || Date.now()).toLocaleDateString()],
+    ['Customer:', b.firstname + ' ' + b.lastname],
+    ['Phone:', b.phone],
+    ['Trip:', b.tripName],
+    ['Seats:', Array.isArray(b.seats) ? b.seats.join(', ') : b.seats],
+    ['Passengers:', String(b.passengers || 1)],
+  ];
+  let y = 52;
+  rows.forEach(([label, val]) => {
+    doc.setTextColor(120, 120, 130);
+    doc.text(label, 15, y);
+    doc.setTextColor(220, 220, 220);
+    doc.text(val, 75, y);
+    y += 10;
+  });
+  doc.line(15, y + 2, 133, y + 2);
+  y += 12;
+  doc.setFontSize(14);
+  doc.setTextColor(232, 184, 75);
+  doc.text('TOTAL AMOUNT', 15, y);
+  doc.setFont('helvetica', 'bold');
+  doc.text('฿' + Number(b.totalAmount || 0).toLocaleString(), 133, y, { align: 'right' });
+  y += 16;
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(170, 148, 100);
-  doc.text('Thank you for booking with MPG Booking. This is your official receipt.', W / 2, H - 12, { align: 'center', maxWidth: W - 20 });
-  const contactParts = [s.companyPhone, s.companyAddress].filter(Boolean);
-  if (contactParts.length) {
-    doc.setFontSize(6.5);
-    doc.setTextColor(130, 110, 70);
-    doc.text(contactParts.join('  |  '), W / 2, H - 6, { align: 'center', maxWidth: W - 20 });
-  }
-
-  doc.save('MPG-Receipt-' + (b.id || 'booking') + '.pdf');
+  doc.setTextColor(80, 80, 90);
+  doc.text('Thank you for booking with MPG Booking. This is your official receipt.', 74, y, { align: 'center' });
+  doc.save('MPG-Receipt-' + b.id + '.pdf');
   showToast('Receipt downloaded!', 'success');
 }
 
@@ -2585,11 +2386,10 @@ function openUserTripModal(tripId) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
-  const isImgUrl = trip.image && (trip.image.startsWith('http') || trip.image.startsWith('data:'));
 
   document.getElementById('trip-img-modal').style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
   document.getElementById('trip-img-modal').innerHTML = `
-    ${isImgUrl ? `<img src="${trip.image}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>`}
+    <div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:72px;">${trip.image || catEmoji}</div>
     <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
   `;
   document.getElementById('trip-modal-content').innerHTML = `
@@ -2626,11 +2426,13 @@ function openTripModal_admin(tripId) {
     document.getElementById('trip-category').value = t.category;
     document.getElementById('trip-description').value = t.description || '';
     document.getElementById('trip-image').value = t.image || '';
+    loadTripImages(t.image || '');
     document.getElementById('trip-status').value = t.status;
   } else {
     document.getElementById('trip-modal-title').textContent = 'ADD TRIP';
     document.getElementById('trip-edit-id').value = '';
     ['trip-name','trip-destination','trip-description','trip-image'].forEach(id => document.getElementById(id).value = '');
+    resetTripImages();
     document.getElementById('trip-date').value = '';
     document.getElementById('trip-time').value = '07:00';
     document.getElementById('trip-price').value = '';
@@ -2652,7 +2454,7 @@ async function saveTrip() {
     date: document.getElementById('trip-date').value,
     time: document.getElementById('trip-time').value,
     price: parseFloat(document.getElementById('trip-price').value) || 0,
-    seats: parseInt(document.getElementById('trip-seats').value) || 9,
+    seats: parseInt(document.getElementById('trip-seats').value) || 10,
     category: document.getElementById('trip-category').value,
     description: document.getElementById('trip-description').value.trim(),
     image: document.getElementById('trip-image').value.trim(),
@@ -2698,33 +2500,91 @@ function buildSeatNameMap(tripId) {
   return map;
 }
 
+// ── MULTI-VAN SEAT FUNCTIONS ────────────────────────────────
+
+// Build HTML for a single van (seats startSeat to endSeat, global offset)
+function buildVanHTML(vanIndex, totalVans, startSeat, endSeat, booked, staff, nameMap) {
+  const vanNum = vanIndex + 1;
+  const seatsInVan = endSeat - startSeat + 1;
+  let rows = [];
+  // seat 1 of each van = front seat
+  const frontSeat = startSeat;
+  const passengerSeats = [];
+  for (let s = startSeat + 1; s <= endSeat; s++) passengerSeats.push(s);
+
+  function seatHTML(seatNum) {
+    const isBooked = booked.includes(seatNum);
+    const isStaff  = staff.includes(seatNum);
+    const name = nameMap[seatNum] || '';
+    let cls = isBooked ? 'seat-booked' : isStaff ? 'seat-staff' : 'seat-available admin-seat';
+    const clickable = !isBooked;
+    const onclick = clickable ? `onclick="toggleAdminSeatNew(${seatNum})"` : '';
+    const cursor = isBooked ? 'not-allowed' : 'pointer';
+    const labelHTML = isBooked
+      ? `<span style="font-size:9px;line-height:1.2;display:block;word-break:break-all;max-width:46px;">${name || 'จองแล้ว'}</span>`
+      : `<span id="admin-seat-label-${seatNum}">${isStaff ? 'Staff' : 'S' + seatNum}</span>`;
+    const icon = isBooked ? '' : '<span style="font-size:13px;">💺</span>';
+    return `<div class="seat ${cls}" id="admin-seat-${seatNum}" ${onclick} style="cursor:${cursor};" title="Seat ${seatNum}">${icon}${labelHTML}</div>`;
+  }
+
+  // Group passenger seats into rows of 3
+  let pasRows = [];
+  for (let i = 0; i < passengerSeats.length; i += 3) pasRows.push(passengerSeats.slice(i, i + 3));
+
+  let pasHTML = pasRows.map(row => `
+      <div style="display:flex; justify-content:space-around; margin-bottom:12px;">
+        ${row.map(s => seatHTML(s)).join('')}
+      </div>`).join('');
+
+  return `
+  <div style="flex:0 0 auto; background:rgba(255,255,255,0.03); border:1px solid rgba(232,184,75,0.15); border-radius:14px; padding:14px; min-width:220px;">
+    <div class="van-roof" style="margin-bottom:12px;">🚐 คันที่ ${vanNum}${totalVans > 1 ? ' / ' + totalVans : ''} — ${seatsInVan} ที่นั่ง</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+      ${seatHTML(frontSeat)}
+      <div style="color:var(--text-muted); font-size:10px; letter-spacing:0.05em;">FRONT</div>
+      <div class="seat seat-driver"><span style="font-size:16px;">🧑‍✈️</span><span style="font-size:10px;">Driver</span></div>
+    </div>
+    <div style="border-top:1px dashed rgba(180,140,160,0.2); margin-bottom:12px; position:relative;">
+      <span style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:var(--bg-card); padding:0 8px; font-size:9px; color:var(--text-muted); letter-spacing:0.1em;">PASSENGER SECTION</span>
+    </div>
+    ${pasHTML}
+  </div>`;
+}
+
+function renderAllVans(totalSeats, booked, staff, nameMap) {
+  const container = document.getElementById('admin-van-container');
+  const seatsPerVan = 10;
+  const numVans = Math.ceil(totalSeats / seatsPerVan);
+  let html = '';
+  for (let v = 0; v < numVans; v++) {
+    const startSeat = v * seatsPerVan + 1;
+    const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
+    html += buildVanHTML(v, numVans, startSeat, endSeat, booked, staff, nameMap);
+  }
+  container.innerHTML = html;
+  container.dataset.tripId = container.dataset.tripId || '';
+  container.dataset.totalSeats = totalSeats;
+}
+
 function applyAdminSeatStyle(seatNum, isBooked, isStaff, nameMap) {
   const el = document.getElementById('admin-seat-' + seatNum);
   const label = document.getElementById('admin-seat-label-' + seatNum);
-  if (!el || !label) return;
-
-  // Remove all state classes
+  if (!el) return;
   el.classList.remove('seat-available', 'seat-booked', 'seat-staff', 'seat-selected');
   el.style.cursor = 'pointer';
-
   if (isBooked) {
     el.classList.add('seat-booked');
     el.style.cursor = 'not-allowed';
     el.onclick = null;
     const name = nameMap[seatNum] || '';
-    // Show name in booked seat — truncate to fit
-    label.innerHTML = `<span style="font-size:9px; line-height:1.2; display:block; word-break:break-all; max-width:46px;">${name || 'จองแล้ว'}</span>`;
-    // Hide emoji icon for booked seats to give more space for name
-    el.querySelector('span:first-child').style.display = 'none';
+    el.innerHTML = `<span style="font-size:9px;line-height:1.2;display:block;word-break:break-all;max-width:46px;">${name || 'จองแล้ว'}</span>`;
   } else if (isStaff) {
     el.classList.add('seat-staff');
-    el.querySelector('span:first-child').style.display = '';
-    label.textContent = 'Staff';
+    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}">Staff</span>`;
     el.onclick = () => toggleAdminSeatNew(seatNum);
   } else {
-    el.classList.add('seat-available');
-    el.querySelector('span:first-child').style.display = '';
-    label.textContent = 'S' + seatNum;
+    el.classList.add('seat-available', 'admin-seat');
+    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}">S${seatNum}</span>`;
     el.onclick = () => toggleAdminSeatNew(seatNum);
   }
 }
@@ -2736,15 +2596,11 @@ async function openAdminSeats(tripId) {
   const res = await apiCall('getSeats', { tripId });
   const booked = res.booked || [];
   const staff = state.adminSeats[tripId] || res.staff || [];
-  // Use server-side seatNameMap (built with nicknames)
   const nameMap = res.seatNameMap || buildSeatNameMap(tripId);
+  const totalSeats = trip ? (parseInt(trip.seats) || 10) : 10;
 
-  // Store tripId for save
   document.getElementById('admin-van-container').dataset.tripId = tripId;
-
-  for (let i = 1; i <= 10; i++) {
-    applyAdminSeatStyle(i, booked.includes(i), staff.includes(i), nameMap);
-  }
+  renderAllVans(totalSeats, booked, staff, nameMap);
 
   document.getElementById('modal-seats-admin').style.display = 'flex';
 }
@@ -2764,10 +2620,7 @@ function toggleAdminSeatNew(seatNum) {
   applyAdminSeatStyle(seatNum, false, isStaff, nameMap);
 }
 
-// Keep old toggleAdminSeat for compatibility
-function toggleAdminSeat(el, tripId, seatNum) {
-  toggleAdminSeatNew(seatNum);
-}
+function toggleAdminSeat(el, tripId, seatNum) { toggleAdminSeatNew(seatNum); }
 
 async function saveAdminSeats() {
   const tripId = document.getElementById('admin-van-container')?.dataset.tripId;
@@ -2778,6 +2631,235 @@ async function saveAdminSeats() {
     showToast('Seat settings saved!', 'success');
     logAction('Seats Updated', `Trip ${tripId}`);
   }
+}
+
+// ── CAPTURE SEAT IMAGE ───────────────────────────────────────
+async function captureSeatsImage() {
+  const container = document.getElementById('admin-van-container');
+  const tripInfo = document.getElementById('admin-seats-trip-info').textContent;
+  
+  // Build a clean printable canvas using DOM snapshot approach
+  const vans = container.querySelectorAll('[style*="flex:0 0 auto"]');
+  const SEAT_W = 58, SEAT_H = 58, PAD = 16, ROW_GAP = 10, VAN_PAD = 14;
+  const VAN_W = 3 * SEAT_W + 2 * ROW_GAP + VAN_PAD * 2;
+  const totalVans = vans.length;
+  
+  const canvas = document.createElement('canvas');
+  const SCALE = 2;
+  const headerH = 50;
+  const vanH = 280;
+  const cols = Math.min(totalVans, 3);
+  const rows = Math.ceil(totalVans / cols);
+  canvas.width  = (VAN_W * cols + PAD * (cols + 1)) * SCALE;
+  canvas.height = (headerH + vanH * rows + PAD * (rows + 1) + 40) * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+  
+  // Background
+  ctx.fillStyle = '#0e0e18';
+  ctx.fillRect(0, 0, canvas.width / SCALE, canvas.height / SCALE);
+  
+  // Header
+  ctx.fillStyle = '#e8b84b';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🚐 MPG BOOKING — ' + tripInfo, canvas.width / SCALE / 2, 32);
+  
+  const totalSeats = parseInt(container.dataset.totalSeats) || 10;
+  const seatsPerVan = 10;
+  
+  const colorAvail  = { bg: 'rgba(181,240,200,0.7)',  border: '#52c97a' };
+  const colorBooked = { bg: 'rgba(255,150,150,0.7)',  border: '#ff6b8a' };
+  const colorStaff  = { bg: 'rgba(140,200,255,0.7)',  border: '#5aaef0' };
+  
+  for (let v = 0; v < totalVans; v++) {
+    const startSeat = v * seatsPerVan + 1;
+    const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
+    const col = v % cols;
+    const row = Math.floor(v / cols);
+    const ox = PAD + col * (VAN_W + PAD);
+    const oy = headerH + PAD + row * (vanH + PAD);
+    
+    // Van box
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = 'rgba(232,184,75,0.3)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, ox, oy, VAN_W, vanH, 12);
+    ctx.fill(); ctx.stroke();
+    
+    // Van title
+    ctx.fillStyle = '#e8b84b';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`คันที่ ${v + 1} / ${totalVans}`, ox + VAN_W / 2, oy + 22);
+    
+    // Draw seats
+    function drawSeat(seatNum, sx, sy) {
+      const el = document.getElementById('admin-seat-' + seatNum);
+      let color = colorAvail;
+      let label = 'S' + seatNum;
+      let textColor = '#1a1a2a';
+      if (el) {
+        if (el.classList.contains('seat-booked')) {
+          color = colorBooked; label = el.querySelector('span') ? el.querySelector('span').textContent.trim() || 'จองแล้ว' : 'จองแล้ว';
+        } else if (el.classList.contains('seat-staff')) {
+          color = colorStaff; label = 'Staff';
+        }
+      }
+      ctx.fillStyle = color.bg;
+      ctx.strokeStyle = color.border;
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, sx, sy, SEAT_W, SEAT_H, 8);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('💺', sx + SEAT_W / 2, sy + 22);
+      ctx.fillText(label.substring(0, 8), sx + SEAT_W / 2, sy + 40);
+    }
+    
+    // Front seat
+    const frontX = ox + VAN_PAD;
+    const frontY = oy + 36;
+    drawSeat(startSeat, frontX, frontY);
+    // Driver box
+    ctx.fillStyle = 'rgba(150,120,255,0.3)';
+    ctx.strokeStyle = 'rgba(150,120,255,0.6)';
+    roundRect(ctx, ox + VAN_W - VAN_PAD - SEAT_W, frontY, SEAT_W, SEAT_H, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ddd';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧑‍✈️', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 22);
+    ctx.fillText('Driver', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 40);
+    
+    // Passenger seats
+    const passengers = [];
+    for (let s = startSeat + 1; s <= endSeat; s++) passengers.push(s);
+    let pRow = 0, pCol = 0;
+    passengers.forEach((s, i) => {
+      pRow = Math.floor(i / 3);
+      pCol = i % 3;
+      const sx = ox + VAN_PAD + pCol * (SEAT_W + ROW_GAP);
+      const sy = frontY + SEAT_H + 18 + pRow * (SEAT_H + 8);
+      drawSeat(s, sx, sy);
+    });
+  }
+  
+  // Legend
+  const legendY = canvas.height / SCALE - 30;
+  ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  [[colorAvail,'ว่าง'],[colorBooked,'จองแล้ว'],[colorStaff,'Staff']].forEach(([c, lbl], i) => {
+    const lx = PAD + i * 100;
+    ctx.fillStyle = c.bg; ctx.strokeStyle = c.border; ctx.lineWidth = 1;
+    ctx.fillRect(lx, legendY, 12, 12); ctx.strokeRect(lx, legendY, 12, 12);
+    ctx.fillStyle = '#aaa'; ctx.fillText(lbl, lx + 16, legendY + 10);
+  });
+  
+  // Download
+  const link = document.createElement('a');
+  link.download = `seats_${tripInfo.replace(/[^a-z0-9ก-ฮ]/gi, '_')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 บันทึกรูปที่นั่งแล้ว!', 'success');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ── VAN COUNT HINT ───────────────────────────────────────────
+function updateVanCount(val) {
+  const n = parseInt(val) || 0;
+  const vans = Math.ceil(n / 10);
+  const el = document.getElementById('van-count-hint');
+  if (!el) return;
+  if (n <= 0) { el.textContent = ''; return; }
+  el.textContent = `🚐 ${vans} คัน (${vans} × 10 ที่นั่ง)`;
+}
+
+// ── TRIP IMAGE UPLOAD ────────────────────────────────────────
+const _tripImages = ['', '', ''];
+
+function handleTripImageUpload(idx, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    _tripImages[idx] = e.target.result;
+    const preview = document.getElementById('trip-img-preview-' + idx);
+    const removeBtn = document.getElementById('trip-img-remove-' + idx);
+    const slot = document.getElementById('trip-img-slot-' + idx);
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    removeBtn.style.display = 'block';
+    slot.querySelector('span:first-child').style.display = 'none';
+    slot.querySelector('span:nth-child(2)').style.display = 'none';
+    // Save all images as JSON in hidden field
+    document.getElementById('trip-image').value = JSON.stringify(_tripImages.filter(x => x));
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeTripImage(event, idx) {
+  event.stopPropagation();
+  _tripImages[idx] = '';
+  const preview = document.getElementById('trip-img-preview-' + idx);
+  const removeBtn = document.getElementById('trip-img-remove-' + idx);
+  const slot = document.getElementById('trip-img-slot-' + idx);
+  const input = document.getElementById('trip-img-input-' + idx);
+  preview.style.display = 'none'; preview.src = '';
+  removeBtn.style.display = 'none';
+  slot.querySelector('span:first-child').style.display = '';
+  slot.querySelector('span:nth-child(2)').style.display = '';
+  input.value = '';
+  document.getElementById('trip-image').value = JSON.stringify(_tripImages.filter(x => x));
+}
+
+function resetTripImages() {
+  for (let i = 0; i < 3; i++) {
+    _tripImages[i] = '';
+    const preview = document.getElementById('trip-img-preview-' + i);
+    const removeBtn = document.getElementById('trip-img-remove-' + i);
+    const slot = document.getElementById('trip-img-slot-' + i);
+    const input = document.getElementById('trip-img-input-' + i);
+    if (!preview) continue;
+    preview.style.display = 'none'; preview.src = '';
+    removeBtn.style.display = 'none';
+    slot.querySelector('span:first-child').style.display = '';
+    slot.querySelector('span:nth-child(2)').style.display = '';
+    input.value = '';
+  }
+  document.getElementById('trip-image').value = '';
+}
+
+function loadTripImages(imageVal) {
+  resetTripImages();
+  if (!imageVal) return;
+  let images = [];
+  try { images = JSON.parse(imageVal); } catch(e) { images = [imageVal]; }
+  images.forEach((src, i) => {
+    if (i >= 3 || !src) return;
+    _tripImages[i] = src;
+    const preview = document.getElementById('trip-img-preview-' + i);
+    const removeBtn = document.getElementById('trip-img-remove-' + i);
+    const slot = document.getElementById('trip-img-slot-' + i);
+    if (!preview) return;
+    preview.src = src; preview.style.display = 'block';
+    removeBtn.style.display = 'block';
+    slot.querySelector('span:first-child').style.display = 'none';
+    slot.querySelector('span:nth-child(2)').style.display = 'none';
+  });
 }
 
 async function loadPaymentSettings() {
@@ -2907,7 +2989,7 @@ async function loadAdminUsers() {
       <td style="font-weight:500; font-family:'DM Mono',monospace; font-size:12px;">${a.username}</td>
       <td>${roleBadge(a.role)}</td>
       <td style="font-size:12px; color:var(--text-muted);">${a.email || '—'}</td>
-      <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? new Date(a.lastLogin).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'}) : '—'}</td>
+      <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? new Date(a.lastLogin).toLocaleString('th-TH') : '—'}</td>
       <td><span class="badge ${String(a.active) !== 'FALSE' && a.active !== false ? 'badge-green' : 'badge-gray'}">${String(a.active) !== 'FALSE' && a.active !== false ? 'Active' : 'Inactive'}</span></td>
       <td>
         ${a.role === 'superadmin' ? '<span style="color:var(--text-muted); font-size:11px;">Protected</span>' :
