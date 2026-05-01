@@ -703,14 +703,14 @@
   <div style="background: var(--bg-secondary); padding: 20px 24px; border-bottom: 1px solid var(--border);">
     <div style="max-width: 1200px; margin: 0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
       <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="🔍  Search Trips..." oninput="filterTrips()">
-      <!-- <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
+      <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
         <option value="">All Categories</option>
         <option value="beach">🏖 Beach</option>
         <option value="mountain">⛰ Mountain</option>
         <option value="city">🏙 City Tour</option>
         <option value="temple">🛕 Cultural</option>
         <option value="waterfall">💧 Waterfall</option>
-      </select> -->
+      </select>
     </div>
   </div>
 
@@ -1241,7 +1241,7 @@
           <div id="van-count-hint" style="font-size:10px; color:var(--accent); margin-top:4px; font-weight:600;"></div>
         </div>
       </div>
-      <!-- <div>
+      <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Category</label>
         <select class="input-field" id="trip-category">
           <option value="beach">🏖 Beach</option>
@@ -1250,7 +1250,7 @@
           <option value="temple">🛕 Cultural</option>
           <option value="waterfall">💧 Waterfall</option>
         </select>
-      </div> -->
+      </div>
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Description</label>
         <textarea class="input-field" id="trip-description" rows="3" placeholder="Describe the trip..."></textarea>
@@ -1475,12 +1475,8 @@ let state = {
 // Demo data
 const DEMO_TRIPS = [
   { id: 'T001', name: 'Pai Canyon Sunrise', destination: 'Pai, Mae Hong Son', date: '2025-08-15', time: '05:30', price: 1200, seats: 10, booked: 3, category: 'mountain', description: 'Watch the sunrise over the breathtaking Pai Canyon. A magical experience you\'ll never forget.', image: '🏔', status: 'active' },
-  { id: 'T002', name: 'Railay Beach Escape', destination: 'Railay, Krabi', date: '2025-08-20', time: '07:00', price: 2800, seats: 10, booked: 9, category: 'beach', description: 'Pristine white sand, emerald waters, and towering limestone cliffs. A tropical paradise.', image: '🏖', status: 'full' },
-  { id: 'T003', name: 'Doi Inthanon Summit', destination: 'Chiang Mai', date: '2025-08-22', time: '06:00', price: 1500, seats: 10, booked: 5, category: 'mountain', description: 'Thailand\'s highest peak adventure. Misty forests, royal gardens, and stunning views.', image: '⛰', status: 'active' },
-  { id: 'T004', name: 'Erawan Waterfall', destination: 'Kanchanaburi', date: '2025-08-25', time: '07:30', price: 1800, seats: 10, booked: 2, category: 'waterfall', description: 'Seven-tiered emerald waterfall in a lush national park. Perfect for swimming and nature lovers.', image: '💧', status: 'active' },
-  { id: 'T005', name: 'Old City Temple Tour', destination: 'Chiang Mai City', date: '2025-08-28', time: '08:00', price: 800, seats: 10, booked: 7, category: 'temple', description: 'Explore over 300 ancient temples in the heart of Chiang Mai\'s old city.', image: '🛕', status: 'active' },
-  { id: 'T006', name: 'Similan Islands Day Trip', destination: 'Similan, Phang Nga', date: '2025-09-05', time: '06:00', price: 3200, seats: 10, booked: 4, category: 'beach', description: 'Crystal clear waters and world-class snorkeling at the legendary Similan Islands.', image: '🐠', status: 'active' },
-];
+  { id: 'T002', name: 'Railay Beach Escape', destination: 'Railay, Krabi', date: '2025-08-20', time: '07:00', price: 2800, seats: 20, booked: 9, category: 'beach', description: 'Pristine white sand, emerald waters, and towering limestone cliffs. A tropical paradise.', image: '🏖', status: 'full' },
+  ];
 
 const DEMO_BOOKINGS = [
   { id: 'BK-A1B2C3', tripId: 'T001', tripName: 'Pai Canyon Sunrise', firstname: 'Somporn', lastname: 'Chaiyaphum', phone: '0812345678', email: 'somporn@email.com', seats: [2,3], passengers: 2, status: 'confirmed', createdAt: '2025-07-20 14:30', note: '' },
@@ -1650,8 +1646,11 @@ async function loadTrips() {
 
 function filterTrips() {
   const query = document.getElementById('searchInput').value.toLowerCase();
+  const cat = document.getElementById('categoryFilter').value;
   state.filteredTrips = state.trips.filter(t => {
-    return !query || t.name.toLowerCase().includes(query) || t.destination.toLowerCase().includes(query);
+    const matchQ = !query || t.name.toLowerCase().includes(query) || t.destination.toLowerCase().includes(query);
+    const matchCat = !cat || t.category === cat;
+    return matchQ && matchCat;
   });
   renderTrips();
 }
@@ -1692,16 +1691,18 @@ function getTripFirstImage(trip) {
 function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
+  const catEmoji = { beach:'🏖', mountain:'⛰', city:'🏙', temple:'🛕', waterfall:'💧' }[trip.category] || '🌍';
   const firstImg = getTripFirstImage(trip);
 
   return `<div class="trip-card${small ? '' : ''}" onclick="openTripModal('${trip.id}')">
-    <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient()});">
+    <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
       ${firstImg
         ? `<img src="${firstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">`
-        : `<span style="font-size:56px;">🌍</span>`}
+        : `<span style="font-size:56px;">${catEmoji}</span>`}
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
+        <span class="badge badge-gray">${catEmoji} ${trip.category}</span>
         ${isFull ? '<span class="badge badge-red">FULL</span>' : '<span class="badge badge-green">' + avail + ' left</span>'}
       </div>
       <div style="font-weight:600; font-size:14px; margin:8px 0 4px; color: var(--text-primary);">${trip.name}</div>
@@ -1717,8 +1718,9 @@ function tripCardHTML(trip, small) {
   </div>`;
 }
 
-function getGradient() {
-  return '#1a1a2a, #2a2a3a'; 
+function getGradient(cat) {
+  const g = { beach:'#0d4f6b, #1a8c7a', mountain:'#1a2a1a, #2d4a1e', city:'#1a1a2e, #2d2d4e', temple:'#2e1a0d, #4e3010', waterfall:'#0d2e3a, #1a4a5a' };
+  return g[cat] || '#1a1a2a, #2a2a3a';
 }
 
 function formatDate(dateStr) {
