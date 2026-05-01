@@ -12,7 +12,7 @@
 // ============================================================
 
 // ── CONFIGURATION ──────────────────────────────────────────
-const SPREADSHEET_ID = '1XqYka_3fQmfu10er2rXMTlaY2-iraWTJ6uoOXkRY4ms';
+const SPREADSHEET_ID = '1L3h4ZGSjXBp8gFiJwofnYrtz5_KbGtmt0P-JCP_ldT8';
 const ADMIN_DEFAULT_USER  = 'admin.mpg2026!';
 const ADMIN_DEFAULT_PASS_HASH = '6550a71fd95f89569371afd8f5ea03c3c134c4a963343d1251683ed3662b1de3'; // SHA-256 of "adminmpg@2026#"
 const ADMIN_EMAIL = 'thosapon.som@gmail.com';   // ← Email สำหรับส่ง OTP ยืนยัน Admin
