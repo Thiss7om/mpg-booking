@@ -289,15 +289,21 @@
     box-shadow: 0 16px 40px rgba(255,143,163,0.22);
   }
   .trip-card-img {
-    width: 100%; height: 180px; object-fit: cover;
+    width: 100%; height: 180px;
     background: var(--bg-elevated);
     display: flex; align-items: center; justify-content: center;
     color: var(--text-muted); font-size: 40px;
     position: relative; overflow: hidden;
   }
+  .trip-card-img img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    z-index: 1;
+  }
   .trip-card-img::after {
     content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
     background: linear-gradient(transparent, white);
+    z-index: 2;
   }
   .scroll-row {
     display: flex; gap: 16px;
@@ -779,11 +785,16 @@
       <input class="input-field" id="searchInput" style="flex:1; min-width:200px;" placeholder="Search Trips..." oninput="filterTrips()">
       <select class="input-field" id="categoryFilter" style="width:180px;" onchange="filterTrips()">
         <option value="">All Categories</option>
-        <option value="beach">Beach</option>
-        <option value="mountain">Mountain</option>
-        <option value="city">City Tour</option>
-        <option value="temple">Cultural</option>
-        <option value="waterfall">Waterfall</option>
+        <option value="beach">🏖 Beach</option>
+        <option value="mountain">🏔 Mountain</option>
+        <option value="city">🏙 City Tour</option>
+        <option value="temple">🛕 Cultural</option>
+        <option value="waterfall">💧 Waterfall</option>
+        <option value="island">🏝 Island</option>
+        <option value="forest">🌿 Forest / Nature</option>
+        <option value="festival">🎉 Festival</option>
+        <option value="adventure">🧗 Adventure</option>
+        <option value="other">✦ Other</option>
       </select>
     </div>
   </div>
@@ -1377,11 +1388,16 @@
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Category</label>
         <select class="input-field" id="trip-category">
-          <option value="beach">Beach</option>
-          <option value="mountain">Mountain</option>
-          <option value="city">City Tour</option>
-          <option value="temple">Cultural</option>
-          <option value="waterfall">Waterfall</option>
+          <option value="beach">🏖 Beach</option>
+          <option value="mountain">🏔 Mountain</option>
+          <option value="city">🏙 City Tour</option>
+          <option value="temple">🛕 Cultural</option>
+          <option value="waterfall">💧 Waterfall</option>
+          <option value="island">🏝 Island</option>
+          <option value="forest">🌿 Forest / Nature</option>
+          <option value="festival">🎉 Festival</option>
+          <option value="adventure">🧗 Adventure</option>
+          <option value="other">✦ Other</option>
         </select>
       </div>
       <div>
@@ -1616,7 +1632,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzDKrt2jxNQtV1itRzcKiMJ_-YlR6a7jEe5ji5G53NKYmEZOBU08GNLRP2xuFiEbGhdtw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyseAphIkBYb0EaJDy0gqRZg7jRA_ZvEXgYynkTr8b5ayLEGI1PQ9lOnREa34ME7gqoBA/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1911,14 +1927,14 @@ function getTripFirstImage(trip) {
 function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall' }[trip.category] || trip.category;
+  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
   const firstImg = getTripFirstImage(trip);
 
-  return `<div class="trip-card${small ? '' : ''}" onclick="openTripModal('${trip.id}')">
+  return `<div class="trip-card" onclick="openTripModal('${trip.id}')">
     <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
       ${firstImg
-        ? `<img src="${firstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">`
-        : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${getGradient(trip.category)});"></div>`}
+        ? `<img src="${firstImg}" alt="${trip.name}" onerror="this.style.display='none'">`
+        : ''}
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
@@ -1939,7 +1955,18 @@ function tripCardHTML(trip, small) {
 }
 
 function getGradient(cat) {
-  const g = { beach:'#0d4f6b, #1a8c7a', mountain:'#1a2a1a, #2d4a1e', city:'#1a1a2e, #2d2d4e', temple:'#2e1a0d, #4e3010', waterfall:'#0d2e3a, #1a4a5a' };
+  const g = {
+    beach:     '#0d4f6b, #1a8c7a',
+    mountain:  '#1a2a1a, #2d4a1e',
+    city:      '#1a1a2e, #2d2d4e',
+    temple:    '#2e1a0d, #4e3010',
+    waterfall: '#0d2e3a, #1a4a5a',
+    island:    '#003d4f, #006b5a',
+    forest:    '#0a2a0a, #1a4a1a',
+    festival:  '#2e0d2e, #4e1a4e',
+    adventure: '#1a0d00, #3a2000',
+    other:     '#1a1a2a, #2a2a3a',
+  };
   return g[cat] || '#1a1a2a, #2a2a3a';
 }
 
@@ -1957,8 +1984,8 @@ function formatDateRange(trip) {
   const start = formatDate(trip.dateStart || trip.date);
   const end   = formatDate(trip.dateEnd);
   if (!start) return '';
-  if (!end || end === start) return '📅 ' + start;
-  return '📅 ' + start + ' – ' + end;
+  if (!end || end === start) return start;
+  return start + ' – ' + end;
 }
 
 async function openTripModal(tripId) {
@@ -1966,7 +1993,7 @@ async function openTripModal(tripId) {
   if (!trip) return;
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall' }[trip.category] || trip.category;
+  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
 
   const firstImg1 = getTripFirstImage(trip);
   const imgEl = document.getElementById('trip-img-modal');
@@ -2013,7 +2040,7 @@ async function startBooking(tripId) {
       <div style="width:52px; height:52px; background: linear-gradient(135deg, ${getGradient(trip.category)}); border-radius:8px; flex-shrink:0; overflow:hidden;">${bookingThumbInner}</div>
       <div style="flex:1;">
         <div style="font-weight:600; font-size:14px;">${trip.name}</div>
-        <div style="font-size:12px; color: var(--text-muted);">📍 ${trip.destination} · ${formatDateRange(trip)}</div>
+        <div style="font-size:12px; color: var(--text-muted);">📍 ${trip.destination} · 📅 ${formatDateRange(trip)}</div>
       </div>
       <div style="font-family: Bebas Neue; font-size:24px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</div>
     </div>
@@ -2472,22 +2499,44 @@ async function searchBooking() {
     const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' };
     const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำยืนยัน — รอส่วนที่เหลือ' };
 
-    // Build remaining payment section if deposit confirmed
+    // Build remaining/deposit payment section
     let remainingHtml = '';
-    if (b.status === 'deposit_confirmed') {
+    if (b.status === 'deposit_pending') {
+      // มัดจำยังรอยืนยัน — แสดง bank/QR เพื่อชำระมัดจำ + hint รอ admin ยืนยัน
+      const settingsRes = await apiCall('getSettings');
+      const s = settingsRes.success ? settingsRes.data : {};
+      const depositAmt = Number(b.depositAmount||0);
+      remainingHtml = `
+        <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.1); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
+          <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">🪙 ชำระมัดจำ ฿${depositAmt.toLocaleString()}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">กรุณาโอนมัดจำตามช่องทางด้านล่าง แล้วรอ Admin ยืนยัน</div>
+          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
+          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+            <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">🏦 ${s.bankName || 'Bank'}</div>
+            <div style="font-weight:600; margin-bottom:4px;">${s.bankAccountName || ''}</div>
+            <div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${s.bankAccountNumber}</div>
+          </div>` : ''}
+          ${!s.qrImage && !s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:8px;">💳 ติดต่อ Admin เพื่อรับข้อมูลการชำระเงิน</div>` : ''}
+          <div style="font-size:11px; color:var(--text-muted); background:rgba(255,179,179,0.1); border-radius:8px; padding:8px; text-align:center;">
+            ⏳ หากโอนเงินแล้ว กรุณารอ Admin ยืนยัน จากนั้นค้นหา Booking ID อีกครั้งเพื่ออัปโหลด Slip ส่วนที่เหลือ
+          </div>
+        </div>`;
+    } else if (b.status === 'deposit_confirmed') {
+      // มัดจำยืนยันแล้ว — แสดงช่องชำระส่วนที่เหลือ
       const settingsRes = await apiCall('getSettings');
       const s = settingsRes.success ? settingsRes.data : {};
       const remaining = Number(b.totalAmount||0) - Number(b.depositAmount||0);
       remainingHtml = `
         <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.12); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
-          <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:12px;">💰 ชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}</div>
-          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:150px; border-radius:8px;"></div>` : ''}
-          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:8px; padding:10px;">
-            <div>🏦 ${s.bankName}</div>
-            <div>${s.bankAccountName}</div>
-            <div style="font-family:'DM Mono',monospace; font-size:15px; color:var(--accent);">${s.bankAccountNumber}</div>
+          <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">💰 ชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Admin ยืนยันมัดจำแล้ว กรุณาชำระยอดที่เหลือ</div>
+          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
+          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+            <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">🏦 ${s.bankName || 'Bank'}</div>
+            <div style="font-weight:600; margin-bottom:4px;">${s.bankAccountName || ''}</div>
+            <div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${s.bankAccountNumber}</div>
           </div>` : ''}
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">อัปโหลด Slip ส่วนที่เหลือ:</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">📸 อัปโหลด Slip การชำระส่วนที่เหลือ:</div>
           <div class="upload-zone" style="padding:16px;" onclick="document.getElementById('remaining-slip-input-${b.id}').click()">
             <div style="font-size:24px;">📸</div>
             <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">แตะเพื่ออัปโหลด Slip</div>
@@ -2758,21 +2807,23 @@ function renderDashboardBookings() {
     const isDepositConfirmed = b.status === 'deposit_confirmed';
 
     let confirmBtns = '';
-    if (isPending && isDeposit) {
-      // จ่ายมัดจำ รอยืนยัน → แสดงปุ่มยืนยันมัดจำ
-      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(255,208,77,0.2); color:#a06c00; border:1px solid rgba(255,208,77,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ มัดจำ</button>`;
-    } else if (isDepositConfirmed && b.remainingSlipData) {
-      // ยืนยันมัดจำแล้ว และมี slip ส่วนที่เหลือ → แสดงปุ่มยืนยันเต็มจำนวน
-      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(82,201,122,0.2); color:#1a7a40; border:1px solid rgba(82,201,122,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ เต็มจำนวน</button>`;
-    } else if (isPending && !isDeposit) {
-      // จ่ายเต็มจำนวน → ปุ่มยืนยันเต็มจำนวนอันเดียว
-      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
-    } else if (!['confirmed','cancelled'].includes(b.status)) {
-      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
+    if (b.status === 'deposit_pending') {
+      // มัดจำ รอยืนยัน → ปุ่มยืนยันมัดจำ (สีเหลือง)
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(255,208,77,0.25); color:#a06c00; border:1.5px solid rgba(255,208,77,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ ยืนยันมัดจำ</button>`;
+    } else if (b.status === 'deposit_confirmed') {
+      // มัดจำยืนยันแล้ว → รอ slip ส่วนที่เหลือ หรือยืนยันเต็มจำนวน
+      if (b.remainingSlipData) {
+        confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันเต็มจำนวน</button>`;
+      } else {
+        confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
+      }
+    } else if (b.status === 'pending') {
+      // จ่ายเต็มจำนวน รอยืนยัน → ปุ่มยืนยันการชำระ (สีเขียว)
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันการชำระ</button>`;
     }
 
     const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' }[s] || 'badge-gray');
-    const statusLabel = s => ({ pending: 'pending', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
+    const statusLabel = s => ({ pending: 'รอยืนยัน', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
 
     return `<tr>
       <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
@@ -2856,12 +2907,16 @@ function renderAdminBookings(bookings) {
     const isDepositConfirmed = b.status === 'deposit_confirmed';
 
     let confirmBtns = '';
-    if (isPending && isDeposit) {
-      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(255,208,77,0.2); color:#a06c00; border:1px solid rgba(255,208,77,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ มัดจำ</button>`;
-    } else if (isDepositConfirmed && b.remainingSlipData) {
-      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(82,201,122,0.2); color:#1a7a40; border:1px solid rgba(82,201,122,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ เต็มจำนวน</button>`;
-    } else if (!['confirmed','cancelled'].includes(b.status)) {
-      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
+    if (b.status === 'deposit_pending') {
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(255,208,77,0.25); color:#a06c00; border:1.5px solid rgba(255,208,77,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ ยืนยันมัดจำ</button>`;
+    } else if (b.status === 'deposit_confirmed') {
+      if (b.remainingSlipData) {
+        confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันเต็มจำนวน</button>`;
+      } else {
+        confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
+      }
+    } else if (b.status === 'pending') {
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันการชำระ</button>`;
     }
 
     return `<tr>
@@ -2889,7 +2944,8 @@ function renderAdminBookings(bookings) {
 async function quickUpdateStatus(bookingId, newStatus) {
   const res = await apiCall('updateBooking', { id: bookingId, status: newStatus });
   if (res.success) {
-    showToast(`Booking ${newStatus}!`, 'success');
+    const labels = { confirmed: 'ยืนยันการชำระแล้ว ✅', deposit_confirmed: 'ยืนยันมัดจำแล้ว 🪙', cancelled: 'ยกเลิกแล้ว ✕' };
+    showToast(labels[newStatus] || `อัพเดทสถานะเป็น ${newStatus}`, 'success');
     // Refresh both dashboard and bookings tab
     const bRes = await apiCall('getBookings');
     if (bRes.success) {
@@ -2984,7 +3040,7 @@ function openUserTripModal(tripId) {
   if (!trip) return;
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall' }[trip.category] || trip.category;
+  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
 
   const modalFirstImg = getTripFirstImage(trip);
   const modalImgEl = document.getElementById('trip-img-modal');
