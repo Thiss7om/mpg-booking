@@ -1664,7 +1664,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwcP_kGiDpNxeHJ2avROmXEhEqsnBEl_XoCMhQpLTv2IjNn9JG6-dp3M0WsNy9T74YtJQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwa55aUb1LFz5XdCE0nHte-Wi8qCfe2Gyl0FxiYhMsLnmIWkFXk1BXsx8xfZJNukn6Rjg/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -3829,6 +3829,27 @@ function openTripModal() { openTripModal_admin(null); }
 
 async function saveTrip() {
   const id = document.getElementById('trip-edit-id').value;
+  const MAX_IMAGE_CHARS = 45000; // Google Sheets cell limit guard
+
+  // ── ตรวจขนาด image ก่อนส่ง ──
+  let imageVal = document.getElementById('trip-image').value.trim();
+  if (imageVal) {
+    try {
+      let imgs = JSON.parse(imageVal);
+      if (Array.isArray(imgs)) {
+        const origLen = imgs.length;
+        imgs = imgs.filter(img => String(img).length <= MAX_IMAGE_CHARS);
+        if (imgs.length < origLen) showToast('รูปบางรูปมีขนาดใหญ่เกินไป จะถูกข้ามเมื่อบันทึก', 'warning');
+        imageVal = imgs.length ? JSON.stringify(imgs) : '';
+      }
+    } catch(e) {
+      if (imageVal.length > MAX_IMAGE_CHARS) {
+        showToast('รูปมีขนาดใหญ่เกินไป จะไม่ถูกบันทึก', 'warning');
+        imageVal = '';
+      }
+    }
+  }
+
   const data = {
     id: id || undefined,
     name: document.getElementById('trip-name').value.trim(),
@@ -3839,7 +3860,7 @@ async function saveTrip() {
     seats: parseInt(document.getElementById('trip-seats').value) || 10,
     category: document.getElementById('trip-category').value,
     description: document.getElementById('trip-description').value.trim(),
-    image: document.getElementById('trip-image').value.trim(),
+    image: imageVal,
     status: document.getElementById('trip-status').value
   };
   if (!data.name || !data.destination || !data.dateStart || !data.price) {
