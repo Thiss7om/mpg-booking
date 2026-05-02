@@ -2091,7 +2091,7 @@ function selectPaymentType(type) {
 
   const trip = state.currentBooking.trip;
   const total = trip.price * (state.currentBooking.passengers || 1);
-  const deposit = Math.ceil(total * 0.3); // 30% deposit
+  const deposit = Math.ceil(total * 0.5); // 50% deposit
   const remaining = total - deposit;
 
   const fullEl    = document.getElementById('ptype-full');
@@ -2111,7 +2111,7 @@ function selectPaymentType(type) {
     fullEl.style.borderColor = 'rgba(82,201,122,0.3)';
     fullEl.style.background  = 'rgba(181,240,200,0.08)';
     noteEl.style.display = '';
-    noteEl.innerHTML = `🪙 ชำระมัดจำ <strong>฿${deposit.toLocaleString()}</strong> ก่อน (30%) · ส่วนที่เหลือ <strong>฿${remaining.toLocaleString()}</strong> ชำระภายหลัง`;
+    noteEl.innerHTML = `🪙 ชำระมัดจำ <strong>฿${deposit.toLocaleString()}</strong> ก่อน (50%) · ส่วนที่เหลือ <strong>฿${remaining.toLocaleString()}</strong> ชำระภายหลัง`;
     document.getElementById('step3-desc').textContent = `อัปโหลด Slip มัดจำ ฿${deposit.toLocaleString()}`;
   }
 
@@ -2126,15 +2126,15 @@ async function loadPaymentDisplay(payType, total, depositAmt) {
   const s = res.data;
   const trip = state.currentBooking.trip;
   if (!total) total = trip.price * (state.currentBooking.passengers || 1);
-  if (!depositAmt) depositAmt = Math.ceil(total * 0.3);
+  if (!depositAmt) depositAmt = Math.ceil(total * 0.5);
 
   const displayAmount = (payType === 'deposit') ? depositAmt : total;
-  const label = (payType === 'deposit') ? `มัดจำ 30%` : 'Total Amount';
+  const label = (payType === 'deposit') ? `มัดจำ 50%` : 'Total Amount';
 
   let html = `<div style="text-align:center; margin-bottom:20px;">
     <div style="font-size:12px; color: var(--text-muted); margin-bottom:4px;">${label}</div>
     <div style="font-family: 'Mitr', sans-serif; font-size:48px; color: var(--accent); font-weight:700;">฿${displayAmount.toLocaleString()}</div>
-    <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} ผู้โดยสาร × ฿${trip.price.toLocaleString()}${payType === 'deposit' ? ` (มัดจำ 30% = ฿${displayAmount.toLocaleString()})` : ''}</div>
+    <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} ผู้โดยสาร × ฿${trip.price.toLocaleString()}${payType === 'deposit' ? ` (มัดจำ 50% = ฿${displayAmount.toLocaleString()})` : ''}</div>
   </div>`;
 
   if (s.qrImage) {
@@ -2272,8 +2272,8 @@ function updateSeatDisplay() {
 function openConfirmBookingModal() {
   const { trip, customer, selectedSeats, paymentType } = state.currentBooking;
   const total = trip.price * customer.passengers;
-  const deposit = Math.ceil(total * 0.3);
-  const payLabel = paymentType === 'deposit' ? `มัดจำ ฿${deposit.toLocaleString()} (30%)` : `฿${total.toLocaleString()} (เต็มจำนวน)`;
+  const deposit = Math.ceil(total * 0.5);
+  const payLabel = paymentType === 'deposit' ? `มัดจำ ฿${deposit.toLocaleString()} (50%)` : `฿${total.toLocaleString()} (เต็มจำนวน)`;
 
   const rows = [
     ['ทริป', trip.name],
@@ -2303,7 +2303,7 @@ async function doConfirmBooking() {
 
   const { trip, customer, selectedSeats, slipData, paymentType } = state.currentBooking;
   const total = trip.price * customer.passengers;
-  const depositAmount = Math.ceil(total * 0.3);
+  const depositAmount = Math.ceil(total * 0.5);
 
   const bookingData = {
     tripId: trip.id,
