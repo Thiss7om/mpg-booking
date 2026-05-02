@@ -1633,7 +1633,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyzDOUolpfsJt1pO-bcyshPPJ7tZyNnoy0ubgl4ruhCpxSzZGpPq2c8ADnfvUUWmeJHwg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVS7lgSn3Mf4o-Xjxppsm06UOF2yL_XElQoOV4ff8UnXBM02HJ_PQIX3n2hl3GT-Cbqg/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2959,6 +2959,11 @@ async function quickUpdateStatus(bookingId, newStatus) {
       renderAdminBookings(bRes.data);
     }
     logAction('Status Updated', `Booking ${bookingId} → ${newStatus}`);
+  } else {
+    // แสดง error ชัดเจน — admin จะได้รู้ว่า update ไม่สำเร็จ
+    const errMsg = res.error || 'ไม่สามารถอัพเดทสถานะได้';
+    showToast('❌ ' + errMsg, 'error');
+    console.error('quickUpdateStatus failed:', res);
   }
 }
 
