@@ -725,7 +725,8 @@
     </div>
   </div>
   <div class="flex items-center gap-3">
-    <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminLogout()">← Exit Admin</button>
+    <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminReload()">🔄 Reload</button>
+    <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminLogout()">← Sign Out</button>
     <div id="navbar-admin-user" style="display:none; font-size:12px; color: var(--text-muted); padding: 0 4px;"></div>
   </div>
 </nav>
@@ -1058,36 +1059,70 @@
         <h2>DASHBOARD</h2>
         <span id="dashboard-date"></span>
       </div>
-      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-bottom:32px;">
-        <div class="stat-card">
-          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Total Trips</div>
-          <div class="font-display text-4xl" id="stat-trips" style="color: var(--accent);">—</div>
+
+      <!-- STAT CARDS -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap:16px; margin-bottom:32px;">
+        <div class="stat-card" style="border-top: 3px solid var(--pastel-blue-deep);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">🗺 Total Trips</div>
+          <div class="font-display" style="font-size:48px; line-height:1; color: var(--pastel-blue-deep);" id="stat-trips">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;" id="stat-trips-active">— active</div>
         </div>
-        <div class="stat-card">
-          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Total Bookings</div>
-          <div class="font-display text-4xl" id="stat-bookings" style="color: var(--text-primary);">—</div>
+        <div class="stat-card" style="border-top: 3px solid var(--accent);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">📋 Total Bookings</div>
+          <div class="font-display" style="font-size:48px; line-height:1; color: var(--text-primary);" id="stat-bookings">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;">all bookings</div>
         </div>
-        <div class="stat-card">
-          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Pending Review</div>
-          <div class="font-display text-4xl" id="stat-pending" style="color: var(--accent);">—</div>
+        <div class="stat-card" style="border-top: 3px solid var(--pastel-yellow-deep);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">⏳ Pending</div>
+          <div class="font-display" style="font-size:48px; line-height:1; color: var(--accent);" id="stat-pending">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;">รอตรวจสอบ</div>
         </div>
-        <div class="stat-card">
-          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;">Confirmed</div>
-          <div class="font-display text-4xl" id="stat-confirmed" style="color: var(--green);">—</div>
+        <div class="stat-card" style="border-top: 3px solid var(--green);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">✅ Confirmed</div>
+          <div class="font-display" style="font-size:48px; line-height:1; color: var(--green);" id="stat-confirmed">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;">ยืนยันแล้ว</div>
+        </div>
+        <div class="stat-card" style="border-top: 3px solid var(--red);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">❌ Cancelled</div>
+          <div class="font-display" style="font-size:48px; line-height:1; color: var(--red);" id="stat-cancelled">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;">ยกเลิกแล้ว</div>
+        </div>
+        <div class="stat-card" style="border-top: 3px solid var(--pastel-purple);">
+          <div style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">💰 Revenue</div>
+          <div class="font-display" style="font-size:28px; line-height:1.2; color: #7a4fa0;" id="stat-revenue">—</div>
+          <div style="font-size:11px; color: var(--text-muted); margin-top:6px;">จาก confirmed</div>
         </div>
       </div>
-      <div class="section-heading">
-        <h2>RECENT BOOKINGS</h2>
+
+      <!-- FILTER BAR -->
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div class="section-heading mb-0">
+          <h2>BOOKINGS</h2>
+          <span id="dash-count-label" style="font-size:12px; color:var(--text-muted);"></span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <select class="input-field" style="width:210px; font-size:13px;" id="dash-trip-filter" onchange="renderDashboardBookings()">
+            <option value="">— All Trips —</option>
+          </select>
+          <select class="input-field" style="width:135px; font-size:13px;" id="dash-status-filter" onchange="renderDashboardBookings()">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <input class="input-field" style="width:180px; font-size:13px;" placeholder="🔍 Search..." id="dash-search" oninput="renderDashboardBookings()">
+        </div>
       </div>
+
       <div class="card" style="overflow:auto;">
-        <table class="data-table" id="recent-bookings-table">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>Booking ID</th><th>Customer</th><th>Trip</th><th>Seats</th><th>Status</th><th>Actions</th>
+              <th>Booking ID</th><th>ลูกค้า</th><th>ทริป</th><th>ที่นั่ง</th><th>ยอด</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
-          <tbody id="recent-bookings-body">
-            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
+          <tbody id="dash-bookings-body">
+            <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:32px;"><div class="spinner"></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -1544,7 +1579,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxocnA3WCQOPQm54n2mosfTgq-kBTjx5vIbHQMetJnnI15BpgBfFpXZ_HzxXNFT9jiPRA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyb3OZvHwtVNhvIYp1Eg2PDyTc0VulPpVH_Wo8Ps05ayQN_uWtUwI-rRmB6a6Y-R490nA/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2350,9 +2385,11 @@ async function adminVerifyOTP() {
     document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Bangkok' });
     const navUser = document.getElementById('navbar-admin-user');
     if (navUser) { navUser.textContent = '👤 ' + _loginUsername; navUser.style.display = ''; }
+    // Attach tab/window-close guard
+    window.addEventListener('beforeunload', _adminBeforeUnload);
     // Reset login form
     backToCredentials();
-    showView('admin');
+    _originalShowView('admin');
     loadAdminData();
   } else {
     showOTPError(res.error || 'รหัส OTP ไม่ถูกต้อง');
@@ -2396,9 +2433,52 @@ function adminLogout() {
   state.adminLoggedIn = false;
   state.adminUser = null;
   state.adminToken = '';
+  // Remove beforeunload guard
+  window.removeEventListener('beforeunload', _adminBeforeUnload);
   showView('home');
   showToast('ออกจากระบบแล้ว', 'info');
 }
+
+async function adminReload() {
+  showToast('กำลังโหลดข้อมูลใหม่...', 'info');
+  await loadAdminData();
+  // Also refresh whichever tab is currently active
+  const tabs = ['trips','bookings','payments','logs','admin-users'];
+  tabs.forEach(t => {
+    const el = document.getElementById('admin-tab-' + t);
+    if (el && el.style.display !== 'none') {
+      if (t === 'trips')       loadAdminTrips();
+      if (t === 'bookings')    loadAdminBookings();
+      if (t === 'payments')    loadPaymentSettings();
+      if (t === 'logs')        loadLogs();
+      if (t === 'admin-users') loadAdminUsers();
+    }
+  });
+  showToast('โหลดข้อมูลสำเร็จ ✓', 'success');
+}
+
+// ── Navigation guard: block back/forward while admin is logged in ──
+function _adminBeforeUnload(e) {
+  if (state.adminLoggedIn) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+}
+
+// Override showView to intercept navigating away from admin without sign-out
+const _originalShowView = showView;
+window.showView = function(viewName) {
+  if (state.adminLoggedIn && viewName !== 'admin') {
+    if (!confirm('ต้องการออกจาก Admin Portal?\nกด OK เพื่อ Sign Out และกลับหน้าหลัก')) return;
+    state.adminLoggedIn = false;
+    state.adminUser = null;
+    state.adminToken = '';
+    window.removeEventListener('beforeunload', _adminBeforeUnload);
+    showToast('ออกจากระบบแล้ว', 'info');
+  }
+  _originalShowView(viewName);
+};
 
 function switchAdminTab(tab) {
   ['dashboard','trips','bookings','payments','logs','admin-users'].forEach(t => {
@@ -2421,36 +2501,81 @@ async function loadAdminData() {
   ]);
   if (tripsRes.success) {
     state.trips = tripsRes.data;
+    const activeCount = tripsRes.data.filter(t => t.status === 'active').length;
     document.getElementById('stat-trips').textContent = tripsRes.data.length;
+    document.getElementById('stat-trips-active').textContent = activeCount + ' active';
+    // Populate trip filter dropdown
+    const sel = document.getElementById('dash-trip-filter');
+    if (sel) {
+      const existing = Array.from(sel.options).map(o => o.value);
+      tripsRes.data.forEach(t => {
+        if (!existing.includes(t.id)) {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name;
+          sel.appendChild(opt);
+        }
+      });
+    }
   }
   if (bookingsRes.success) {
     state.allBookings = bookingsRes.data;
     state.filteredBookings = bookingsRes.data;
-    const total = bookingsRes.data.length;
-    const pending = bookingsRes.data.filter(b => b.status === 'pending').length;
-    const confirmed = bookingsRes.data.filter(b => b.status === 'confirmed').length;
-    document.getElementById('stat-bookings').textContent = total;
-    document.getElementById('stat-pending').textContent = pending;
-    document.getElementById('stat-confirmed').textContent = confirmed;
-    renderRecentBookings(bookingsRes.data.slice(-5).reverse());
+    updateDashboardStats(bookingsRes.data);
+    renderDashboardBookings();
   }
 }
 
-function renderRecentBookings(bookings) {
-  const tbody = document.getElementById('recent-bookings-body');
-  if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding:24px;">No bookings yet</td></tr>'; return; }
-  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
-  tbody.innerHTML = bookings.map(b => `
+function updateDashboardStats(bookings) {
+  const total     = bookings.length;
+  const pending   = bookings.filter(b => b.status === 'pending').length;
+  const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+  const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+  const revenue   = bookings.filter(b => b.status === 'confirmed').reduce((s, b) => s + (parseFloat(b.totalAmount) || 0), 0);
+  document.getElementById('stat-bookings').textContent  = total;
+  document.getElementById('stat-pending').textContent   = pending;
+  document.getElementById('stat-confirmed').textContent = confirmed;
+  if (document.getElementById('stat-cancelled')) document.getElementById('stat-cancelled').textContent = cancelled;
+  if (document.getElementById('stat-revenue'))   document.getElementById('stat-revenue').textContent   = '฿' + revenue.toLocaleString();
+}
+
+function renderDashboardBookings() {
+  const tripFilter   = document.getElementById('dash-trip-filter')?.value   || '';
+  const statusFilter = document.getElementById('dash-status-filter')?.value || '';
+  const q            = (document.getElementById('dash-search')?.value || '').toLowerCase();
+  const bookings = (state.allBookings || []).filter(b => {
+    const matchTrip   = !tripFilter   || b.tripId === tripFilter;
+    const matchStatus = !statusFilter || b.status === statusFilter;
+    const matchQ      = !q || (b.id||'').toLowerCase().includes(q)
+                           || ((b.nickname||'')+' '+(b.firstname||'')+' '+(b.lastname||'')).toLowerCase().includes(q)
+                           || (b.tripName||'').toLowerCase().includes(q)
+                           || (b.phone||'').includes(q);
+    return matchTrip && matchStatus && matchQ;
+  });
+  // Update count label
+  const label = document.getElementById('dash-count-label');
+  if (label) label.textContent = bookings.length + ' รายการ';
+  const tbody = document.getElementById('dash-bookings-body');
+  if (!tbody) return;
+  if (!bookings.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:32px;">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+  const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
+  tbody.innerHTML = [...bookings].reverse().map(b => `
     <tr>
-      <td class="font-mono" style="color: var(--accent); font-size:12px;">${b.id}</td>
-      <td>${b.firstname} ${b.lastname}</td>
+      <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
+      <td style="font-size:12px;">${b.nickname ? '<span style="color:var(--accent);font-weight:600;">' + b.nickname + '</span><br>' : ''}${b.firstname || ''} ${b.lastname || ''}<br><span style="color:var(--text-muted); font-size:11px;">${b.phone || ''}</span></td>
       <td style="font-size:12px;">${b.tripName || '—'}</td>
-      <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(',') : b.seats}</td>
+      <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—')}</td>
+      <td style="font-size:12px; font-weight:600;">฿${Number(b.totalAmount||0).toLocaleString()}</td>
       <td><span class="badge ${statusBadge(b.status)}">${b.status}</span></td>
       <td>
-        <div class="flex gap-2">
-          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="openEditBooking('${b.id}')">Edit</button>
-          <button class="btn-outline" style="padding:4px 10px; font-size:11px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
+        <div class="flex gap-1 flex-wrap">
+          <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="openEditBooking('${b.id}')">Edit</button>
+          <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
+          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>
+          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'cancelled')">✕</button>
         </div>
       </td>
     </tr>`).join('');
@@ -2487,6 +2612,8 @@ async function loadAdminBookings() {
   if (!res.success) return;
   state.allBookings = res.data;
   state.filteredBookings = res.data;
+  updateDashboardStats(res.data);
+  renderDashboardBookings();
   renderAdminBookings(res.data);
 }
 
@@ -2530,7 +2657,15 @@ async function quickUpdateStatus(bookingId, newStatus) {
   const res = await apiCall('updateBooking', { id: bookingId, status: newStatus });
   if (res.success) {
     showToast(`Booking ${newStatus}!`, 'success');
-    loadAdminBookings();
+    // Refresh both dashboard and bookings tab
+    const bRes = await apiCall('getBookings');
+    if (bRes.success) {
+      state.allBookings = bRes.data;
+      state.filteredBookings = bRes.data;
+      updateDashboardStats(bRes.data);
+      renderDashboardBookings();
+      renderAdminBookings(bRes.data);
+    }
     logAction('Status Updated', `Booking ${bookingId} → ${newStatus}`);
   }
 }
@@ -2565,7 +2700,7 @@ async function saveBookingEdit() {
   if (res.success) {
     closeModal('modal-edit-booking');
     showToast('Booking updated!', 'success');
-    loadAdminBookings();
+    await loadAdminBookings();
     logAction('Booking Edited', `Edited booking ${id}`);
   }
 }
