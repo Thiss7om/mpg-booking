@@ -298,12 +298,13 @@
   .trip-card-img img {
     position: absolute; inset: 0;
     width: 100%; height: 100%; object-fit: cover;
-    z-index: 1;
+    z-index: 2;
   }
-  .trip-card-img::after {
+  /* gradient fade only for cards without an uploaded image */
+  .trip-card-img.no-image::after {
     content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
     background: linear-gradient(transparent, white);
-    z-index: 2;
+    z-index: 1;
   }
   .scroll-row {
     display: flex; gap: 16px;
@@ -1632,7 +1633,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwU1ngEHoA_LN-pgof_Jsh9egWZ6pDHT_aFcR2f6DmJ-6huxsNW-u2qJCDTLCV3CB8K6g/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyK8Sc9VK411OhhCdXygrbs--jMl-qPl-WGgabdu_G-iKtScoHGtnZz3PvLWZu7Z7n4aQ/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1928,13 +1929,15 @@ function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
+  const catEmoji = { beach:'🏖', mountain:'🏔', city:'🏙', temple:'🛕', waterfall:'💧', island:'🏝', forest:'🌿', festival:'🎉', adventure:'🧗', other:'✦' }[trip.category] || '✦';
   const firstImg = getTripFirstImage(trip);
+  const hasImg = !!firstImg;
 
   return `<div class="trip-card" onclick="openTripModal('${trip.id}')">
-    <div class="trip-card-img" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
-      ${firstImg
-        ? `<img src="${firstImg}" alt="${trip.name}" onerror="this.style.display='none'">`
-        : ''}
+    <div class="trip-card-img${hasImg ? '' : ' no-image'}" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
+      ${hasImg
+        ? `<img src="${firstImg}" alt="${trip.name}" onerror="this.remove(); this.parentElement.classList.add('no-image');">`
+        : `<span style="font-size:52px; opacity:0.6; z-index:1; position:relative;">${catEmoji}</span>`}
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
@@ -3041,17 +3044,19 @@ function openUserTripModal(tripId) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
   const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
+  const catEmoji = { beach:'🏖', mountain:'🏔', city:'🏙', temple:'🛕', waterfall:'💧', island:'🏝', forest:'🌿', festival:'🎉', adventure:'🧗', other:'✦' }[trip.category] || '✦';
 
   const modalFirstImg = getTripFirstImage(trip);
   const modalImgEl = document.getElementById('trip-img-modal');
   modalImgEl.style.background = `linear-gradient(135deg, ${getGradient(trip.category)})`;
   if (modalFirstImg) {
     modalImgEl.innerHTML = `
-      <img src="${modalFirstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">
+      <img src="${modalFirstImg}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;" onerror="this.remove()">
       <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.55); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px; z-index:2;">✕</button>
     `;
   } else {
     modalImgEl.innerHTML = `
+      <span style="font-size:64px; opacity:0.5;">${catEmoji}</span>
       <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
     `;
   }
@@ -3094,14 +3099,17 @@ function openTripModal_admin(tripId) {
   } else {
     document.getElementById('trip-modal-title').textContent = 'ADD TRIP';
     document.getElementById('trip-edit-id').value = '';
-    ['trip-name','trip-destination','trip-description','trip-image'].forEach(id => document.getElementById(id).value = '');
-    resetTripImages();
+    document.getElementById('trip-name').value = '';
+    document.getElementById('trip-destination').value = '';
+    document.getElementById('trip-description').value = '';
+    document.getElementById('trip-image').value = '';
     document.getElementById('trip-date-start').value = '';
     document.getElementById('trip-date-end').value = '';
     document.getElementById('trip-price').value = '';
     document.getElementById('trip-seats').value = 9;
     document.getElementById('trip-category').value = 'mountain';
     document.getElementById('trip-status').value = 'active';
+    resetTripImages();
   }
   document.getElementById('modal-trip-admin').style.display = 'flex';
 }
@@ -3468,8 +3476,9 @@ function handleTripImageUpload(idx, input) {
     removeBtn.style.display = 'block';
     slot.querySelector('span:first-child').style.display = 'none';
     slot.querySelector('span:nth-child(2)').style.display = 'none';
-    // Save all images as JSON in hidden field
-    document.getElementById('trip-image').value = JSON.stringify(_tripImages.filter(x => x));
+    // Save as JSON array — keep only non-empty, preserve original order
+    const toSave = _tripImages.filter(x => x);
+    document.getElementById('trip-image').value = toSave.length ? JSON.stringify(toSave) : '';
   };
   reader.readAsDataURL(file);
 }
@@ -3490,8 +3499,8 @@ function removeTripImage(event, idx) {
 }
 
 function resetTripImages() {
+  _tripImages[0] = ''; _tripImages[1] = ''; _tripImages[2] = '';
   for (let i = 0; i < 3; i++) {
-    _tripImages[i] = '';
     const preview = document.getElementById('trip-img-preview-' + i);
     const removeBtn = document.getElementById('trip-img-remove-' + i);
     const slot = document.getElementById('trip-img-slot-' + i);
