@@ -1001,7 +1001,7 @@
     </div>
     <div class="card p-4 mb-6 text-left" id="confirmation-details"></div>
     <div class="flex gap-3 justify-center flex-wrap">
-      <button class="btn-outline" onclick="downloadReceipt()">📄 Download Receipt</button>
+      <button class="btn-outline" onclick="saveConfirmationImage()">📸 บันทึกรูปภาพ</button>
       <button class="btn-primary" onclick="showView('home')">Back to Home</button>
     </div>
   </div>
@@ -2444,6 +2444,259 @@ function showConfirmation(booking) {
   showView('confirmation');
 }
 
+// ============================================================
+// SAVE CONFIRMATION AS IMAGE (html2canvas approach)
+// ============================================================
+async function saveConfirmationImage() {
+  const b = state.confirmedBooking;
+  if (!b) return;
+
+  // Build a standalone canvas with booking details
+  const canvas = document.createElement('canvas');
+  const W = 600, SCALE = 2;
+  canvas.width  = W * SCALE;
+  const estimatedH = 520;
+  canvas.height = estimatedH * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, W, estimatedH);
+  grad.addColorStop(0, '#fff8f5');
+  grad.addColorStop(1, '#fff0f5');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, estimatedH);
+
+  // Top accent bar
+  const barGrad = ctx.createLinearGradient(0, 0, W, 0);
+  barGrad.addColorStop(0, '#ff8fa3');
+  barGrad.addColorStop(0.5, '#ffe08a');
+  barGrad.addColorStop(1, '#a8d4f5');
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(0, 0, W, 6);
+
+  // Party emoji
+  ctx.font = '48px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎉', W / 2, 70);
+
+  // BOOKED title
+  ctx.font = 'bold 42px sans-serif';
+  ctx.fillStyle = '#52c97a';
+  ctx.fillText('BOOKED!', W / 2, 120);
+
+  // Subtitle
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = '#7a6270';
+  ctx.fillText('Your adventure is confirmed. Save your booking ID below.', W / 2, 148);
+
+  // Booking ID card
+  ctx.fillStyle = 'rgba(255,179,71,0.15)';
+  roundRectCanvas(ctx, 60, 165, W - 120, 68, 14);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,179,71,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#bba8b2';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOOKING ID', W / 2, 187);
+  ctx.font = 'bold 28px monospace';
+  ctx.fillStyle = '#ffb347';
+  ctx.fillText(b.id, W / 2, 220);
+
+  // Details card
+  const isDeposit = b.paymentType === 'deposit';
+  const remaining = Number(b.totalAmount || 0) - Number(b.depositAmount || 0);
+  const rows = [
+    ['ทริป', b.tripName || '—'],
+    ['ชื่อเล่น', b.nickname || '—'],
+    ['ชื่อ-นามสกุล', `${b.firstname || ''} ${b.lastname || ''}`],
+    ['โทรศัพท์', b.phone || '—'],
+    ['ที่นั่ง', Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—')],
+    ['ยอดรวม', `฿${Number(b.totalAmount || 0).toLocaleString()}`],
+    ...(isDeposit ? [
+      ['ชำระมัดจำแล้ว', `฿${Number(b.depositAmount || 0).toLocaleString()}`],
+      ['ยังค้างอยู่', `฿${remaining.toLocaleString()}`],
+    ] : []),
+    ['สถานะ', isDeposit ? 'มัดจำ — รอยืนยัน' : 'รอยืนยัน'],
+  ];
+
+  const cardTop = 248, cardLeft = 60, cardW = W - 120;
+  const rowH = 32, cardH = rows.length * rowH + 24;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(180,120,140,0.1)';
+  ctx.shadowBlur = 12;
+  roundRectCanvas(ctx, cardLeft, cardTop, cardW, cardH, 14);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(180,140,160,0.18)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  rows.forEach(([label, val], i) => {
+    const y = cardTop + 20 + i * rowH;
+    ctx.textAlign = 'left';
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#bba8b2';
+    ctx.fillText(label, cardLeft + 16, y + 14);
+    ctx.textAlign = 'right';
+    const isHighlight = label === 'ที่นั่ง' || label === 'ยังค้างอยู่' || label === 'สถานะ' || label === 'ชำระมัดจำแล้ว';
+    ctx.fillStyle = isHighlight ? '#ffb347' : '#3a2a35';
+    ctx.font = isHighlight ? 'bold 13px sans-serif' : '13px sans-serif';
+    ctx.fillText(val, cardLeft + cardW - 16, y + 14);
+    if (i < rows.length - 1) {
+      ctx.strokeStyle = 'rgba(180,140,160,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cardLeft + 12, y + rowH);
+      ctx.lineTo(cardLeft + cardW - 12, y + rowH);
+      ctx.stroke();
+    }
+  });
+
+  // Resize canvas height to actual content
+  const actualH = cardTop + cardH + 30;
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width  = W * SCALE;
+  finalCanvas.height = actualH * SCALE;
+  const fctx = finalCanvas.getContext('2d');
+  fctx.drawImage(canvas, 0, 0, W * SCALE, actualH * SCALE, 0, 0, W * SCALE, actualH * SCALE);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `MPG-Booking-${b.id}.png`;
+  link.href = finalCanvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 บันทึกรูปภาพสำเร็จ!', 'success');
+}
+
+function roundRectCanvas(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Save search result booking card as image
+async function saveBookingSearchImage(bookingId) {
+  // Try last searched booking first, then state, then fetch
+  let booking = (window._lastSearchedBooking && window._lastSearchedBooking.id === bookingId)
+    ? window._lastSearchedBooking
+    : state.allBookings.find(x => x.id === bookingId);
+
+  if (!booking) {
+    const res = await apiCall('getBookingById', { id: bookingId });
+    if (res.success) booking = res.data;
+  }
+  if (!booking) { showToast('ไม่พบข้อมูล Booking', 'error'); return; }
+
+  const canvas = document.createElement('canvas');
+  const W = 560, SCALE = 2;
+  const estimatedH = 500;
+  canvas.width  = W * SCALE;
+  canvas.height = estimatedH * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, W, estimatedH);
+  grad.addColorStop(0, '#fff8f5');
+  grad.addColorStop(1, '#f0f7ff');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, estimatedH);
+
+  // Top bar
+  const barGrad = ctx.createLinearGradient(0, 0, W, 0);
+  barGrad.addColorStop(0, '#ff8fa3');
+  barGrad.addColorStop(0.5, '#ffe08a');
+  barGrad.addColorStop(1, '#a8d4f5');
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(0, 0, W, 6);
+
+  // Header
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillStyle = '#3a2a35';
+  ctx.textAlign = 'center';
+  ctx.fillText('MPG BOOKING — ข้อมูลการจอง', W / 2, 44);
+
+  // Booking ID
+  ctx.font = 'bold 20px monospace';
+  ctx.fillStyle = '#ffb347';
+  ctx.fillText(booking.id, W / 2, 72);
+
+  const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำ ยืนยันแล้ว', remaining_uploaded: 'ส่ง Slip แล้ว — รอยืนยัน' };
+  const isDeposit = booking.paymentType === 'deposit';
+  const remaining = Number(booking.totalAmount || 0) - Number(booking.depositAmount || 0);
+
+  const rows = [
+    ['ชื่อ-นามสกุล', `${booking.firstname || ''} ${booking.lastname || ''}`],
+    ['ทริป', booking.tripName || '—'],
+    ['ที่นั่ง', Array.isArray(booking.seats) ? booking.seats.join(', ') : (booking.seats || '—')],
+    ['ยอดรวม', `฿${Number(booking.totalAmount || 0).toLocaleString()}`],
+    ...(booking.depositAmount ? [
+      ['มัดจำ', `฿${Number(booking.depositAmount).toLocaleString()}`],
+      ['คงเหลือ', `฿${(Number(booking.totalAmount || 0) - Number(booking.depositAmount)).toLocaleString()}`],
+    ] : []),
+    ['วันที่จอง', booking.createdAt || 'N/A'],
+    ['สถานะ', statusLabels[booking.status] || booking.status],
+  ];
+
+  const cardTop = 88, cardLeft = 40, cardW = W - 80;
+  const rowH = 34, cardH = rows.length * rowH + 20;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(180,120,140,0.12)';
+  ctx.shadowBlur = 14;
+  roundRectCanvas(ctx, cardLeft, cardTop, cardW, cardH, 14);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(180,140,160,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  rows.forEach(([label, val], i) => {
+    const y = cardTop + 14 + i * rowH;
+    ctx.textAlign = 'left';
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#bba8b2';
+    ctx.fillText(label, cardLeft + 16, y + 14);
+    ctx.textAlign = 'right';
+    const isHighlight = label === 'ที่นั่ง' || label === 'สถานะ' || label === 'คงเหลือ';
+    ctx.fillStyle = isHighlight ? '#ffb347' : '#3a2a35';
+    ctx.font = isHighlight ? 'bold 13px sans-serif' : '13px sans-serif';
+    ctx.fillText(val, cardLeft + cardW - 16, y + 14);
+    if (i < rows.length - 1) {
+      ctx.strokeStyle = 'rgba(180,140,160,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cardLeft + 12, y + rowH);
+      ctx.lineTo(cardLeft + cardW - 12, y + rowH);
+      ctx.stroke();
+    }
+  });
+
+  const actualH = cardTop + cardH + 24;
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width  = W * SCALE;
+  finalCanvas.height = actualH * SCALE;
+  const fctx = finalCanvas.getContext('2d');
+  fctx.drawImage(canvas, 0, 0, W * SCALE, actualH * SCALE, 0, 0, W * SCALE, actualH * SCALE);
+
+  const link = document.createElement('a');
+  link.download = `MPG-Booking-${booking.id}.png`;
+  link.href = finalCanvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 บันทึกรูปภาพสำเร็จ!', 'success');
+}
+
 function downloadReceipt() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ format: 'a5' });
@@ -2553,6 +2806,7 @@ async function searchBooking() {
   el.style.display = '';
   if (res.success && res.data) {
     const b = res.data;
+    window._lastSearchedBooking = b; // store for image saving
     const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple', remaining_uploaded: 'badge-blue' };
     const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำยืนยัน — รอส่วนที่เหลือ', remaining_uploaded: 'ส่ง Slip แล้ว — รอ Admin ยืนยัน' };
 
@@ -2616,7 +2870,10 @@ async function searchBooking() {
       <div class="card p-4">
         <div class="flex justify-between items-center mb-3">
           <span class="font-mono" style="color: var(--accent); font-size:14px;">${b.id}</span>
-          <span class="badge ${statusColors[b.status] || 'badge-gray'}">${statusLabels[b.status] || b.status}</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick="saveBookingSearchImage('${b.id}')" style="background:rgba(255,179,71,0.15); border:1px solid rgba(255,179,71,0.4); color:var(--accent); padding:5px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-weight:600;">📸 บันทึกรูปภาพ</button>
+            <span class="badge ${statusColors[b.status] || 'badge-gray'}">${statusLabels[b.status] || b.status}</span>
+          </div>
         </div>
         <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
           <div><span style="color: var(--text-muted);">Name:</span> ${b.firstname} ${b.lastname}</div>
