@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <style>
   :root {
@@ -743,7 +744,6 @@
   </div>
   <div class="flex items-center gap-3">
     <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminReload()">🔄 Reload</button>
-    <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminLogout()">← Sign Out</button>
     <div id="navbar-admin-user" style="display:none; font-size:12px; color: var(--text-muted); padding: 0 4px;"></div>
   </div>
 </nav>
@@ -2744,187 +2744,54 @@ async function saveBookingSearchImage(bookingId) {
   showToast('📸 บันทึกรูปภาพสำเร็จ!', 'success');
 }
 
-function downloadReceipt() {
+async function downloadReceipt() {
   const b = state.confirmedBooking;
-  if (!b) return;
-  const s = state.settings || {};
+  if (!b) { showToast('ไม่พบข้อมูลการจอง', 'error'); return; }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ format: 'a5', unit: 'mm' }); // 148 x 210 mm
-  const W = 148, pad = 14;
+  const btn = document.querySelector('[onclick="downloadReceipt()"]');
+  const origHTML = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ กำลังสร้าง PDF...'; }
 
-  // ── Helper functions ──
-  const fmtDate = (ts) => new Date(ts || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok', year:'numeric', month:'long', day:'numeric' });
-  const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
-  const total = Number(b.totalAmount || 0);
-  const isDeposit = b.paymentType === 'deposit';
+  try {
+    const { jsPDF } = window.jspdf;
+    const receiptEl = document.getElementById('receipt-render');
+    if (!receiptEl) throw new Error('ไม่พบ receipt element');
 
-  // ── Background ──
-  doc.setFillColor(253, 248, 245);
-  doc.rect(0, 0, W, 210, 'F');
+    // Temporarily expand width for better capture
+    const origStyle = receiptEl.style.cssText;
+    receiptEl.style.maxWidth = '600px';
+    receiptEl.style.width = '600px';
 
-  // ── Header gradient bar ──
-  doc.setFillColor(255, 143, 163);
-  doc.rect(0, 0, W, 32, 'F');
-  // overlay second color band
-  doc.setFillColor(255, 179, 71);
-  doc.setGState && doc.setGState(doc.GState({ opacity: 0.5 }));
-  doc.rect(W * 0.4, 0, W * 0.6, 32, 'F');
-  doc.setGState && doc.setGState(doc.GState({ opacity: 1 }));
+    const canvas = await html2canvas(receiptEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    });
 
-  // Company name
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(255, 255, 255);
-  doc.text((s.companyName || 'MPG BOOKING').toUpperCase(), W / 2, 14, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(255, 240, 230);
-  doc.text('ใบเสร็จรับเงิน / OFFICIAL RECEIPT', W / 2, 21, { align: 'center' });
-  if (s.companyAddress) doc.text(s.companyAddress, W / 2, 27, { align: 'center' });
+    receiptEl.style.cssText = origStyle;
 
-  // ── Status chip ──
-  doc.setFillColor(181, 240, 200);
-  doc.roundedRect(W - pad - 28, 34, 28, 7, 2, 2, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(26, 122, 64);
-  doc.text('CONFIRMED', W - pad - 14, 38.5, { align: 'center' });
+    const imgData = canvas.toDataURL('image/png');
+    const imgW = canvas.width;
+    const imgH = canvas.height;
 
-  // ── Booking ID ──
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(255, 179, 71);
-  doc.text(b.id, pad, 39.5);
+    // A4 page: 210mm x 297mm
+    const pdfW = 210;
+    const pdfH = Math.round((imgH / imgW) * pdfW);
 
-  // ── Date right side ──
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(122, 98, 112);
-  doc.text(fmtDate(b.createdAt), W - pad, 46, { align: 'right' });
+    const doc = new jsPDF({ format: [pdfW, pdfH], unit: 'mm', orientation: 'portrait' });
+    doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    doc.save('MPG-Receipt-' + b.id + '.pdf');
 
-  // ── Dashed line ──
-  doc.setDrawColor(200, 180, 190);
-  doc.setLineWidth(0.3);
-  doc.setLineDashPattern([1.5, 1.5], 0);
-  doc.line(pad, 50, W - pad, 50);
-  doc.setLineDashPattern([], 0);
-
-  // ── Section: Customer ──
-  let y = 57;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(187, 168, 178);
-  doc.text('ข้อมูลลูกค้า', pad, y);
-  y += 6;
-
-  const customerRows = [
-    ['ชื่อ-นามสกุล', (b.firstname || '') + ' ' + (b.lastname || '')],
-    ...(b.nickname ? [['ชื่อเล่น', b.nickname]] : []),
-    ['เบอร์โทร', b.phone || '—'],
-    ...(b.email ? [['อีเมล', b.email]] : []),
-  ];
-  customerRows.forEach(([lbl, val]) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(122, 98, 112);
-    doc.text(lbl, pad, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(58, 42, 53);
-    doc.text(String(val), pad + 36, y);
-    y += 7;
-  });
-
-  // ── Dashed line ──
-  y += 1;
-  doc.setDrawColor(200, 180, 190);
-  doc.setLineDashPattern([1.5, 1.5], 0);
-  doc.line(pad, y, W - pad, y);
-  doc.setLineDashPattern([], 0);
-  y += 6;
-
-  // ── Section: Trip ──
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(187, 168, 178);
-  doc.text('รายละเอียดทริป', pad, y);
-  y += 6;
-
-  const tripRows = [
-    ['ชื่อทริป', b.tripName || '—'],
-    ['เลขที่นั่ง', seats],
-    ['จำนวนที่นั่ง', String(b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)) + ' ที่นั่ง'],
-    ...(b.note ? [['หมายเหตุ', b.note]] : []),
-  ];
-  tripRows.forEach(([lbl, val]) => {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(122, 98, 112);
-    doc.text(lbl, pad, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(58, 42, 53);
-    // seat numbers highlight
-    if (lbl === 'เลขที่นั่ง') doc.setTextColor(255, 179, 71);
-    doc.text(String(val), pad + 36, y);
-    y += 7;
-  });
-
-  // ── Payment box ──
-  y += 3;
-  doc.setFillColor(255, 248, 240);
-  doc.setDrawColor(255, 179, 71);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(pad, y, W - pad * 2, isDeposit ? 28 : 16, 3, 3, 'FD');
-
-  if (isDeposit) {
-    const dep = Number(b.depositAmount || 0);
-    const rem = total - dep;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(122, 98, 112);
-    doc.text('มัดจำ', pad + 6, y + 8);
-    doc.text('฿' + dep.toLocaleString(), W - pad - 6, y + 8, { align: 'right' });
-    doc.text('ส่วนที่เหลือ', pad + 6, y + 16);
-    doc.text('฿' + rem.toLocaleString(), W - pad - 6, y + 16, { align: 'right' });
-    y += 12;
+    closeModal('modal-receipt');
+    showToast('📥 ดาวน์โหลดใบเสร็จสำเร็จ!', 'success');
+    logAction('PDF Downloaded', 'Receipt for ' + b.id);
+  } catch (err) {
+    console.error('downloadReceipt error:', err);
+    showToast('เกิดข้อผิดพลาดในการสร้าง PDF: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
   }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(58, 42, 53);
-  doc.text('ยอดรวมทั้งหมด', pad + 6, y + (isDeposit ? 20 : 10));
-  doc.setTextColor(255, 179, 71);
-  doc.setFontSize(13);
-  doc.text('฿' + total.toLocaleString(), W - pad - 6, y + (isDeposit ? 20 : 10), { align: 'right' });
-  y += isDeposit ? 28 : 16;
-
-  // ── Bank info ──
-  if (s.bankAccountNumber) {
-    y += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(122, 98, 112);
-    doc.text('ชำระผ่าน: ' + (s.bankName || '') + ' · ' + (s.bankAccountName || '') + ' · ' + s.bankAccountNumber, W / 2, y, { align: 'center' });
-    y += 5;
-  }
-
-  // ── Footer ──
-  y = Math.max(y + 8, 190);
-  doc.setDrawColor(200, 180, 190);
-  doc.setLineDashPattern([1.5, 1.5], 0);
-  doc.line(pad, y - 4, W - pad, y - 4);
-  doc.setLineDashPattern([], 0);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(187, 168, 178);
-  doc.text('ขอบคุณที่ไว้วางใจใช้บริการ ' + (s.companyName || 'MPG Booking'), W / 2, y + 2, { align: 'center' });
-  if (s.companyTaxId) doc.text('เลขประจำตัวผู้เสียภาษี: ' + s.companyTaxId, W / 2, y + 8, { align: 'center' });
-  if (s.companyPhone) doc.text('📞 ' + s.companyPhone, W / 2, y + (s.companyTaxId ? 14 : 8), { align: 'center' });
-
-  doc.save('MPG-Receipt-' + b.id + '.pdf');
-  closeModal('modal-receipt');
-  showToast('📥 ดาวน์โหลดใบเสร็จสำเร็จ!', 'success');
-  logAction('PDF Downloaded', 'Receipt for ' + b.id);
 }
 
 async function sendReceiptByEmail() {
@@ -4556,8 +4423,8 @@ window.openTripModal = function(tripId) {
 </div>
 
 <!-- Copyright -->
-<div style="position:fixed; bottom:14px; right:18px; z-index:9999; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.5; pointer-events:none; user-select:none; letter-spacing:0.03em;">
-  Copyright &copy; Thiss7om
+<div style="position:fixed; bottom:0; left:0; right:0; z-index:9999; text-align:center; padding:6px 0; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.4; pointer-events:none; user-select:none; letter-spacing:0.03em;">
+  Copyright &copy; 2026 Thiss7om
 </div>
 
 </body>
