@@ -1154,6 +1154,7 @@
             <option value="cancelled">Cancelled</option>
             <option value="deposit_pending">มัดจำ-รอยืนยัน</option>
             <option value="deposit_confirmed">มัดจำ-ยืนยันแล้ว</option>
+            <option value="remaining_uploaded">ส่ง Slip แล้ว-รอยืนยัน</option>
           </select>
           <input class="input-field" style="width:180px; font-size:13px;" placeholder="🔍 Search..." id="dash-search" oninput="renderDashboardBookings()">
         </div>
@@ -1209,7 +1210,7 @@
           <option value="cancelled">Cancelled</option>
           <option value="deposit_pending">มัดจำ-รอยืนยัน</option>
           <option value="deposit_confirmed">มัดจำ-ยืนยันแล้ว</option>
-        </select>
+          <option value="remaining_uploaded">ส่ง Slip แล้ว-รอยืนยัน</option>
       </div>
       <div class="card" style="overflow:auto;">
         <table class="data-table">
@@ -1487,6 +1488,7 @@
           <option value="cancelled">Cancelled</option>
           <option value="deposit_pending">มัดจำ — รอยืนยัน</option>
           <option value="deposit_confirmed">มัดจำ — ยืนยันแล้ว</option>
+          <option value="remaining_uploaded">ส่ง Slip แล้ว — รอยืนยัน</option>
         </select>
       </div>
       <div>
@@ -1633,7 +1635,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyzSuhpBEwS9oZ-56uUojmSVLEioLSvjhdclshJyN_md16UwKk82YeieqVAhEiKGQQuww/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyjGHT5EKT0F_cXdZoEnS_1J-oFLBvUZk8Yp5UUDFre_YGP_tO4Mq6jawhaN9jAulBL_Q/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2033,6 +2035,14 @@ async function startBooking(tripId) {
   if (!trip) return;
   state.currentBooking = { tripId, trip, step: 1, customer: {}, selectedSeats: [], slipData: null, passengers: 1 };
 
+  // ── ล้าง slip DOM ทุกครั้งที่เริ่มการจองใหม่ ──
+  const slipInput = document.getElementById('slip-file-input');
+  if (slipInput) slipInput.value = '';
+  const slipPreview = document.getElementById('slip-preview');
+  if (slipPreview) { slipPreview.innerHTML = ''; slipPreview.style.display = 'none'; }
+  const nextBtn = document.getElementById('step3-next-btn');
+  if (nextBtn) nextBtn.disabled = true;
+
   // Render trip summary
   const bookingFirstImg = getTripFirstImage(trip);
   const bookingThumbInner = bookingFirstImg
@@ -2091,6 +2101,16 @@ function goToStep(step) {
     const depositEl = document.getElementById('ptype-deposit');
     if(fullEl)    { fullEl.style.borderColor = 'rgba(82,201,122,0.5)';   fullEl.style.background = 'rgba(181,240,200,0.15)'; }
     if(depositEl) { depositEl.style.borderColor = 'rgba(255,179,71,0.4)'; depositEl.style.background = 'rgba(255,224,138,0.12)'; }
+  }
+  if (step === 3) {
+    // ── Reset slip ทุกครั้งที่เข้า step 3 — ป้องกัน cache slip เก่า ──
+    state.currentBooking.slipData = null;
+    const slipInput = document.getElementById('slip-file-input');
+    if (slipInput) slipInput.value = '';           // clear file input (ล้าง cache browser)
+    const slipPreview = document.getElementById('slip-preview');
+    if (slipPreview) { slipPreview.innerHTML = ''; slipPreview.style.display = 'none'; }
+    const nextBtn = document.getElementById('step3-next-btn');
+    if (nextBtn) nextBtn.disabled = true;          // บังคับ upload ใหม่ทุกครั้ง
   }
   if (step === 4) loadSeatsForBooking();
 }
@@ -2499,8 +2519,8 @@ async function searchBooking() {
   el.style.display = '';
   if (res.success && res.data) {
     const b = res.data;
-    const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' };
-    const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำยืนยัน — รอส่วนที่เหลือ' };
+    const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple', remaining_uploaded: 'badge-blue' };
+    const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำยืนยัน — รอส่วนที่เหลือ', remaining_uploaded: 'ส่ง Slip แล้ว — รอ Admin ยืนยัน' };
 
     // Build remaining/deposit payment section
     let remainingHtml = '';
@@ -2548,7 +2568,14 @@ async function searchBooking() {
           <input type="file" id="remaining-slip-input-${b.id}" accept="image/*,.pdf" style="display:none;" onchange="handleRemainingSlipUpload(this, '${b.id}')">
           <button class="btn-primary" id="remaining-slip-btn-${b.id}" style="width:100%; margin-top:12px;" disabled onclick="submitRemainingSlip('${b.id}')">ส่ง Slip ส่วนที่เหลือ →</button>
         </div>`;
-    }
+    } else if (b.status === 'remaining_uploaded') {
+      // ลูกค้าส่ง slip แล้ว — รอ Admin ยืนยัน
+      remainingHtml = `
+        <div style="margin-top:16px; padding:16px; background:rgba(90,172,240,0.08); border:1.5px solid rgba(90,172,240,0.4); border-radius:14px; text-align:center;">
+          <div style="font-size:22px; margin-bottom:8px;">📨</div>
+          <div style="font-weight:700; font-size:13px; color:#1a5fa0; margin-bottom:6px;">ส่ง Slip เรียบร้อยแล้ว!</div>
+          <div style="font-size:12px; color:var(--text-muted);">Admin กำลังตรวจสอบ Slip ของคุณ<br>เมื่อยืนยันแล้วจะได้รับอีเมลแจ้ง</div>
+        </div>`;
 
     el.innerHTML = `
       <div class="card p-4">
@@ -2808,25 +2835,25 @@ function renderDashboardBookings() {
     const isPending = b.status === 'pending';
     const isDepositPending = b.status === 'deposit_pending';
     const isDepositConfirmed = b.status === 'deposit_confirmed';
+    const isRemainingUploaded = b.status === 'remaining_uploaded';
 
     let confirmBtns = '';
     if (b.status === 'deposit_pending') {
       // มัดจำ รอยืนยัน → ปุ่มยืนยันมัดจำ (สีเหลือง)
       confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(255,208,77,0.25); color:#a06c00; border:1.5px solid rgba(255,208,77,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ ยืนยันมัดจำ</button>`;
+    } else if (b.status === 'remaining_uploaded') {
+      // ลูกค้าส่ง slip ส่วนที่เหลือแล้ว → ปุ่มยืนยันเต็มจำนวน (สีเขียว เด่น)
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.35); color:#1a7a40; border:2px solid rgba(82,201,122,0.9); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✅ ยืนยันรับเงินครบ</button>`;
     } else if (b.status === 'deposit_confirmed') {
-      // มัดจำยืนยันแล้ว → รอ slip ส่วนที่เหลือ หรือยืนยันเต็มจำนวน
-      if (b.remainingSlipData) {
-        confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันเต็มจำนวน</button>`;
-      } else {
-        confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
-      }
+      // มัดจำยืนยันแล้ว → รอ slip ส่วนที่เหลือ
+      confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
     } else if (b.status === 'pending') {
       // จ่ายเต็มจำนวน รอยืนยัน → ปุ่มยืนยันการชำระ (สีเขียว)
       confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันการชำระ</button>`;
     }
 
-    const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' }[s] || 'badge-gray');
-    const statusLabel = s => ({ pending: 'รอยืนยัน', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
+    const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple', remaining_uploaded: 'badge-blue' }[s] || 'badge-gray');
+    const statusLabel = s => ({ pending: 'รอยืนยัน', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓', remaining_uploaded: '📨 Slip ส่วนเหลือ' }[s] || s);
 
     return `<tr>
       <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
@@ -2902,8 +2929,8 @@ function filterAdminBookings() {
 function renderAdminBookings(bookings) {
   const tbody = document.getElementById('all-bookings-body');
   if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:24px;">No bookings</td></tr>'; return; }
-  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' }[s] || 'badge-gray');
-  const statusLabel = s => ({ pending: 'pending', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
+  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple', remaining_uploaded: 'badge-blue' }[s] || 'badge-gray');
+  const statusLabel = s => ({ pending: 'pending', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓', remaining_uploaded: '📨 Slip เหลือ' }[s] || s);
   tbody.innerHTML = bookings.map(b => {
     const isDeposit = b.paymentType === 'deposit';
     const isPending = b.status === 'pending';
@@ -2912,12 +2939,10 @@ function renderAdminBookings(bookings) {
     let confirmBtns = '';
     if (b.status === 'deposit_pending') {
       confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(255,208,77,0.25); color:#a06c00; border:1.5px solid rgba(255,208,77,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ ยืนยันมัดจำ</button>`;
+    } else if (b.status === 'remaining_uploaded') {
+      confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.35); color:#1a7a40; border:2px solid rgba(82,201,122,0.9); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✅ ยืนยันรับเงินครบ</button>`;
     } else if (b.status === 'deposit_confirmed') {
-      if (b.remainingSlipData) {
-        confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันเต็มจำนวน</button>`;
-      } else {
-        confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
-      }
+      confirmBtns = `<span style="font-size:10px; color:var(--text-muted); padding:2px 6px; background:rgba(180,140,160,0.1); border-radius:10px;">⏳ รอ Slip</span>`;
     } else if (b.status === 'pending') {
       confirmBtns = `<button style="padding:4px 10px; font-size:10px; background:rgba(82,201,122,0.25); color:#1a7a40; border:1.5px solid rgba(82,201,122,0.7); border-radius:20px; cursor:pointer; font-weight:700;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ ยืนยันการชำระ</button>`;
     }
