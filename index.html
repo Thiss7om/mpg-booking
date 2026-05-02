@@ -2053,9 +2053,9 @@ function goToStep(step) {
     document.getElementById('payment-type-note').style.display = 'none';
     const trip = state.currentBooking.trip;
     const total = trip.price * (state.currentBooking.passengers || 1);
-    const deposit = Math.ceil(total * 0.3);
+    const deposit = Math.ceil(total * 0.5);
     document.getElementById('ptype-full-amount').textContent    = `฿${total.toLocaleString()}`;
-    document.getElementById('ptype-deposit-amount').textContent  = `฿${deposit.toLocaleString()} (30%)`;
+    document.getElementById('ptype-deposit-amount').textContent  = `฿${deposit.toLocaleString()} (50%)`;
     // Reset visual selection
     const fullEl    = document.getElementById('ptype-full');
     const depositEl = document.getElementById('ptype-deposit');
