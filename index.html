@@ -1643,7 +1643,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz5K9tca6s0cqxl7D-8bGbWFnDEsTPinSd_R4t9ehZFB9d7pPakbaV7s-hxYEsdufEdzw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzASfmSjlm6zxiLWwqLGZhmw_-G55-d-NQJZldXpbivmiNvzS4sqLHa2Hp0mcY-bT7_Vg/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2799,11 +2799,20 @@ async function sendReceiptByEmail() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin:0 auto;"></div>';
 
-  const s = state.settings || {};
+  // ── strip qrImage ออก เพื่อไม่ให้ base64 รูปภาพใหญ่หลุดเข้า emailBody ──
+  const rawSettings = state.settings || {};
+  const s = {
+    companyName:       rawSettings.companyName       || '',
+    companyAddress:    rawSettings.companyAddress     || '',
+    companyPhone:      rawSettings.companyPhone       || '',
+    companyTaxId:      rawSettings.companyTaxId       || '',
+    bankName:          rawSettings.bankName           || '',
+    bankAccountName:   rawSettings.bankAccountName    || '',
+    bankAccountNumber: rawSettings.bankAccountNumber  || '',
+    // qrImage ถูกตัดออกโดยตั้งใจ — base64 รูปภาพทำให้ email ใหญ่เกิน MailApp limit
+  };
 
-  // ── สร้าง HTML email โดยตรง (ไม่ใช้ html2canvas) ──
-  // หมายเหตุ: การฝัง base64 PNG จาก html2canvas ทำให้ email body ใหญ่เกิน
-  // MailApp limit (~256 KB) จึงใช้ HTML email แทนซึ่งมีขนาดเล็กกว่ามาก
+  // ── สร้าง HTML email โดยตรง (ไม่ใช้ html2canvas, ไม่มี base64 image) ──
   let emailBody = '';
   {
     const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
@@ -2899,6 +2908,14 @@ async function sendReceiptByEmail() {
   </div>
 </div>
 </body></html>`;
+  }
+
+  // ── size guard: ถ้าใหญ่เกิน 150KB ตัดทอนเป็น plain text แทน ──
+  const emailBodyBytes = new TextEncoder().encode(emailBody).length;
+  console.log('[Receipt Email] htmlBody size:', emailBodyBytes, 'bytes =', (emailBodyBytes/1024).toFixed(1), 'KB');
+  if (emailBodyBytes > 150 * 1024) {
+    console.warn('[Receipt Email] htmlBody เกิน 150KB! ใช้ plain text แทน');
+    emailBody = `MPG Booking - ใบเสร็จการจอง\n\nBooking ID: ${b.id}\nลูกค้า: ${b.firstname} ${b.lastname} (${b.nickname || ''})\nทริป: ${b.tripName}\nยอดรวม: ฿${Number(b.totalAmount||0).toLocaleString()}\n\nขอบคุณที่ใช้บริการ ${s.companyName || 'MPG Booking'}`;
   }
 
   const res = await apiCall('sendReceiptEmail', {
