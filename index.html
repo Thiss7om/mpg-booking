@@ -2830,15 +2830,19 @@ async function sendReceiptByEmail() {
   .hdr { background:linear-gradient(135deg,#ff8fa3,#ffb347,#7bb8e8); padding:28px 28px 20px; text-align:center; position:relative; }
   .hdr h1 { margin:0; font-size:22px; font-weight:700; color:#fff; letter-spacing:0.08em; }
   .hdr p { margin:3px 0 0; font-size:11px; color:rgba(255,255,255,0.85); letter-spacing:0.05em; }
-  .badge-bar { background:#fff8f0; border-bottom:1px dashed #ffd4a0; padding:10px 28px; display:flex; justify-content:space-between; align-items:center; }
-  .badge-bar .left { font-size:13px; font-weight:700; color:#ff8fa3; letter-spacing:0.06em; }
-  .badge-bar .right { font-size:11px; font-weight:700; color:#1a7a40; display:flex; align-items:center; gap:6px; }
-  .dot { width:8px; height:8px; background:#52c97a; border-radius:50%; display:inline-block; }
-  .ids { padding:16px 28px 0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .badge-bar { background:#fff8f0; border-bottom:1px dashed #ffd4a0; padding:10px 28px; }
+  .badge-table { width:100%; border-collapse:collapse; }
+  .badge-table td { vertical-align:middle; padding:0; }
+  .badge-table td.b-left { font-size:13px; font-weight:700; color:#ff8fa3; letter-spacing:0.06em; text-align:left; }
+  .badge-table td.b-right { font-size:11px; font-weight:700; color:#1a7a40; text-align:right; }
+  .dot { width:8px; height:8px; background:#52c97a; border-radius:50%; display:inline-block; margin-right:4px; }
+  .ids { padding:16px 28px 0; }
+  .ids-table { width:100%; border-collapse:collapse; }
+  .ids-table td { vertical-align:top; width:50%; padding:0 4px 0 0; }
+  .ids-table td:last-child { text-align:right; padding:0; }
   .id-box { background:#fdf8f5; border-radius:8px; padding:10px 14px; }
   .id-box .lbl { font-size:10px; color:#bba8b2; letter-spacing:0.04em; margin-bottom:3px; }
   .id-box .val { font-size:14px; font-weight:700; color:#ffb347; font-family:monospace; }
-  .id-box.right { text-align:right; }
   .id-box.right .val { font-size:12px; color:#3a2a35; }
   .divider { margin:14px 28px; border-top:1px dashed rgba(180,140,160,0.3); }
   .divider-solid { margin:14px 28px; border-top:2px solid rgba(255,179,71,0.3); }
@@ -2849,10 +2853,14 @@ async function sendReceiptByEmail() {
   td:first-child { color:#7a6270; width:38%; }
   td:last-child { color:#3a2a35; font-weight:600; }
   .payment { padding:0 28px 4px; }
-  .pay-row { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270; }
-  .total-row { display:flex; justify-content:space-between; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; padding:12px 14px; margin-top:8px; border:1px solid rgba(255,179,71,0.3); }
-  .total-row .t-lbl { font-size:15px; font-weight:700; color:#3a2a35; }
-  .total-row .t-val { font-size:18px; font-weight:700; color:#ffb347; }
+  .pay-table { width:100%; border-collapse:collapse; font-size:13px; color:#7a6270; }
+  .pay-table td { padding:4px 0; }
+  .pay-table td:first-child { text-align:left; }
+  .pay-table td:last-child { text-align:right; font-weight:600; white-space:nowrap; }
+  .total-table { width:100%; border-collapse:collapse; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; margin-top:8px; border:1px solid rgba(255,179,71,0.3); }
+  .total-table td { padding:12px 14px; }
+  .total-table td.t-lbl { text-align:left; font-size:15px; font-weight:700; color:#3a2a35; }
+  .total-table td.t-val { text-align:right; font-size:18px; font-weight:700; color:#ffb347; white-space:nowrap; }
   .footer { background:#fdf8f5; margin-top:16px; padding:14px 28px; text-align:center; border-top:1px solid rgba(180,140,160,0.12); font-size:11px; color:#bba8b2; line-height:1.7; }
 </style>
 </head><body>
@@ -2862,12 +2870,16 @@ async function sendReceiptByEmail() {
     <p>${s.companyAddress || 'ใบเสร็จรับเงิน / OFFICIAL RECEIPT'}</p>
   </div>
   <div class="badge-bar">
-    <span class="left">ใบเสร็จรับเงิน</span>
-    <span class="right"><span class="dot"></span> CONFIRMED</span>
+    <table class="badge-table"><tr>
+      <td class="b-left">ใบเสร็จรับเงิน</td>
+      <td class="b-right"><span class="dot"></span> CONFIRMED</td>
+    </tr></table>
   </div>
   <div class="ids">
-    <div class="id-box"><div class="lbl">BOOKING ID</div><div class="val">${b.id}</div></div>
-    <div class="id-box right"><div class="lbl">วันที่ออกใบเสร็จ</div><div class="val">${dateStr}</div></div>
+    <table class="ids-table"><tr>
+      <td><div class="id-box"><div class="lbl">BOOKING ID</div><div class="val">${b.id}</div></div></td>
+      <td><div class="id-box right"><div class="lbl">วันที่ออกใบเสร็จ</div><div class="val">${dateStr}</div></div></td>
+    </tr></table>
   </div>
   <div class="divider"></div>
   <div class="section">
@@ -2893,12 +2905,13 @@ async function sendReceiptByEmail() {
   <div class="payment">
     <div class="sec-title">สรุปการชำระเงิน</div>
     ${isDeposit ? `
-    <div class="pay-row"><span>มัดจำ</span><span>฿${depositAmt}</span></div>
-    <div class="pay-row"><span>ส่วนที่เหลือ</span><span>฿${remaining}</span></div>` : ''}
-    <div class="total-row">
-      <span class="t-lbl">ยอดรวมทั้งหมด</span>
-      <span class="t-val">฿${total}</span>
-    </div>
+    <table class="pay-table">
+      <tr><td>มัดจำ</td><td>฿${depositAmt}</td></tr>
+      <tr><td>ส่วนที่เหลือ</td><td>฿${remaining}</td></tr>
+    </table>` : ''}
+    <table class="total-table">
+      <tr><td class="t-lbl">ยอดรวมทั้งหมด</td><td class="t-val">฿${total}</td></tr>
+    </table>
     ${s.bankAccountNumber ? `<div style="margin-top:10px;background:#fdf8f5;border-radius:8px;padding:10px 14px;font-size:12px;color:#7a6270;border:1px solid rgba(180,140,160,0.15);">ชำระผ่าน: ${s.bankName||''} · ${s.bankAccountName||''} · <b style="color:#ffb347;font-family:monospace;">${s.bankAccountNumber}</b></div>` : ''}
   </div>
   <div class="footer">
@@ -3635,16 +3648,22 @@ function openReceiptModal(b) {
       <div style="padding:0 28px 4px;">
         <div style="font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700;">สรุปการชำระเงิน</div>
         ${isDeposit ? `
-        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
-          <span>มัดจำ</span><span>฿${depositAmt}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
-          <span>ส่วนที่เหลือ</span><span>฿${(Number(b.totalAmount||0) - Number(b.depositAmount||0)).toLocaleString()}</span>
-        </div>` : ''}
-        <div style="display:flex; justify-content:space-between; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; padding:12px 14px; margin-top:8px; border:1px solid rgba(255,179,71,0.3);">
-          <span style="font-family:'Mitr',sans-serif; font-size:15px; font-weight:700; color:#3a2a35;">ยอดรวมทั้งหมด</span>
-          <span style="font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:#ffb347;">฿${total}</span>
-        </div>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#7a6270;">
+          <tr>
+            <td style="padding:4px 0; text-align:left;">มัดจำ</td>
+            <td style="padding:4px 0; text-align:right; font-weight:600;">฿${depositAmt}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0; text-align:left;">ส่วนที่เหลือ</td>
+            <td style="padding:4px 0; text-align:right; font-weight:600;">฿${(Number(b.totalAmount||0) - Number(b.depositAmount||0)).toLocaleString()}</td>
+          </tr>
+        </table>` : ''}
+        <table style="width:100%; border-collapse:collapse; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; margin-top:8px; border:1px solid rgba(255,179,71,0.3);">
+          <tr>
+            <td style="padding:12px 14px; text-align:left; font-family:'Mitr',sans-serif; font-size:15px; font-weight:700; color:#3a2a35;">ยอดรวมทั้งหมด</td>
+            <td style="padding:12px 14px; text-align:right; font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:#ffb347; white-space:nowrap;">฿${total}</td>
+          </tr>
+        </table>
         ${s.bankAccountNumber ? `
         <div style="margin-top:10px; background:#fdf8f5; border-radius:8px; padding:10px 14px; font-size:12px; color:#7a6270; border:1px solid rgba(180,140,160,0.15);">
           <span style="font-weight:700; color:#3a2a35;">ชำระผ่าน:</span> ${s.bankName || 'ธนาคาร'} · ${s.bankAccountName || ''} · <span style="font-family:'DM Mono',monospace; color:#ffb347;">${s.bankAccountNumber}</span>
