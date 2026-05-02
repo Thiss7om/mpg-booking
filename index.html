@@ -213,6 +213,16 @@
     color: #1a5fa0;
     border: 1px solid rgba(123,184,232,0.5);
   }
+  .badge-orange {
+    background: rgba(255,179,71,0.3);
+    color: #a05000;
+    border: 1px solid rgba(255,140,0,0.5);
+  }
+  .badge-purple {
+    background: rgba(212,184,240,0.4);
+    color: #5a1a8a;
+    border: 1px solid rgba(180,140,220,0.5);
+  }
 
   /* ── Navbar ── */
   .navbar {
@@ -885,20 +895,41 @@
     <!-- Step 2: Payment -->
     <div id="booking-step-2" style="display:none;" class="fade-in">
       <h2 class="font-display text-3xl mb-2" style="color: var(--text-primary);">PAYMENT</h2>
-      <p style="color: var(--text-muted); font-size:13px; margin-bottom:24px;">Complete your payment using one of the methods below.</p>
+      <p style="color: var(--text-muted); font-size:13px; margin-bottom:20px;">เลือกวิธีการชำระเงิน</p>
+
+      <!-- Payment Type Selector -->
+      <div id="payment-type-selector" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
+        <div id="ptype-full" onclick="selectPaymentType('full')" style="
+          border:2px solid rgba(82,201,122,0.5); border-radius:16px; padding:16px; cursor:pointer;
+          background:rgba(181,240,200,0.15); transition:all 0.2s; text-align:center;">
+          <div style="font-size:28px; margin-bottom:6px;">💳</div>
+          <div style="font-weight:700; font-size:14px; color:#1a7a40; font-family:'Mitr',sans-serif;">จ่ายเต็มจำนวน</div>
+          <div id="ptype-full-amount" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
+        </div>
+        <div id="ptype-deposit" onclick="selectPaymentType('deposit')" style="
+          border:2px solid rgba(255,179,71,0.4); border-radius:16px; padding:16px; cursor:pointer;
+          background:rgba(255,224,138,0.12); transition:all 0.2s; text-align:center;">
+          <div style="font-size:28px; margin-bottom:6px;">🪙</div>
+          <div style="font-weight:700; font-size:14px; color:#a06c00; font-family:'Mitr',sans-serif;">จ่ายมัดจำ</div>
+          <div id="ptype-deposit-amount" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <div id="payment-type-note" style="display:none; font-size:12px; color:var(--text-secondary); background:rgba(255,224,138,0.15); border:1px solid rgba(255,208,77,0.3); border-radius:10px; padding:10px 14px; margin-bottom:20px;"></div>
+
       <div id="payment-methods-display">
         <!-- Loaded from settings -->
       </div>
       <div class="flex gap-3 mt-6">
         <button class="btn-outline" style="flex:1;" onclick="goToStep(1)">← Back</button>
-        <button class="btn-primary" style="flex:2;" onclick="goToStep(3)">I've Paid → Upload Slip</button>
+        <button class="btn-primary" style="flex:2;" id="step2-paid-btn" onclick="goToStep(3)" disabled>ชำระแล้ว → อัปโหลด Slip</button>
       </div>
     </div>
 
     <!-- Step 3: Upload Slip -->
     <div id="booking-step-3" style="display:none;" class="fade-in">
       <h2 class="font-display text-3xl mb-2" style="color: var(--text-primary);">UPLOAD SLIP</h2>
-      <p style="color: var(--text-muted); font-size:13px; margin-bottom:24px;">Upload your payment confirmation slip.</p>
+      <p id="step3-desc" style="color: var(--text-muted); font-size:13px; margin-bottom:24px;">Upload your payment confirmation slip.</p>
       <div class="upload-zone" id="slip-upload-zone" onclick="document.getElementById('slip-file-input').click()">
         <div style="font-size:36px; margin-bottom:12px;">📸</div>
         <div style="font-size:14px; color: var(--text-secondary); margin-bottom:4px;">Tap to upload payment slip</div>
@@ -1109,6 +1140,8 @@
             <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="deposit_pending">มัดจำ-รอยืนยัน</option>
+            <option value="deposit_confirmed">มัดจำ-ยืนยันแล้ว</option>
           </select>
           <input class="input-field" style="width:180px; font-size:13px;" placeholder="🔍 Search..." id="dash-search" oninput="renderDashboardBookings()">
         </div>
@@ -1162,6 +1195,8 @@
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="cancelled">Cancelled</option>
+          <option value="deposit_pending">มัดจำ-รอยืนยัน</option>
+          <option value="deposit_confirmed">มัดจำ-ยืนยันแล้ว</option>
         </select>
       </div>
       <div class="card" style="overflow:auto;">
@@ -1433,6 +1468,8 @@
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="cancelled">Cancelled</option>
+          <option value="deposit_pending">มัดจำ — รอยืนยัน</option>
+          <option value="deposit_confirmed">มัดจำ — ยืนยันแล้ว</option>
         </select>
       </div>
       <div>
@@ -1579,7 +1616,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyb3OZvHwtVNhvIYp1Eg2PDyTc0VulPpVH_Wo8Ps05ayQN_uWtUwI-rRmB6a6Y-R490nA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzDKrt2jxNQtV1itRzcKiMJ_-YlR6a7jEe5ji5G53NKYmEZOBU08GNLRP2xuFiEbGhdtw/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -1713,9 +1750,19 @@ function demoHandler(action, data) {
     }
     case 'createBooking': {
       const newId = 'BK-' + Math.random().toString(36).substring(2,8).toUpperCase();
-      const booking = { id: newId, ...data, status: 'pending', createdAt: new Date().toLocaleString('th-TH', { timeZone:'Asia/Bangkok' }) };
+      const isDeposit = data.paymentType === 'deposit';
+      const booking = {
+        id: newId, ...data,
+        status: isDeposit ? 'deposit_pending' : 'pending',
+        createdAt: new Date().toLocaleString('th-TH', { timeZone:'Asia/Bangkok' })
+      };
       DEMO_BOOKINGS.push(booking);
       return { success: true, bookingId: newId, booking };
+    }
+    case 'uploadRemainingSlip': {
+      const idx = DEMO_BOOKINGS.findIndex(b => b.id === data.id);
+      if (idx >= 0) { DEMO_BOOKINGS[idx].remainingSlipData = data.remainingSlipData; return { success: true }; }
+      return { success: false, error: 'Booking not found' };
     }
     case 'updateBooking': {
       const idx = DEMO_BOOKINGS.findIndex(b => b.id === data.id);
@@ -1998,7 +2045,23 @@ function goToStep(step) {
 
   state.currentBooking.step = step;
 
-  if (step === 2) loadPaymentDisplay();
+  if (step === 2) {
+    // Reset payment type selector
+    state.currentBooking.paymentType = null;
+    document.getElementById('step2-paid-btn').disabled = true;
+    document.getElementById('payment-methods-display').innerHTML = '';
+    document.getElementById('payment-type-note').style.display = 'none';
+    const trip = state.currentBooking.trip;
+    const total = trip.price * (state.currentBooking.passengers || 1);
+    const deposit = Math.ceil(total * 0.3);
+    document.getElementById('ptype-full-amount').textContent    = `฿${total.toLocaleString()}`;
+    document.getElementById('ptype-deposit-amount').textContent  = `฿${deposit.toLocaleString()} (30%)`;
+    // Reset visual selection
+    const fullEl    = document.getElementById('ptype-full');
+    const depositEl = document.getElementById('ptype-deposit');
+    if(fullEl)    { fullEl.style.borderColor = 'rgba(82,201,122,0.5)';   fullEl.style.background = 'rgba(181,240,200,0.15)'; }
+    if(depositEl) { depositEl.style.borderColor = 'rgba(255,179,71,0.4)'; depositEl.style.background = 'rgba(255,224,138,0.12)'; }
+  }
   if (step === 4) loadSeatsForBooking();
 }
 
@@ -2023,39 +2086,77 @@ function validateStep(step) {
   return true;
 }
 
-async function loadPaymentDisplay() {
-  const res = await apiCall('getSettings');
-  if (res.success) {
-    const s = res.data;
-    const trip = state.currentBooking.trip;
-    const total = trip.price * state.currentBooking.passengers;
-    let html = `<div style="text-align:center; margin-bottom:20px;">
-      <div style="font-size:13px; color: var(--text-muted); margin-bottom:4px;">Total Amount</div>
-      <div style="font-family: Bebas Neue; font-size:48px; color: var(--accent);">฿${total.toLocaleString()}</div>
-      <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} passenger(s) × ${trip.price.toLocaleString()}</div>
-    </div>`;
+function selectPaymentType(type) {
+  state.currentBooking.paymentType = type;
 
-    if (s.qrImage) {
-      html += `<div class="payment-card text-center mb-4">
-        <div style="font-size:13px; font-weight:600; margin-bottom:12px;">📱 QR Code Payment</div>
-        <img src="${s.qrImage}" style="max-width:180px; border-radius:8px; margin:0 auto; display:block;">
-      </div>`;
-    }
-    if (s.bankAccountNumber) {
-      html += `<div class="payment-card mb-4">
-        <div style="font-size:13px; font-weight:600; margin-bottom:12px;">🏦 Bank Transfer</div>
-        <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
-          <div><span style="color: var(--text-muted);">Bank:</span> ${s.bankName}</div>
-          <div><span style="color: var(--text-muted);">Account:</span> ${s.bankAccountName}</div>
-          <div class="font-mono" style="font-size:16px; color: var(--accent);">${s.bankAccountNumber}</div>
-        </div>
-      </div>`;
-    }
-    if (!s.qrImage && !s.bankAccountNumber) {
-      html += `<div class="payment-card text-center" style="color: var(--text-muted);">💳 Payment details will appear here once configured by admin.</div>`;
-    }
-    document.getElementById('payment-methods-display').innerHTML = html;
+  const trip = state.currentBooking.trip;
+  const total = trip.price * (state.currentBooking.passengers || 1);
+  const deposit = Math.ceil(total * 0.3); // 30% deposit
+  const remaining = total - deposit;
+
+  const fullEl    = document.getElementById('ptype-full');
+  const depositEl = document.getElementById('ptype-deposit');
+  const noteEl    = document.getElementById('payment-type-note');
+
+  if (type === 'full') {
+    fullEl.style.borderColor = 'rgba(82,201,122,0.9)';
+    fullEl.style.background  = 'rgba(181,240,200,0.35)';
+    depositEl.style.borderColor = 'rgba(255,179,71,0.3)';
+    depositEl.style.background  = 'rgba(255,224,138,0.08)';
+    noteEl.style.display = 'none';
+    document.getElementById('step3-desc').textContent = 'อัปโหลด Slip การชำระเงินเต็มจำนวน';
+  } else {
+    depositEl.style.borderColor = 'rgba(255,179,71,0.9)';
+    depositEl.style.background  = 'rgba(255,224,138,0.35)';
+    fullEl.style.borderColor = 'rgba(82,201,122,0.3)';
+    fullEl.style.background  = 'rgba(181,240,200,0.08)';
+    noteEl.style.display = '';
+    noteEl.innerHTML = `🪙 ชำระมัดจำ <strong>฿${deposit.toLocaleString()}</strong> ก่อน (30%) · ส่วนที่เหลือ <strong>฿${remaining.toLocaleString()}</strong> ชำระภายหลัง`;
+    document.getElementById('step3-desc').textContent = `อัปโหลด Slip มัดจำ ฿${deposit.toLocaleString()}`;
   }
+
+  // Show payment methods & enable next button
+  loadPaymentDisplay(type, total, deposit);
+  document.getElementById('step2-paid-btn').disabled = false;
+}
+
+async function loadPaymentDisplay(payType, total, depositAmt) {
+  const res = await apiCall('getSettings');
+  if (!res.success) return;
+  const s = res.data;
+  const trip = state.currentBooking.trip;
+  if (!total) total = trip.price * (state.currentBooking.passengers || 1);
+  if (!depositAmt) depositAmt = Math.ceil(total * 0.3);
+
+  const displayAmount = (payType === 'deposit') ? depositAmt : total;
+  const label = (payType === 'deposit') ? `มัดจำ 30%` : 'Total Amount';
+
+  let html = `<div style="text-align:center; margin-bottom:20px;">
+    <div style="font-size:12px; color: var(--text-muted); margin-bottom:4px;">${label}</div>
+    <div style="font-family: 'Mitr', sans-serif; font-size:48px; color: var(--accent); font-weight:700;">฿${displayAmount.toLocaleString()}</div>
+    <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} ผู้โดยสาร × ฿${trip.price.toLocaleString()}${payType === 'deposit' ? ` (มัดจำ 30% = ฿${displayAmount.toLocaleString()})` : ''}</div>
+  </div>`;
+
+  if (s.qrImage) {
+    html += `<div class="payment-card text-center mb-4">
+      <div style="font-size:13px; font-weight:600; margin-bottom:12px;">📱 QR Code Payment</div>
+      <img src="${s.qrImage}" style="max-width:180px; border-radius:8px; margin:0 auto; display:block;">
+    </div>`;
+  }
+  if (s.bankAccountNumber) {
+    html += `<div class="payment-card mb-4">
+      <div style="font-size:13px; font-weight:600; margin-bottom:12px;">🏦 Bank Transfer</div>
+      <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
+        <div><span style="color: var(--text-muted);">Bank:</span> ${s.bankName}</div>
+        <div><span style="color: var(--text-muted);">Account:</span> ${s.bankAccountName}</div>
+        <div class="font-mono" style="font-size:16px; color: var(--accent);">${s.bankAccountNumber}</div>
+      </div>
+    </div>`;
+  }
+  if (!s.qrImage && !s.bankAccountNumber) {
+    html += `<div class="payment-card text-center" style="color: var(--text-muted);">💳 Payment details will appear here once configured by admin.</div>`;
+  }
+  document.getElementById('payment-methods-display').innerHTML = html;
 }
 
 function handleSlipUpload(input) {
@@ -2169,8 +2270,10 @@ function updateSeatDisplay() {
 }
 
 function openConfirmBookingModal() {
-  const { trip, customer, selectedSeats } = state.currentBooking;
+  const { trip, customer, selectedSeats, paymentType } = state.currentBooking;
   const total = trip.price * customer.passengers;
+  const deposit = Math.ceil(total * 0.3);
+  const payLabel = paymentType === 'deposit' ? `มัดจำ ฿${deposit.toLocaleString()} (30%)` : `฿${total.toLocaleString()} (เต็มจำนวน)`;
 
   const rows = [
     ['ทริป', trip.name],
@@ -2180,7 +2283,8 @@ function openConfirmBookingModal() {
     ['เบอร์โทร', customer.phone],
     ['จำนวนผู้โดยสาร', `${customer.passengers} คน`],
     ['ที่นั่ง', selectedSeats.map(s => 'S' + s).join(', ')],
-    ['ยอดชำระ', `฿${total.toLocaleString()}`],
+    ['ยอดรวม', `฿${total.toLocaleString()}`],
+    ['ชำระ', payLabel],
   ];
 
   document.getElementById('confirm-booking-summary').innerHTML = rows.map(([label, val], i) => `
@@ -2197,14 +2301,19 @@ async function doConfirmBooking() {
   const btn = document.getElementById('modal-confirm-btn');
   btn.disabled = true;
 
-  const { trip, customer, selectedSeats, slipData } = state.currentBooking;
+  const { trip, customer, selectedSeats, slipData, paymentType } = state.currentBooking;
+  const total = trip.price * customer.passengers;
+  const depositAmount = Math.ceil(total * 0.3);
+
   const bookingData = {
     tripId: trip.id,
     tripName: trip.name,
     ...customer,
     seats: selectedSeats,
     slipData: slipData || '',
-    totalAmount: trip.price * customer.passengers
+    totalAmount: total,
+    paymentType: paymentType || 'full',
+    depositAmount: paymentType === 'deposit' ? depositAmount : total,
   };
 
   const res = await apiCall('createBooking', bookingData);
@@ -2226,6 +2335,8 @@ async function doConfirmBooking() {
 
 function showConfirmation(booking) {
   document.getElementById('confirmed-booking-id').textContent = booking.id;
+  const isDeposit = booking.paymentType === 'deposit';
+  const remaining = Number(booking.totalAmount||0) - Number(booking.depositAmount||0);
   document.getElementById('confirmation-details').innerHTML = `
     <div style="display:grid; gap:8px; font-size:13px; color: var(--text-secondary);">
       <div class="flex justify-between"><span>ทริป</span><span style="color: var(--text-primary); font-weight:500;">${booking.tripName}</span></div>
@@ -2233,9 +2344,16 @@ function showConfirmation(booking) {
       <div class="flex justify-between"><span>ชื่อ-นามสกุล</span><span style="color: var(--text-primary);">${booking.firstname} ${booking.lastname}</span></div>
       <div class="flex justify-between"><span>โทรศัพท์</span><span>${booking.phone}</span></div>
       <div class="flex justify-between"><span>ที่นั่ง</span><span style="color: var(--accent);">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</span></div>
-      <div class="flex justify-between"><span>ยอดชำระ</span><span style="color: var(--accent); font-weight:400;">฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
-      <div class="flex justify-between"><span>สถานะ</span><span class="badge badge-gold">รอยืนยัน</span></div>
+      <div class="flex justify-between"><span>ยอดรวม</span><span>฿${Number(booking.totalAmount || 0).toLocaleString()}</span></div>
+      ${isDeposit ? `
+      <div class="flex justify-between"><span>ชำระมัดจำแล้ว</span><span style="color:var(--green); font-weight:600;">฿${Number(booking.depositAmount||0).toLocaleString()}</span></div>
+      <div class="flex justify-between"><span>ยังค้างอยู่</span><span style="color:var(--accent); font-weight:600;">฿${remaining.toLocaleString()}</span></div>
+      ` : ''}
+      <div class="flex justify-between"><span>สถานะ</span><span class="badge ${isDeposit ? 'badge-orange' : 'badge-gold'}">${isDeposit ? 'มัดจำ — รอยืนยัน' : 'รอยืนยัน'}</span></div>
     </div>
+    ${isDeposit ? `<div style="margin-top:12px; font-size:11px; color:var(--text-muted); background:rgba(255,224,138,0.1); border-radius:8px; padding:10px;">
+      💡 เมื่อ Admin ยืนยันมัดจำแล้ว ให้นำ Booking ID ค้นหาในระบบเพื่อชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}
+    </div>` : ''}
   `;
   showView('confirmation');
 }
@@ -2295,6 +2413,46 @@ function downloadReceipt() {
 }
 
 // ============================================================
+// REMAINING SLIP (for deposit bookings)
+// ============================================================
+const _remainingSlipData = {};
+
+function handleRemainingSlipUpload(input, bookingId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    _remainingSlipData[bookingId] = e.target.result;
+    const preview = document.getElementById('remaining-slip-preview-' + bookingId);
+    if (preview) {
+      preview.innerHTML = file.type.startsWith('image/')
+        ? `<img src="${e.target.result}" style="max-width:100%; max-height:140px; border-radius:8px; margin-top:6px;">`
+        : `<div style="color:var(--green); font-size:12px; margin-top:6px;">✓ ${file.name}</div>`;
+    }
+    const btn = document.getElementById('remaining-slip-btn-' + bookingId);
+    if (btn) btn.disabled = false;
+    showToast('Slip อัปโหลดแล้ว', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitRemainingSlip(bookingId) {
+  const slip = _remainingSlipData[bookingId];
+  if (!slip) { showToast('กรุณาอัปโหลด Slip ก่อน', 'error'); return; }
+  const btn = document.getElementById('remaining-slip-btn-' + bookingId);
+  if (btn) btn.disabled = true;
+  const res = await apiCall('uploadRemainingSlip', { id: bookingId, remainingSlipData: slip });
+  if (res.success) {
+    showToast('ส่ง Slip สำเร็จ! Admin จะตรวจสอบและยืนยัน', 'success');
+    // Refresh search result
+    searchBooking();
+  } else {
+    showToast(res.error || 'เกิดข้อผิดพลาด', 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ============================================================
 // SEARCH BOOKING
 // ============================================================
 function openSearchModal() {
@@ -2311,19 +2469,50 @@ async function searchBooking() {
   el.style.display = '';
   if (res.success && res.data) {
     const b = res.data;
-    const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' };
+    const statusColors = { pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' };
+    const statusLabels = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', deposit_pending: 'มัดจำ — รอยืนยัน', deposit_confirmed: 'มัดจำยืนยัน — รอส่วนที่เหลือ' };
+
+    // Build remaining payment section if deposit confirmed
+    let remainingHtml = '';
+    if (b.status === 'deposit_confirmed') {
+      const settingsRes = await apiCall('getSettings');
+      const s = settingsRes.success ? settingsRes.data : {};
+      const remaining = Number(b.totalAmount||0) - Number(b.depositAmount||0);
+      remainingHtml = `
+        <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.12); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
+          <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:12px;">💰 ชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}</div>
+          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:150px; border-radius:8px;"></div>` : ''}
+          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:8px; padding:10px;">
+            <div>🏦 ${s.bankName}</div>
+            <div>${s.bankAccountName}</div>
+            <div style="font-family:'DM Mono',monospace; font-size:15px; color:var(--accent);">${s.bankAccountNumber}</div>
+          </div>` : ''}
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">อัปโหลด Slip ส่วนที่เหลือ:</div>
+          <div class="upload-zone" style="padding:16px;" onclick="document.getElementById('remaining-slip-input-${b.id}').click()">
+            <div style="font-size:24px;">📸</div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">แตะเพื่ออัปโหลด Slip</div>
+            <div id="remaining-slip-preview-${b.id}" style="margin-top:10px;"></div>
+          </div>
+          <input type="file" id="remaining-slip-input-${b.id}" accept="image/*,.pdf" style="display:none;" onchange="handleRemainingSlipUpload(this, '${b.id}')">
+          <button class="btn-primary" id="remaining-slip-btn-${b.id}" style="width:100%; margin-top:12px;" disabled onclick="submitRemainingSlip('${b.id}')">ส่ง Slip ส่วนที่เหลือ →</button>
+        </div>`;
+    }
+
     el.innerHTML = `
       <div class="card p-4">
         <div class="flex justify-between items-center mb-3">
           <span class="font-mono" style="color: var(--accent); font-size:14px;">${b.id}</span>
-          <span class="badge ${statusColors[b.status] || 'badge-gray'}">${b.status}</span>
+          <span class="badge ${statusColors[b.status] || 'badge-gray'}">${statusLabels[b.status] || b.status}</span>
         </div>
         <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
           <div><span style="color: var(--text-muted);">Name:</span> ${b.firstname} ${b.lastname}</div>
           <div><span style="color: var(--text-muted);">Trip:</span> ${b.tripName}</div>
           <div><span style="color: var(--text-muted);">Seats:</span> <span style="color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(', ') : b.seats}</span></div>
+          <div><span style="color: var(--text-muted);">ยอดรวม:</span> ฿${Number(b.totalAmount||0).toLocaleString()}</div>
+          ${b.depositAmount ? `<div><span style="color: var(--text-muted);">มัดจำ:</span> ฿${Number(b.depositAmount).toLocaleString()} | <span style="color: var(--text-muted);">คงเหลือ:</span> ฿${(Number(b.totalAmount||0)-Number(b.depositAmount)).toLocaleString()}</div>` : ''}
           <div><span style="color: var(--text-muted);">Booked:</span> ${b.createdAt || 'N/A'}</div>
         </div>
+        ${remainingHtml}
       </div>`;
   } else {
     el.innerHTML = `<div style="text-align:center; color: var(--red); font-size:13px; padding:20px;">❌ Booking not found. Check your ID.</div>`;
@@ -2528,7 +2717,7 @@ async function loadAdminData() {
 
 function updateDashboardStats(bookings) {
   const total     = bookings.length;
-  const pending   = bookings.filter(b => b.status === 'pending').length;
+  const pending   = bookings.filter(b => b.status === 'pending' || b.status === 'deposit_pending').length;
   const confirmed = bookings.filter(b => b.status === 'confirmed').length;
   const cancelled = bookings.filter(b => b.status === 'cancelled').length;
   const revenue   = bookings.filter(b => b.status === 'confirmed').reduce((s, b) => s + (parseFloat(b.totalAmount) || 0), 0);
@@ -2562,23 +2751,51 @@ function renderDashboardBookings() {
     return;
   }
   const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
-  tbody.innerHTML = [...bookings].reverse().map(b => `
-    <tr>
+  tbody.innerHTML = [...bookings].reverse().map(b => {
+    const isDeposit = b.paymentType === 'deposit';
+    const isPending = b.status === 'pending';
+    const isDepositPending = b.status === 'deposit_pending';
+    const isDepositConfirmed = b.status === 'deposit_confirmed';
+
+    let confirmBtns = '';
+    if (isPending && isDeposit) {
+      // จ่ายมัดจำ รอยืนยัน → แสดงปุ่มยืนยันมัดจำ
+      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(255,208,77,0.2); color:#a06c00; border:1px solid rgba(255,208,77,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ มัดจำ</button>`;
+    } else if (isDepositConfirmed && b.remainingSlipData) {
+      // ยืนยันมัดจำแล้ว และมี slip ส่วนที่เหลือ → แสดงปุ่มยืนยันเต็มจำนวน
+      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(82,201,122,0.2); color:#1a7a40; border:1px solid rgba(82,201,122,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ เต็มจำนวน</button>`;
+    } else if (isPending && !isDeposit) {
+      // จ่ายเต็มจำนวน → ปุ่มยืนยันเต็มจำนวนอันเดียว
+      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
+    } else if (!['confirmed','cancelled'].includes(b.status)) {
+      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
+    }
+
+    const statusBadge = s => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' }[s] || 'badge-gray');
+    const statusLabel = s => ({ pending: 'pending', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
+
+    return `<tr>
       <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
       <td style="font-size:12px;">${b.nickname ? '<span style="color:var(--accent);font-weight:600;">' + b.nickname + '</span><br>' : ''}${b.firstname || ''} ${b.lastname || ''}<br><span style="color:var(--text-muted); font-size:11px;">${b.phone || ''}</span></td>
       <td style="font-size:12px;">${b.tripName || '—'}</td>
       <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—')}</td>
-      <td style="font-size:12px; font-weight:600;">฿${Number(b.totalAmount||0).toLocaleString()}</td>
-      <td><span class="badge ${statusBadge(b.status)}">${b.status}</span></td>
+      <td style="font-size:12px; font-weight:600;">
+        ฿${Number(b.totalAmount||0).toLocaleString()}
+        ${isDeposit ? `<div style="font-size:10px; color:var(--text-muted);">มัดจำ ฿${Number(b.depositAmount||0).toLocaleString()}</div>` : ''}
+      </td>
+      <td><span class="badge ${statusBadge(b.status)}">${statusLabel(b.status)}</span></td>
       <td>
         <div class="flex gap-1 flex-wrap">
           <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="openEditBooking('${b.id}')">Edit</button>
           <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
-          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>
+          ${b.slipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="viewSlip('${b.id}')">Slip</button>` : ''}
+          ${b.remainingSlipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="viewRemainingSlip('${b.id}')">Slip2</button>` : ''}
+          ${confirmBtns}
           <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'cancelled')">✕</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function loadAdminTrips() {
@@ -2630,27 +2847,43 @@ function filterAdminBookings() {
 
 function renderAdminBookings(bookings) {
   const tbody = document.getElementById('all-bookings-body');
-  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red' }[s] || 'badge-gray');
   if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding:24px;">No bookings</td></tr>'; return; }
-  tbody.innerHTML = bookings.map(b => `
-    <tr>
+  const statusBadge = (s) => ({ pending: 'badge-gold', confirmed: 'badge-green', cancelled: 'badge-red', deposit_pending: 'badge-orange', deposit_confirmed: 'badge-purple' }[s] || 'badge-gray');
+  const statusLabel = s => ({ pending: 'pending', confirmed: 'confirmed', cancelled: 'cancelled', deposit_pending: 'มัดจำ-รอ', deposit_confirmed: 'มัดจำ✓' }[s] || s);
+  tbody.innerHTML = bookings.map(b => {
+    const isDeposit = b.paymentType === 'deposit';
+    const isPending = b.status === 'pending';
+    const isDepositConfirmed = b.status === 'deposit_confirmed';
+
+    let confirmBtns = '';
+    if (isPending && isDeposit) {
+      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(255,208,77,0.2); color:#a06c00; border:1px solid rgba(255,208,77,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'deposit_confirmed')">✓ มัดจำ</button>`;
+    } else if (isDepositConfirmed && b.remainingSlipData) {
+      confirmBtns = `<button style="padding:3px 8px; font-size:9px; background:rgba(82,201,122,0.2); color:#1a7a40; border:1px solid rgba(82,201,122,0.5); border-radius:20px; cursor:pointer; font-weight:600;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓ เต็มจำนวน</button>`;
+    } else if (!['confirmed','cancelled'].includes(b.status)) {
+      confirmBtns = `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>`;
+    }
+
+    return `<tr>
       <td class="font-mono" style="color: var(--accent); font-size:11px;">${b.id}</td>
       <td style="font-size:12px;">${b.nickname ? '<span style="color:var(--accent);font-weight:600;">' + b.nickname + '</span><br>' : ''}${b.firstname} ${b.lastname}<br><span style="color: var(--text-muted);">${b.phone}</span></td>
       <td style="font-size:12px;">${b.tripName || '—'}</td>
       <td style="font-size:12px; color: var(--accent);">${Array.isArray(b.seats) ? b.seats.join(',') : b.seats}</td>
       <td>
-        ${b.slipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="viewSlip('${b.id}')">View</button>` : '<span style="color: var(--text-muted); font-size:11px;">None</span>'}
+        ${b.slipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="viewSlip('${b.id}')">Slip</button>` : '<span style="color: var(--text-muted); font-size:11px;">None</span>'}
+        ${b.remainingSlipData ? `<button class="btn-outline" style="padding:3px 8px; font-size:10px; margin-left:4px;" onclick="viewRemainingSlip('${b.id}')">Slip2</button>` : ''}
       </td>
-      <td><span class="badge ${statusBadge(b.status)}">${b.status}</span></td>
+      <td><span class="badge ${statusBadge(b.status)}">${statusLabel(b.status)}</span></td>
       <td>
         <div class="flex gap-1 flex-wrap">
           <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="openEditBooking('${b.id}')">Edit</button>
           <button class="btn-outline" style="padding:3px 8px; font-size:10px;" onclick="generateBookingReceipt('${b.id}')">PDF</button>
-          <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'confirmed')">✓</button>
+          ${confirmBtns}
           <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="quickUpdateStatus('${b.id}', 'cancelled')">✕</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function quickUpdateStatus(bookingId, newStatus) {
@@ -2712,6 +2945,17 @@ function viewSlip(bookingId) {
     content.innerHTML = `<img src="${b.slipData}" style="max-width:100%; border-radius:8px;">`;
   } else {
     content.innerHTML = '<div style="color: var(--text-muted);">No slip available</div>';
+  }
+  document.getElementById('modal-view-slip').style.display = 'flex';
+}
+
+function viewRemainingSlip(bookingId) {
+  const b = state.allBookings.find(x => x.id === bookingId);
+  const content = document.getElementById('slip-view-content');
+  if (b?.remainingSlipData) {
+    content.innerHTML = `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Slip ชำระส่วนที่เหลือ</div><img src="${b.remainingSlipData}" style="max-width:100%; border-radius:8px;">`;
+  } else {
+    content.innerHTML = '<div style="color: var(--text-muted);">ยังไม่มี Slip ส่วนที่เหลือ</div>';
   }
   document.getElementById('modal-view-slip').style.display = 'flex';
 }
