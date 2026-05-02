@@ -1636,7 +1636,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyjGHT5EKT0F_cXdZoEnS_1J-oFLBvUZk8Yp5UUDFre_YGP_tO4Mq6jawhaN9jAulBL_Q/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyqVJ7WeZsMi9PnMx1x8toZQRQH5QJCFp1VNUXTqVzNMhq03xa8yp1x09_urqlOYaIn-g/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2210,23 +2210,58 @@ async function loadPaymentDisplay(payType, total, depositAmt) {
   document.getElementById('payment-methods-display').innerHTML = html;
 }
 
+// ── Image compressor: resize + JPEG-compress to keep base64 < 50k chars ──
+function compressImageToBase64(file, callback, maxW = 800, maxH = 800, quality = 0.7) {
+  if (!file.type.startsWith('image/')) {
+    // Non-image file: read as-is but warn if large
+    const reader = new FileReader();
+    reader.onload = (e) => callback(e.target.result);
+    reader.readAsDataURL(file);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      // Keep compressing until under 35,000 chars (safe margin below 50k limit)
+      let q = quality;
+      let dataUrl = canvas.toDataURL('image/jpeg', q);
+      while (dataUrl.length > 35000 && q > 0.2) {
+        q -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', q);
+      }
+      callback(dataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function handleSlipUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    state.currentBooking.slipData = e.target.result;
+  compressImageToBase64(file, (compressed) => {
+    state.currentBooking.slipData = compressed;
     const preview = document.getElementById('slip-preview');
     preview.style.display = '';
     if (file.type.startsWith('image/')) {
-      preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:8px;">`;
+      preview.innerHTML = `<img src="${compressed}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:8px;">`;
     } else {
       preview.innerHTML = `<div style="color: var(--green); font-size:13px; margin-top:8px;">✓ ${file.name} uploaded</div>`;
     }
     document.getElementById('step3-next-btn').disabled = false;
     showToast('Slip uploaded!', 'success');
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 async function loadSeatsForBooking() {
@@ -2471,20 +2506,18 @@ const _remainingSlipData = {};
 function handleRemainingSlipUpload(input, bookingId) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    _remainingSlipData[bookingId] = e.target.result;
+  compressImageToBase64(file, (compressed) => {
+    _remainingSlipData[bookingId] = compressed;
     const preview = document.getElementById('remaining-slip-preview-' + bookingId);
     if (preview) {
       preview.innerHTML = file.type.startsWith('image/')
-        ? `<img src="${e.target.result}" style="max-width:100%; max-height:140px; border-radius:8px; margin-top:6px;">`
+        ? `<img src="${compressed}" style="max-width:100%; max-height:140px; border-radius:8px; margin-top:6px;">`
         : `<div style="color:var(--green); font-size:12px; margin-top:6px;">✓ ${file.name}</div>`;
     }
     const btn = document.getElementById('remaining-slip-btn-' + bookingId);
     if (btn) btn.disabled = false;
     showToast('Slip อัปโหลดแล้ว', 'success');
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 async function submitRemainingSlip(bookingId) {
