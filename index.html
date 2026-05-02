@@ -58,6 +58,7 @@
     font-family: 'Sarabun', 'DM Sans', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    padding-bottom: 28px;
   }
 
   /* Soft dot pattern background */
@@ -4423,9 +4424,28 @@ window.openTripModal = function(tripId) {
 </div>
 
 <!-- Copyright -->
-<div style="position:fixed; bottom:0; left:0; right:0; z-index:9999; text-align:center; padding:6px 0; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.4; pointer-events:none; user-select:none; letter-spacing:0.03em;">
+<div id="copyright-bar" style="position:fixed; bottom:0; left:0; right:0; z-index:9999; text-align:center; padding:5px 0; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.4; pointer-events:none; user-select:none; letter-spacing:0.03em; background:transparent;">
   Copyright &copy; 2026 Thiss7om
 </div>
 
+<script>
+// Ensure copyright bar stays at bottom regardless of any parent transforms
+(function() {
+  var bar = document.getElementById('copyright-bar');
+  if (!bar) return;
+  // Re-apply fixed positioning after any potential layout shifts
+  function lockCopyright() {
+    bar.style.position = 'fixed';
+    bar.style.bottom = '0';
+    bar.style.left = '0';
+    bar.style.right = '0';
+    bar.style.transform = 'none';
+    bar.style.willChange = 'auto';
+  }
+  lockCopyright();
+  window.addEventListener('scroll', lockCopyright, { passive: true });
+  window.addEventListener('resize', lockCopyright, { passive: true });
+})();
+</script>
 </body>
 </html>
