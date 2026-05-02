@@ -879,8 +879,8 @@
           <input class="input-field" id="b-phone" placeholder="+66 8X XXX XXXX" type="tel">
         </div>
         <div>
-          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Email Address</label>
-          <input class="input-field" id="b-email" placeholder="john@email.com" type="email">
+          <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Email Address *</label>
+          <input class="input-field" id="b-email" placeholder="john@email.com" type="email" required>
         </div>
         <div style="padding: 12px 0; border-top: 1px solid var(--border);">
           <label style="font-size:11px; color: var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:8px;">📄 For Tax Invoice (Optional)</label>
@@ -1643,7 +1643,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwxM82BVlAui48R_wCOawDcZcVKqgpzkRZM3yuT9pfmcPjd32tQ19vPeW1rdOvTfXB3AA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz5K9tca6s0cqxl7D-8bGbWFnDEsTPinSd_R4t9ehZFB9d7pPakbaV7s-hxYEsdufEdzw/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2170,11 +2170,13 @@ function validateStep(step) {
     const fn = document.getElementById('b-firstname').value.trim();
     const ln = document.getElementById('b-lastname').value.trim();
     const ph = document.getElementById('b-phone').value.trim();
+    const em = document.getElementById('b-email').value.trim();
     if (!nn || !fn || !ln || !ph) { showToast('กรุณากรอกข้อมูลให้ครบ (ชื่อเล่น, ชื่อ, นามสกุล, เบอร์โทร)', 'error'); return false; }
+    if (!em) { showToast('กรุณากรอก Email Address', 'error'); return false; }
     state.currentBooking.customer = {
       nickname: nn,
       firstname: fn, lastname: ln, phone: ph,
-      email: document.getElementById('b-email').value.trim(),
+      email: em,
       company: document.getElementById('b-company').value.trim(),
       taxId: document.getElementById('b-taxid').value.trim(),
       address: document.getElementById('b-address').value.trim(),
@@ -2799,54 +2801,11 @@ async function sendReceiptByEmail() {
 
   const s = state.settings || {};
 
-  // ── ใช้ receipt-render ที่แสดง preview อยู่แล้ว capture เป็น image ──
+  // ── สร้าง HTML email โดยตรง (ไม่ใช้ html2canvas) ──
+  // หมายเหตุ: การฝัง base64 PNG จาก html2canvas ทำให้ email body ใหญ่เกิน
+  // MailApp limit (~256 KB) จึงใช้ HTML email แทนซึ่งมีขนาดเล็กกว่ามาก
   let emailBody = '';
-  try {
-    const receiptEl = document.getElementById('receipt-render');
-    if (receiptEl) {
-      // ขยาย width ชั่วคราวเพื่อ capture ให้คมชัด
-      const origStyle = receiptEl.style.cssText;
-      receiptEl.style.maxWidth = '560px';
-      receiptEl.style.width = '560px';
-
-      const canvas = await html2canvas(receiptEl, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-
-      receiptEl.style.cssText = origStyle;
-
-      // แปลง canvas → base64 PNG → ฝังใน <img> tag ใน email
-      const imgData = canvas.toDataURL('image/png');
-      const imgW = canvas.width;
-      const imgH = canvas.height;
-      // scale ลงให้พอดี email width ~560px
-      const displayW = 560;
-      const displayH = Math.round((imgH / imgW) * displayW);
-
-      emailBody = `<!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8">
-<style>
-  body { margin:0; padding:20px; background:#f5f0f3; font-family:Arial,sans-serif; }
-  .wrap { max-width:600px; margin:0 auto; }
-  .receipt-img { display:block; width:100%; max-width:560px; height:auto; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.12); margin:0 auto; }
-  .footer-note { text-align:center; font-size:11px; color:#bba8b2; margin-top:12px; }
-</style>
-</head><body>
-<div class="wrap">
-  <img src="${imgData}" width="${displayW}" height="${displayH}" class="receipt-img" alt="ใบเสร็จรับเงิน MPG Booking">
-  <div class="footer-note">ขอบคุณที่ไว้วางใจใช้บริการ ${s.companyName || 'MPG Booking'} · เอกสารนี้ออกโดยระบบอัตโนมัติ</div>
-</div>
-</body></html>`;
-    }
-  } catch(captureErr) {
-    console.warn('html2canvas failed, fallback to HTML body:', captureErr);
-  }
-
-  // Fallback: ถ้า capture ไม่ได้ ใช้ HTML ที่ match receipt preview เป๊ะ
-  if (!emailBody) {
+  {
     const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
     const total = Number(b.totalAmount || 0).toLocaleString();
     const depositAmt = Number(b.depositAmount || 0).toLocaleString();
