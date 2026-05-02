@@ -1838,6 +1838,7 @@ function demoHandler(action, data) {
     ]};
     case 'addAdminUser': return { success: true };
     case 'deleteAdminUser': return { success: true };
+    case 'sendReceiptEmail': return { success: true, message: 'Demo mode — email not actually sent (connect GAS to enable)' };
     default: return { success: false, error: 'Unknown action' };
   }
 }
@@ -2698,57 +2699,291 @@ async function saveBookingSearchImage(bookingId) {
 }
 
 function downloadReceipt() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ format: 'a5' });
   const b = state.confirmedBooking;
-  const s = state.settings;
+  if (!b) return;
+  const s = state.settings || {};
 
-  doc.setFillColor(10, 10, 15);
-  doc.rect(0, 0, 148, 210, 'F');
-  doc.setTextColor(232, 184, 75);
-  doc.setFontSize(24);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ format: 'a5', unit: 'mm' }); // 148 x 210 mm
+  const W = 148, pad = 14;
+
+  // ── Helper functions ──
+  const fmtDate = (ts) => new Date(ts || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok', year:'numeric', month:'long', day:'numeric' });
+  const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
+  const total = Number(b.totalAmount || 0);
+  const isDeposit = b.paymentType === 'deposit';
+
+  // ── Background ──
+  doc.setFillColor(253, 248, 245);
+  doc.rect(0, 0, W, 210, 'F');
+
+  // ── Header gradient bar ──
+  doc.setFillColor(255, 143, 163);
+  doc.rect(0, 0, W, 32, 'F');
+  // overlay second color band
+  doc.setFillColor(255, 179, 71);
+  doc.setGState && doc.setGState(doc.GState({ opacity: 0.5 }));
+  doc.rect(W * 0.4, 0, W * 0.6, 32, 'F');
+  doc.setGState && doc.setGState(doc.GState({ opacity: 1 }));
+
+  // Company name
   doc.setFont('helvetica', 'bold');
-  doc.text('RECEIPT', 74, 20, { align: 'center' });
-  doc.setFontSize(10);
-  doc.setTextColor(200, 200, 200);
-  doc.text(s.companyName || 'MPG Booking', 74, 30, { align: 'center' });
-  if (s.companyTaxId) doc.text('Tax ID: ' + s.companyTaxId, 74, 36, { align: 'center' });
-  doc.setDrawColor(232, 184, 75);
-  doc.setLineWidth(0.5);
-  doc.line(15, 42, 133, 42);
-  doc.setFontSize(9);
-  doc.setTextColor(150, 150, 160);
-  const rows = [
-    ['Booking ID:', b.id],
-    ['Date:', new Date(b.createdAt || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok' })],
-    ['Customer:', b.firstname + ' ' + b.lastname],
-    ['Phone:', b.phone],
-    ['Trip:', b.tripName],
-    ['Seats:', Array.isArray(b.seats) ? b.seats.join(', ') : b.seats],
-    ['Passengers:', String(b.passengers || 1)],
-  ];
-  let y = 52;
-  rows.forEach(([label, val]) => {
-    doc.setTextColor(120, 120, 130);
-    doc.text(label, 15, y);
-    doc.setTextColor(220, 220, 220);
-    doc.text(val, 75, y);
-    y += 10;
-  });
-  doc.line(15, y + 2, 133, y + 2);
-  y += 12;
-  doc.setFontSize(14);
-  doc.setTextColor(232, 184, 75);
-  doc.text('TOTAL AMOUNT', 15, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('฿' + Number(b.totalAmount || 0).toLocaleString(), 133, y, { align: 'right' });
-  y += 16;
-  doc.setFontSize(8);
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text((s.companyName || 'MPG BOOKING').toUpperCase(), W / 2, 14, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 90);
-  doc.text('Thank you for booking with MPG Booking. This is your official receipt.', 74, y, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(255, 240, 230);
+  doc.text('ใบเสร็จรับเงิน / OFFICIAL RECEIPT', W / 2, 21, { align: 'center' });
+  if (s.companyAddress) doc.text(s.companyAddress, W / 2, 27, { align: 'center' });
+
+  // ── Status chip ──
+  doc.setFillColor(181, 240, 200);
+  doc.roundedRect(W - pad - 28, 34, 28, 7, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(26, 122, 64);
+  doc.text('CONFIRMED', W - pad - 14, 38.5, { align: 'center' });
+
+  // ── Booking ID ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(255, 179, 71);
+  doc.text(b.id, pad, 39.5);
+
+  // ── Date right side ──
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(122, 98, 112);
+  doc.text(fmtDate(b.createdAt), W - pad, 46, { align: 'right' });
+
+  // ── Dashed line ──
+  doc.setDrawColor(200, 180, 190);
+  doc.setLineWidth(0.3);
+  doc.setLineDashPattern([1.5, 1.5], 0);
+  doc.line(pad, 50, W - pad, 50);
+  doc.setLineDashPattern([], 0);
+
+  // ── Section: Customer ──
+  let y = 57;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(187, 168, 178);
+  doc.text('ข้อมูลลูกค้า', pad, y);
+  y += 6;
+
+  const customerRows = [
+    ['ชื่อ-นามสกุล', (b.firstname || '') + ' ' + (b.lastname || '')],
+    ...(b.nickname ? [['ชื่อเล่น', b.nickname]] : []),
+    ['เบอร์โทร', b.phone || '—'],
+    ...(b.email ? [['อีเมล', b.email]] : []),
+  ];
+  customerRows.forEach(([lbl, val]) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(122, 98, 112);
+    doc.text(lbl, pad, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(58, 42, 53);
+    doc.text(String(val), pad + 36, y);
+    y += 7;
+  });
+
+  // ── Dashed line ──
+  y += 1;
+  doc.setDrawColor(200, 180, 190);
+  doc.setLineDashPattern([1.5, 1.5], 0);
+  doc.line(pad, y, W - pad, y);
+  doc.setLineDashPattern([], 0);
+  y += 6;
+
+  // ── Section: Trip ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(187, 168, 178);
+  doc.text('รายละเอียดทริป', pad, y);
+  y += 6;
+
+  const tripRows = [
+    ['ชื่อทริป', b.tripName || '—'],
+    ['เลขที่นั่ง', seats],
+    ['จำนวนที่นั่ง', String(b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)) + ' ที่นั่ง'],
+    ...(b.note ? [['หมายเหตุ', b.note]] : []),
+  ];
+  tripRows.forEach(([lbl, val]) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(122, 98, 112);
+    doc.text(lbl, pad, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(58, 42, 53);
+    // seat numbers highlight
+    if (lbl === 'เลขที่นั่ง') doc.setTextColor(255, 179, 71);
+    doc.text(String(val), pad + 36, y);
+    y += 7;
+  });
+
+  // ── Payment box ──
+  y += 3;
+  doc.setFillColor(255, 248, 240);
+  doc.setDrawColor(255, 179, 71);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(pad, y, W - pad * 2, isDeposit ? 28 : 16, 3, 3, 'FD');
+
+  if (isDeposit) {
+    const dep = Number(b.depositAmount || 0);
+    const rem = total - dep;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(122, 98, 112);
+    doc.text('มัดจำ', pad + 6, y + 8);
+    doc.text('฿' + dep.toLocaleString(), W - pad - 6, y + 8, { align: 'right' });
+    doc.text('ส่วนที่เหลือ', pad + 6, y + 16);
+    doc.text('฿' + rem.toLocaleString(), W - pad - 6, y + 16, { align: 'right' });
+    y += 12;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(58, 42, 53);
+  doc.text('ยอดรวมทั้งหมด', pad + 6, y + (isDeposit ? 20 : 10));
+  doc.setTextColor(255, 179, 71);
+  doc.setFontSize(13);
+  doc.text('฿' + total.toLocaleString(), W - pad - 6, y + (isDeposit ? 20 : 10), { align: 'right' });
+  y += isDeposit ? 28 : 16;
+
+  // ── Bank info ──
+  if (s.bankAccountNumber) {
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(122, 98, 112);
+    doc.text('ชำระผ่าน: ' + (s.bankName || '') + ' · ' + (s.bankAccountName || '') + ' · ' + s.bankAccountNumber, W / 2, y, { align: 'center' });
+    y += 5;
+  }
+
+  // ── Footer ──
+  y = Math.max(y + 8, 190);
+  doc.setDrawColor(200, 180, 190);
+  doc.setLineDashPattern([1.5, 1.5], 0);
+  doc.line(pad, y - 4, W - pad, y - 4);
+  doc.setLineDashPattern([], 0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(187, 168, 178);
+  doc.text('ขอบคุณที่ไว้วางใจใช้บริการ ' + (s.companyName || 'MPG Booking'), W / 2, y + 2, { align: 'center' });
+  if (s.companyTaxId) doc.text('เลขประจำตัวผู้เสียภาษี: ' + s.companyTaxId, W / 2, y + 8, { align: 'center' });
+  if (s.companyPhone) doc.text('📞 ' + s.companyPhone, W / 2, y + (s.companyTaxId ? 14 : 8), { align: 'center' });
+
   doc.save('MPG-Receipt-' + b.id + '.pdf');
-  showToast('Receipt downloaded!', 'success');
+  closeModal('modal-receipt');
+  showToast('📥 ดาวน์โหลดใบเสร็จสำเร็จ!', 'success');
+  logAction('PDF Downloaded', 'Receipt for ' + b.id);
+}
+
+async function sendReceiptByEmail() {
+  const b = state.confirmedBooking;
+  if (!b || !b.email) { showToast('ลูกค้าไม่ได้ใส่ Email', 'error'); return; }
+
+  const btn = document.getElementById('receipt-email-btn');
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin:0 auto;"></div>';
+
+  const s = state.settings || {};
+  const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
+  const total = Number(b.totalAmount || 0).toLocaleString();
+  const dateStr = new Date(b.createdAt || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok', year:'numeric', month:'long', day:'numeric' });
+
+  // Build email HTML body
+  const emailBody = `
+    <!DOCTYPE html>
+    <html lang="th">
+    <head><meta charset="UTF-8"><style>
+      body { font-family: 'Sarabun', Arial, sans-serif; background:#f5f0f3; margin:0; padding:20px; }
+      .card { background:#fff; max-width:480px; margin:0 auto; border-radius:14px; overflow:hidden; border:1px solid #e8e0e4; }
+      .hdr { background:linear-gradient(135deg,#ff8fa3,#ffb347); padding:24px; text-align:center; color:#fff; }
+      .hdr h1 { margin:0; font-size:20px; font-weight:700; letter-spacing:2px; }
+      .hdr p { margin:4px 0 0; font-size:11px; opacity:0.85; }
+      .badge { display:inline-block; background:#b5f0c8; color:#1a7a40; border-radius:20px; padding:3px 12px; font-size:11px; font-weight:700; margin-top:8px; }
+      .body { padding:20px 24px; }
+      .id-box { background:#fdf8f5; border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+      .id-box .label { font-size:10px; color:#bba8b2; margin-bottom:2px; }
+      .id-box .val { font-size:15px; font-weight:700; color:#ffb347; font-family:monospace; }
+      .section { margin-bottom:14px; }
+      .section .sec-title { font-size:10px; color:#bba8b2; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+      table.info { width:100%; border-collapse:collapse; font-size:13px; }
+      table.info td { padding:3px 0; }
+      table.info td:first-child { color:#7a6270; width:38%; }
+      table.info td:last-child { color:#3a2a35; font-weight:600; }
+      .total-box { background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border:1.5px solid rgba(255,179,71,0.35); border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; margin-top:14px; }
+      .total-box .t-label { font-size:14px; font-weight:700; color:#3a2a35; }
+      .total-box .t-val { font-size:17px; font-weight:700; color:#ffb347; }
+      .footer { background:#fdf8f5; padding:14px 24px; text-align:center; font-size:11px; color:#bba8b2; border-top:1px solid #e8e0e4; }
+    </style></head>
+    <body>
+    <div class="card">
+      <div class="hdr">
+        <h1>${(s.companyName || 'MPG BOOKING').toUpperCase()}</h1>
+        <p>${s.companyAddress || 'ใบเสร็จรับเงิน'}</p>
+        <span class="badge">✓ CONFIRMED</span>
+      </div>
+      <div class="body">
+        <div class="id-box">
+          <div class="label">BOOKING ID</div>
+          <div class="val">${b.id}</div>
+          <div style="font-size:11px;color:#7a6270;margin-top:2px;">วันที่: ${dateStr}</div>
+        </div>
+        <div class="section">
+          <div class="sec-title">ข้อมูลลูกค้า</div>
+          <table class="info">
+            <tr><td>ชื่อ-นามสกุล</td><td>${b.firstname || ''} ${b.lastname || ''}</td></tr>
+            ${b.nickname ? `<tr><td>ชื่อเล่น</td><td style="color:#ffb347">${b.nickname}</td></tr>` : ''}
+            <tr><td>เบอร์โทร</td><td>${b.phone || '—'}</td></tr>
+            <tr><td>อีเมล</td><td>${b.email || '—'}</td></tr>
+          </table>
+        </div>
+        <div class="section">
+          <div class="sec-title">รายละเอียดทริป</div>
+          <table class="info">
+            <tr><td>ชื่อทริป</td><td>${b.tripName || '—'}</td></tr>
+            <tr><td>เลขที่นั่ง</td><td style="color:#ffb347;font-weight:700">${seats}</td></tr>
+            <tr><td>จำนวนที่นั่ง</td><td>${b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)} ที่นั่ง</td></tr>
+            ${b.note ? `<tr><td>หมายเหตุ</td><td style="color:#7a6270">${b.note}</td></tr>` : ''}
+          </table>
+        </div>
+        <div class="total-box">
+          <span class="t-label">ยอดรวมทั้งหมด</span>
+          <span class="t-val">฿${total}</span>
+        </div>
+        ${s.bankAccountNumber ? `<div style="margin-top:10px;padding:10px 14px;background:#fdf8f5;border-radius:8px;font-size:12px;color:#7a6270;border:1px solid rgba(180,140,160,0.15);">ชำระผ่าน: ${s.bankName || ''} · ${s.bankAccountName || ''} · <b style="color:#ffb347">${s.bankAccountNumber}</b></div>` : ''}
+      </div>
+      <div class="footer">
+        ขอบคุณที่ไว้วางใจใช้บริการ ${s.companyName || 'MPG Booking'}<br>
+        ${s.companyPhone ? '📞 ' + s.companyPhone : ''}
+        ${s.companyTaxId ? ' · เลขประจำตัวผู้เสียภาษี: ' + s.companyTaxId : ''}
+      </div>
+    </div>
+    </body></html>
+  `;
+
+  const res = await apiCall('sendReceiptEmail', {
+    to: b.email,
+    subject: `[${s.companyName || 'MPG Booking'}] ใบเสร็จการจอง ${b.id}`,
+    htmlBody: emailBody,
+    bookingId: b.id
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = origHTML;
+
+  if (res.success) {
+    closeModal('modal-receipt');
+    showToast('📧 ส่ง Email ใบเสร็จไปที่ ' + b.email + ' แล้ว!', 'success');
+    logAction('Email Receipt', 'Sent receipt ' + b.id + ' to ' + b.email);
+  } else {
+    showToast('❌ ' + (res.error || 'ส่ง Email ไม่สำเร็จ กรุณาลองใหม่'), 'error');
+  }
 }
 
 // ============================================================
@@ -3343,9 +3578,151 @@ function viewRemainingSlip(bookingId) {
 
 function generateBookingReceipt(bookingId) {
   const b = state.allBookings.find(x => x.id === bookingId) || DEMO_BOOKINGS.find(x => x.id === bookingId);
-  if (!b) return;
+  if (!b) { showToast('ไม่พบข้อมูลการจอง', 'error'); return; }
+  if (b.status !== 'confirmed') {
+    showToast('สามารถออก PDF ได้เฉพาะการจองที่ยืนยันแล้ว (confirmed) เท่านั้น', 'error');
+    return;
+  }
   state.confirmedBooking = b;
-  downloadReceipt();
+  openReceiptModal(b);
+}
+
+function openReceiptModal(b) {
+  const s = state.settings || {};
+  const dateStr = new Date(b.createdAt || Date.now()).toLocaleDateString('th-TH', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric'
+  });
+  const seats = Array.isArray(b.seats) ? b.seats.join(', ') : (b.seats || '—');
+  const total = Number(b.totalAmount || 0).toLocaleString();
+  const isDeposit = b.paymentType === 'deposit';
+  const depositAmt = Number(b.depositAmount || 0).toLocaleString();
+  const hasEmail = !!(b.email && b.email.trim());
+
+  document.getElementById('receipt-preview-area').innerHTML = `
+    <div id="receipt-render" style="background:#fff; font-family:'Sarabun',sans-serif; max-width:480px; margin:0 auto; border:1px solid #e8e0e4; border-radius:12px; overflow:hidden;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#ff8fa3,#ffb347,#7bb8e8); padding:28px 28px 20px; text-align:center; position:relative;">
+        <div style="position:absolute; inset:0; opacity:0.12; background:repeating-linear-gradient(45deg,#fff 0px,#fff 1px,transparent 1px,transparent 8px);"></div>
+        <div style="position:relative;">
+          <div style="font-family:'Mitr',sans-serif; font-size:22px; font-weight:700; color:#fff; letter-spacing:0.08em; text-shadow:0 1px 4px rgba(0,0,0,0.15);">
+            ${s.companyName || 'MPG BOOKING'}
+          </div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.85); margin-top:2px; letter-spacing:0.05em;">
+            ${s.companyAddress || 'ใบเสร็จรับเงิน / OFFICIAL RECEIPT'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Receipt Badge -->
+      <div style="background:#fff8f0; border-bottom:1px dashed #ffd4a0; padding:10px 28px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-family:'Mitr',sans-serif; font-size:13px; font-weight:700; color:#ff8fa3; letter-spacing:0.06em;">ใบเสร็จรับเงิน</div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div style="width:8px; height:8px; background:#52c97a; border-radius:50%;"></div>
+          <span style="font-size:11px; font-weight:700; color:#1a7a40; letter-spacing:0.05em;">CONFIRMED</span>
+        </div>
+      </div>
+
+      <!-- IDs Row -->
+      <div style="padding:16px 28px 0; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div style="background:#fdf8f5; border-radius:8px; padding:10px 14px;">
+          <div style="font-size:10px; color:#bba8b2; letter-spacing:0.04em; margin-bottom:3px;">BOOKING ID</div>
+          <div style="font-family:'DM Mono',monospace; font-size:14px; font-weight:700; color:#ffb347;">${b.id}</div>
+        </div>
+        <div style="background:#fdf8f5; border-radius:8px; padding:10px 14px; text-align:right;">
+          <div style="font-size:10px; color:#bba8b2; letter-spacing:0.04em; margin-bottom:3px;">วันที่ออกใบเสร็จ</div>
+          <div style="font-size:12px; color:#3a2a35; font-weight:600;">${dateStr}</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="margin:14px 28px; border-top:1px dashed rgba(180,140,160,0.3);"></div>
+
+      <!-- Customer Info -->
+      <div style="padding:0 28px;">
+        <div style="font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700;">ข้อมูลลูกค้า</div>
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <tr>
+            <td style="color:#7a6270; padding:4px 0; width:38%;">ชื่อ-นามสกุล</td>
+            <td style="color:#3a2a35; font-weight:600; padding:4px 0;">${b.firstname || ''} ${b.lastname || ''}</td>
+          </tr>
+          ${b.nickname ? `<tr><td style="color:#7a6270; padding:4px 0;">ชื่อเล่น</td><td style="color:#ffb347; font-weight:700; padding:4px 0;">${b.nickname}</td></tr>` : ''}
+          <tr>
+            <td style="color:#7a6270; padding:4px 0;">เบอร์โทร</td>
+            <td style="color:#3a2a35; font-weight:600; padding:4px 0;">${b.phone || '—'}</td>
+          </tr>
+          ${b.email ? `<tr><td style="color:#7a6270; padding:4px 0;">อีเมล</td><td style="color:#3a2a35; padding:4px 0;">${b.email}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <!-- Divider -->
+      <div style="margin:14px 28px; border-top:1px dashed rgba(180,140,160,0.3);"></div>
+
+      <!-- Trip Info -->
+      <div style="padding:0 28px;">
+        <div style="font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700;">รายละเอียดทริป</div>
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <tr>
+            <td style="color:#7a6270; padding:4px 0; width:38%;">ชื่อทริป</td>
+            <td style="color:#3a2a35; font-weight:700; padding:4px 0;">${b.tripName || '—'}</td>
+          </tr>
+          <tr>
+            <td style="color:#7a6270; padding:4px 0;">เลขที่นั่ง</td>
+            <td style="color:#ffb347; font-weight:700; padding:4px 0;">${seats}</td>
+          </tr>
+          <tr>
+            <td style="color:#7a6270; padding:4px 0;">จำนวนที่นั่ง</td>
+            <td style="color:#3a2a35; font-weight:600; padding:4px 0;">${b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)} ที่นั่ง</td>
+          </tr>
+          ${b.note ? `<tr><td style="color:#7a6270; padding:4px 0;">หมายเหตุ</td><td style="color:#7a6270; font-size:12px; padding:4px 0;">${b.note}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <!-- Divider -->
+      <div style="margin:14px 28px; border-top:2px solid rgba(255,179,71,0.3);"></div>
+
+      <!-- Payment Summary -->
+      <div style="padding:0 28px 4px;">
+        <div style="font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700;">สรุปการชำระเงิน</div>
+        ${isDeposit ? `
+        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
+          <span>มัดจำ</span><span>฿${depositAmt}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
+          <span>ส่วนที่เหลือ</span><span>฿${(Number(b.totalAmount||0) - Number(b.depositAmount||0)).toLocaleString()}</span>
+        </div>` : ''}
+        <div style="display:flex; justify-content:space-between; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; padding:12px 14px; margin-top:8px; border:1px solid rgba(255,179,71,0.3);">
+          <span style="font-family:'Mitr',sans-serif; font-size:15px; font-weight:700; color:#3a2a35;">ยอดรวมทั้งหมด</span>
+          <span style="font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:#ffb347;">฿${total}</span>
+        </div>
+        ${s.bankAccountNumber ? `
+        <div style="margin-top:10px; background:#fdf8f5; border-radius:8px; padding:10px 14px; font-size:12px; color:#7a6270; border:1px solid rgba(180,140,160,0.15);">
+          <span style="font-weight:700; color:#3a2a35;">ชำระผ่าน:</span> ${s.bankName || 'ธนาคาร'} · ${s.bankAccountName || ''} · <span style="font-family:'DM Mono',monospace; color:#ffb347;">${s.bankAccountNumber}</span>
+        </div>` : ''}
+      </div>
+
+      <!-- Footer -->
+      <div style="background:#fdf8f5; margin-top:16px; padding:14px 28px; text-align:center; border-top:1px solid rgba(180,140,160,0.12);">
+        <div style="font-size:11px; color:#bba8b2; line-height:1.7;">
+          ขอบคุณที่ไว้วางใจใช้บริการ ${s.companyName || 'MPG Booking'}<br>
+          ${s.companyPhone ? '📞 ' + s.companyPhone + ' · ' : ''}เอกสารนี้ออกโดยระบบอัตโนมัติ
+          ${s.companyTaxId ? '<br>เลขประจำตัวผู้เสียภาษี: ' + s.companyTaxId : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Set email button state
+  const emailBtn = document.getElementById('receipt-email-btn');
+  if (emailBtn) {
+    emailBtn.disabled = !hasEmail;
+    emailBtn.title = hasEmail ? 'ส่งไปที่ ' + b.email : 'ลูกค้าไม่ได้ใส่ Email';
+    emailBtn.style.opacity = hasEmail ? '1' : '0.5';
+    emailBtn.innerHTML = hasEmail
+      ? `📧 ส่ง Email<br><span style="font-size:10px; font-weight:400; opacity:0.8;">${b.email}</span>`
+      : `📧 ส่ง Email<br><span style="font-size:10px; font-weight:400; opacity:0.7;">ไม่มี Email</span>`;
+  }
+
+  document.getElementById('modal-receipt').style.display = 'flex';
 }
 
 function openTripModal(tripId) {
@@ -4078,6 +4455,60 @@ window.openTripModal = function(tripId) {
   else { openUserTripModal(tripId); }
 };
 </script>
+<!-- ============================================
+     RECEIPT MODAL
+============================================ -->
+<div id="modal-receipt" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:560px; max-height:94vh; overflow-y:auto;">
+    <!-- Modal Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 24px 0;">
+      <div>
+        <h3 class="font-display" style="font-size:20px; color:var(--text-primary);">🧾 ใบเสร็จรับเงิน</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Preview ก่อน Download หรือ ส่ง Email</p>
+      </div>
+      <button onclick="closeModal('modal-receipt')" style="color: var(--text-muted); font-size:22px; background:none; border:none; cursor:pointer; line-height:1;">✕</button>
+    </div>
+
+    <!-- Receipt Preview -->
+    <div id="receipt-preview-area" style="padding:16px 20px;">
+      <!-- Filled by JS -->
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="padding:0 20px 20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <!-- Download PDF -->
+      <button onclick="downloadReceipt()" style="
+        background:linear-gradient(135deg,#ff8fa3,#ffb347);
+        color:#fff; border:none; border-radius:14px;
+        padding:14px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+        box-shadow:0 4px 14px rgba(255,143,163,0.35);
+        transition:all 0.2s; line-height:1.5;
+        display:flex; flex-direction:column; align-items:center; gap:2px;">
+        📥 Download PDF
+        <span style="font-size:10px; font-weight:400; opacity:0.85;">บันทึกลงเครื่อง</span>
+      </button>
+      <!-- Send Email -->
+      <button id="receipt-email-btn" onclick="sendReceiptByEmail()" style="
+        background:linear-gradient(135deg,#7bb8e8,#5aacf0);
+        color:#fff; border:none; border-radius:14px;
+        padding:14px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+        box-shadow:0 4px 14px rgba(90,172,240,0.35);
+        transition:all 0.2s; line-height:1.5;
+        display:flex; flex-direction:column; align-items:center; gap:2px;">
+        📧 ส่ง Email
+        <span style="font-size:10px; font-weight:400; opacity:0.85;">ส่งให้ลูกค้าโดยตรง</span>
+      </button>
+    </div>
+
+    <!-- Note about email -->
+    <div style="padding:0 20px 16px; text-align:center; font-size:11px; color:var(--text-muted);">
+      💡 PDF จะถูกสร้างจากข้อมูลที่แสดง Preview ด้านบน
+    </div>
+  </div>
+</div>
+
 <!-- Copyright -->
 <div style="position:fixed; bottom:14px; right:18px; z-index:9999; font-family:'Sarabun',sans-serif; font-size:11px; color:var(--text-primary); opacity:0.5; pointer-events:none; user-select:none; letter-spacing:0.03em;">
   Copyright &copy; Thiss7om
