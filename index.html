@@ -2823,103 +2823,130 @@ async function sendReceiptByEmail() {
     const dateStr = new Date(b.createdAt || Date.now()).toLocaleDateString('th-TH', { timeZone:'Asia/Bangkok', year:'numeric', month:'long', day:'numeric' });
 
     emailBody = `<!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8">
-<style>
-  body { margin:0; padding:20px; background:#f5f0f3; font-family:'Sarabun',Arial,sans-serif; }
-  .card { background:#fff; max-width:480px; margin:0 auto; border-radius:16px; overflow:hidden; border:1px solid #e8e0e4; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
-  .hdr { background:linear-gradient(135deg,#ff8fa3,#ffb347,#7bb8e8); padding:28px 28px 20px; text-align:center; position:relative; }
-  .hdr h1 { margin:0; font-size:22px; font-weight:700; color:#fff; letter-spacing:0.08em; }
-  .hdr p { margin:3px 0 0; font-size:11px; color:rgba(255,255,255,0.85); letter-spacing:0.05em; }
-  .badge-bar { background:#fff8f0; border-bottom:1px dashed #ffd4a0; padding:10px 28px; }
-  .badge-table { width:100%; border-collapse:collapse; }
-  .badge-table td { vertical-align:middle; padding:0; }
-  .badge-table td.b-left { font-size:13px; font-weight:700; color:#ff8fa3; letter-spacing:0.06em; text-align:left; }
-  .badge-table td.b-right { font-size:11px; font-weight:700; color:#1a7a40; text-align:right; }
-  .dot { width:8px; height:8px; background:#52c97a; border-radius:50%; display:inline-block; margin-right:4px; }
-  .ids { padding:16px 28px 0; }
-  .ids-table { width:100%; border-collapse:collapse; }
-  .ids-table td { vertical-align:top; width:50%; padding:0 4px 0 0; }
-  .ids-table td:last-child { text-align:right; padding:0; }
-  .id-box { background:#fdf8f5; border-radius:8px; padding:10px 14px; }
-  .id-box .lbl { font-size:10px; color:#bba8b2; letter-spacing:0.04em; margin-bottom:3px; }
-  .id-box .val { font-size:14px; font-weight:700; color:#ffb347; font-family:monospace; }
-  .id-box.right .val { font-size:12px; color:#3a2a35; }
-  .divider { margin:14px 28px; border-top:1px dashed rgba(180,140,160,0.3); }
-  .divider-solid { margin:14px 28px; border-top:2px solid rgba(255,179,71,0.3); }
-  .section { padding:0 28px; }
-  .sec-title { font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  td { padding:4px 0; }
-  td:first-child { color:#7a6270; width:38%; }
-  td:last-child { color:#3a2a35; font-weight:600; }
-  .payment { padding:0 28px 4px; }
-  .pay-table { width:100%; border-collapse:collapse; font-size:13px; color:#7a6270; }
-  .pay-table td { padding:4px 0; }
-  .pay-table td:first-child { text-align:left; }
-  .pay-table td:last-child { text-align:right; font-weight:600; white-space:nowrap; }
-  .total-table { width:100%; border-collapse:collapse; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; margin-top:8px; border:1px solid rgba(255,179,71,0.3); }
-  .total-table td { padding:12px 14px; }
-  .total-table td.t-lbl { text-align:left; font-size:15px; font-weight:700; color:#3a2a35; }
-  .total-table td.t-val { text-align:right; font-size:18px; font-weight:700; color:#ffb347; white-space:nowrap; }
-  .footer { background:#fdf8f5; margin-top:16px; padding:14px 28px; text-align:center; border-top:1px solid rgba(180,140,160,0.12); font-size:11px; color:#bba8b2; line-height:1.7; }
-</style>
-</head><body>
-<div class="card">
-  <div class="hdr">
-    <h1>${s.companyName || 'MPG BOOKING'}</h1>
-    <p>${s.companyAddress || 'ใบเสร็จรับเงิน / OFFICIAL RECEIPT'}</p>
-  </div>
-  <div class="badge-bar">
-    <table class="badge-table"><tr>
-      <td class="b-left">ใบเสร็จรับเงิน</td>
-      <td class="b-right"><span class="dot"></span> CONFIRMED</td>
+<html lang="th"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:20px;background:#f5f0f3;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+<table width="480" cellpadding="0" cellspacing="0" border="0" style="background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e8e0e4;">
+
+  <!-- Header -->
+  <tr><td style="background:linear-gradient(135deg,#ff8fa3,#ffb347,#7bb8e8);padding:28px 28px 20px;text-align:center;">
+    <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:0.08em;">${s.companyName || 'MPG BOOKING'}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.85);margin-top:3px;letter-spacing:0.05em;">${s.companyAddress || 'ใบเสร็จรับเงิน / OFFICIAL RECEIPT'}</div>
+  </td></tr>
+
+  <!-- Badge bar -->
+  <tr><td style="background:#fff8f0;border-bottom:1px dashed #ffd4a0;padding:10px 28px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="font-size:13px;font-weight:700;color:#ff8fa3;letter-spacing:0.06em;text-align:left;">ใบเสร็จรับเงิน</td>
+      <td style="font-size:11px;font-weight:700;color:#1a7a40;text-align:right;">&#9679; CONFIRMED</td>
     </tr></table>
-  </div>
-  <div class="ids">
-    <table class="ids-table"><tr>
-      <td><div class="id-box"><div class="lbl">BOOKING ID</div><div class="val">${b.id}</div></div></td>
-      <td><div class="id-box right"><div class="lbl">วันที่ออกใบเสร็จ</div><div class="val">${dateStr}</div></div></td>
+  </td></tr>
+
+  <!-- IDs row -->
+  <tr><td style="padding:16px 28px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td width="50%" style="vertical-align:top;padding-right:4px;">
+        <div style="background:#fdf8f5;border-radius:8px;padding:10px 14px;">
+          <div style="font-size:10px;color:#bba8b2;letter-spacing:0.04em;margin-bottom:3px;">BOOKING ID</div>
+          <div style="font-size:14px;font-weight:700;color:#ffb347;font-family:monospace;">${b.id}</div>
+        </div>
+      </td>
+      <td width="50%" style="vertical-align:top;padding-left:4px;">
+        <div style="background:#fdf8f5;border-radius:8px;padding:10px 14px;text-align:right;">
+          <div style="font-size:10px;color:#bba8b2;letter-spacing:0.04em;margin-bottom:3px;">วันที่ออกใบเสร็จ</div>
+          <div style="font-size:12px;font-weight:600;color:#3a2a35;">${dateStr}</div>
+        </div>
+      </td>
     </tr></table>
-  </div>
-  <div class="divider"></div>
-  <div class="section">
-    <div class="sec-title">ข้อมูลลูกค้า</div>
-    <table>
-      <tr><td>ชื่อ-นามสกุล</td><td>${b.firstname || ''} ${b.lastname || ''}</td></tr>
-      ${b.nickname ? `<tr><td>ชื่อเล่น</td><td style="color:#ffb347;font-weight:700;">${b.nickname}</td></tr>` : ''}
-      <tr><td>เบอร์โทร</td><td>${b.phone || '—'}</td></tr>
-      ${b.email ? `<tr><td>อีเมล</td><td>${b.email}</td></tr>` : ''}
+  </td></tr>
+
+  <!-- Divider -->
+  <tr><td><div style="margin:14px 28px;border-top:1px dashed rgba(180,140,160,0.3);"></div></td></tr>
+
+  <!-- Customer Info -->
+  <tr><td style="padding:0 28px;">
+    <div style="font-size:10px;color:#bba8b2;letter-spacing:0.06em;margin-bottom:8px;font-weight:700;">ข้อมูลลูกค้า</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;width:38%;text-align:left;vertical-align:top;">ชื่อ-นามสกุล</td>
+        <td style="color:#3a2a35;font-size:13px;font-weight:600;padding:4px 0;text-align:right;vertical-align:top;">${b.firstname || ''} ${b.lastname || ''}</td>
+      </tr>
+      ${b.nickname ? `<tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">ชื่อเล่น</td>
+        <td style="color:#ffb347;font-size:13px;font-weight:700;padding:4px 0;text-align:right;vertical-align:top;">${b.nickname}</td>
+      </tr>` : ''}
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">เบอร์โทร</td>
+        <td style="color:#3a2a35;font-size:13px;font-weight:600;padding:4px 0;text-align:right;vertical-align:top;">${b.phone || '—'}</td>
+      </tr>
+      ${b.email ? `<tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">อีเมล</td>
+        <td style="color:#3a2a35;font-size:13px;padding:4px 0;text-align:right;vertical-align:top;">${b.email}</td>
+      </tr>` : ''}
     </table>
-  </div>
-  <div class="divider"></div>
-  <div class="section">
-    <div class="sec-title">รายละเอียดทริป</div>
-    <table>
-      <tr><td>ชื่อทริป</td><td style="font-weight:700;">${b.tripName || '—'}</td></tr>
-      <tr><td>เลขที่นั่ง</td><td style="color:#ffb347;font-weight:700;">${seats}</td></tr>
-      <tr><td>จำนวนที่นั่ง</td><td>${b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)} ที่นั่ง</td></tr>
-      ${b.note ? `<tr><td>หมายเหตุ</td><td style="color:#7a6270;font-size:12px;">${b.note}</td></tr>` : ''}
+  </td></tr>
+
+  <!-- Divider -->
+  <tr><td><div style="margin:14px 28px;border-top:1px dashed rgba(180,140,160,0.3);"></div></td></tr>
+
+  <!-- Trip Info -->
+  <tr><td style="padding:0 28px;">
+    <div style="font-size:10px;color:#bba8b2;letter-spacing:0.06em;margin-bottom:8px;font-weight:700;">รายละเอียดทริป</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;width:38%;text-align:left;vertical-align:top;">ชื่อทริป</td>
+        <td style="color:#3a2a35;font-size:13px;font-weight:700;padding:4px 0;text-align:right;vertical-align:top;">${b.tripName || '—'}</td>
+      </tr>
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">เลขที่นั่ง</td>
+        <td style="color:#ffb347;font-size:13px;font-weight:700;padding:4px 0;text-align:right;vertical-align:top;">${seats}</td>
+      </tr>
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">จำนวนที่นั่ง</td>
+        <td style="color:#3a2a35;font-size:13px;font-weight:600;padding:4px 0;text-align:right;vertical-align:top;">${b.passengers || (Array.isArray(b.seats) ? b.seats.length : 1)} ที่นั่ง</td>
+      </tr>
+      ${b.note ? `<tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;vertical-align:top;">หมายเหตุ</td>
+        <td style="color:#7a6270;font-size:12px;padding:4px 0;text-align:right;vertical-align:top;">${b.note}</td>
+      </tr>` : ''}
     </table>
-  </div>
-  <div class="divider-solid"></div>
-  <div class="payment">
-    <div class="sec-title">สรุปการชำระเงิน</div>
+  </td></tr>
+
+  <!-- Divider solid -->
+  <tr><td><div style="margin:14px 28px;border-top:2px solid rgba(255,179,71,0.3);"></div></td></tr>
+
+  <!-- Payment Summary -->
+  <tr><td style="padding:0 28px 16px;">
+    <div style="font-size:10px;color:#bba8b2;letter-spacing:0.06em;margin-bottom:8px;font-weight:700;">สรุปการชำระเงิน</div>
     ${isDeposit ? `
-    <table class="pay-table">
-      <tr><td>มัดจำ</td><td>฿${depositAmt}</td></tr>
-      <tr><td>ส่วนที่เหลือ</td><td>฿${remaining}</td></tr>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;">มัดจำ</td>
+        <td style="color:#7a6270;font-size:13px;font-weight:600;padding:4px 0;text-align:right;white-space:nowrap;">฿${depositAmt}</td>
+      </tr>
+      <tr>
+        <td style="color:#7a6270;font-size:13px;padding:4px 0;text-align:left;">ส่วนที่เหลือ</td>
+        <td style="color:#7a6270;font-size:13px;font-weight:600;padding:4px 0;text-align:right;white-space:nowrap;">฿${remaining}</td>
+      </tr>
     </table>` : ''}
-    <table class="total-table">
-      <tr><td class="t-lbl">ยอดรวมทั้งหมด</td><td class="t-val">฿${total}</td></tr>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff8ee;border-radius:10px;margin-top:8px;border:1px solid rgba(255,179,71,0.3);">
+      <tr>
+        <td style="padding:12px 14px;text-align:left;font-size:15px;font-weight:700;color:#3a2a35;">ยอดรวมทั้งหมด</td>
+        <td style="padding:12px 14px;text-align:right;font-size:18px;font-weight:700;color:#ffb347;white-space:nowrap;">฿${total}</td>
+      </tr>
     </table>
     ${s.bankAccountNumber ? `<div style="margin-top:10px;background:#fdf8f5;border-radius:8px;padding:10px 14px;font-size:12px;color:#7a6270;border:1px solid rgba(180,140,160,0.15);">ชำระผ่าน: ${s.bankName||''} · ${s.bankAccountName||''} · <b style="color:#ffb347;font-family:monospace;">${s.bankAccountNumber}</b></div>` : ''}
-  </div>
-  <div class="footer">
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background:#fdf8f5;padding:14px 28px;text-align:center;border-top:1px solid rgba(180,140,160,0.12);font-size:11px;color:#bba8b2;line-height:1.7;">
     ขอบคุณที่ไว้วางใจใช้บริการ ${s.companyName || 'MPG Booking'}<br>
     ${s.companyPhone ? '📞 ' + s.companyPhone + ' · ' : ''}เอกสารนี้ออกโดยระบบอัตโนมัติ
     ${s.companyTaxId ? '<br>เลขประจำตัวผู้เสียภาษี: ' + s.companyTaxId : ''}
-  </div>
-</div>
+  </td></tr>
+
+</table>
+</td></tr></table>
 </body></html>`;
   }
 
@@ -3648,22 +3675,16 @@ function openReceiptModal(b) {
       <div style="padding:0 28px 4px;">
         <div style="font-size:10px; color:#bba8b2; letter-spacing:0.06em; margin-bottom:8px; font-weight:700;">สรุปการชำระเงิน</div>
         ${isDeposit ? `
-        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#7a6270;">
-          <tr>
-            <td style="padding:4px 0; text-align:left;">มัดจำ</td>
-            <td style="padding:4px 0; text-align:right; font-weight:600;">฿${depositAmt}</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0; text-align:left;">ส่วนที่เหลือ</td>
-            <td style="padding:4px 0; text-align:right; font-weight:600;">฿${(Number(b.totalAmount||0) - Number(b.depositAmount||0)).toLocaleString()}</td>
-          </tr>
-        </table>` : ''}
-        <table style="width:100%; border-collapse:collapse; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; margin-top:8px; border:1px solid rgba(255,179,71,0.3);">
-          <tr>
-            <td style="padding:12px 14px; text-align:left; font-family:'Mitr',sans-serif; font-size:15px; font-weight:700; color:#3a2a35;">ยอดรวมทั้งหมด</td>
-            <td style="padding:12px 14px; text-align:right; font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:#ffb347; white-space:nowrap;">฿${total}</td>
-          </tr>
-        </table>
+        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
+          <span>มัดจำ</span><span>฿${depositAmt}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:#7a6270;">
+          <span>ส่วนที่เหลือ</span><span>฿${(Number(b.totalAmount||0) - Number(b.depositAmount||0)).toLocaleString()}</span>
+        </div>` : ''}
+        <div style="display:flex; justify-content:space-between; background:linear-gradient(135deg,rgba(255,179,71,0.12),rgba(255,143,163,0.12)); border-radius:10px; padding:12px 14px; margin-top:8px; border:1px solid rgba(255,179,71,0.3);">
+          <span style="font-family:'Mitr',sans-serif; font-size:15px; font-weight:700; color:#3a2a35;">ยอดรวมทั้งหมด</span>
+          <span style="font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:#ffb347;">฿${total}</span>
+        </div>
         ${s.bankAccountNumber ? `
         <div style="margin-top:10px; background:#fdf8f5; border-radius:8px; padding:10px 14px; font-size:12px; color:#7a6270; border:1px solid rgba(180,140,160,0.15);">
           <span style="font-weight:700; color:#3a2a35;">ชำระผ่าน:</span> ${s.bankName || 'ธนาคาร'} · ${s.bankAccountName || ''} · <span style="font-family:'DM Mono',monospace; color:#ffb347;">${s.bankAccountNumber}</span>
