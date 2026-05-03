@@ -853,7 +853,11 @@
     height: 4px; border-radius: 4px 4px 0 0;
     background: linear-gradient(90deg, var(--pastel-red), var(--pastel-yellow), var(--pastel-blue));
   }
+  .flatpickr-calendar { font-family: "Sarabun", sans-serif !important; border-radius: 14px !important; box-shadow: 0 8px 32px rgba(255,143,163,0.18) !important; }
+  .flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--accent) !important; border-color: var(--accent) !important; }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 </head>
 <body>
 
@@ -1560,13 +1564,13 @@
         <div>
           <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;"><span class="mi" style="font-size:12px; margin-right:3px;">calendar_today</span>วันเดินทางไป *</label>
           <div class="date-input-wrap">
-            <input class="input-field" id="trip-date-start" type="date" style="padding-right:40px;">
+            <input class="input-field" id="trip-date-start" type="text" placeholder="DD/MM/YYYY" autocomplete="off" style="padding-right:40px;">
           </div>
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;"><span class="mi" style="font-size:12px; margin-right:3px;">event</span>วันเดินทางกลับ *</label>
           <div class="date-input-wrap">
-            <input class="input-field" id="trip-date-end" type="date" style="padding-right:40px;">
+            <input class="input-field" id="trip-date-end" type="text" placeholder="DD/MM/YYYY" autocomplete="off" style="padding-right:40px;">
           </div>
         </div>
       </div>
@@ -4010,8 +4014,8 @@ function openTripModal_admin(tripId) {
     document.getElementById('trip-edit-id').value = t.id;
     document.getElementById('trip-name').value = t.name;
     document.getElementById('trip-destination').value = t.destination;
-    document.getElementById('trip-date-start').value = t.dateStart || t.date || '';
-    document.getElementById('trip-date-end').value = t.dateEnd || '';
+    document.getElementById('trip-date-start').value = isoToDMY(t.dateStart || t.date || '');
+    document.getElementById('trip-date-end').value = isoToDMY(t.dateEnd || '');
     document.getElementById('trip-price').value = t.price;
     document.getElementById('trip-seats').value = t.seats;
     document.getElementById('trip-category').value = t.category;
@@ -4041,7 +4045,7 @@ function openTripModal() { openTripModal_admin(null); }
 
 async function saveTrip() {
   const id = document.getElementById('trip-edit-id').value;
-  const MAX_IMAGE_CHARS = 45000; // Google Sheets cell limit guard
+  const MAX_IMAGE_CHARS = 38000; // match compressImageToBase64 target (35k + small margin)
 
   // ── ตรวจขนาด image ก่อนส่ง ──
   let imageVal = document.getElementById('trip-image').value.trim();
@@ -4066,8 +4070,8 @@ async function saveTrip() {
     id: id || undefined,
     name: document.getElementById('trip-name').value.trim(),
     destination: document.getElementById('trip-destination').value.trim(),
-    dateStart: document.getElementById('trip-date-start').value,
-    dateEnd: document.getElementById('trip-date-end').value,
+    dateStart: dmyToISO(document.getElementById('trip-date-start').value),
+    dateEnd: dmyToISO(document.getElementById('trip-date-end').value),
     price: parseFloat(document.getElementById('trip-price').value) || 0,
     seats: parseInt(document.getElementById('trip-seats').value) || 10,
     category: document.getElementById('trip-category').value,
@@ -4405,22 +4409,26 @@ const _tripImages = ['', '', ''];
 function handleTripImageUpload(idx, input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    _tripImages[idx] = e.target.result;
+  // Show loading indicator on slot
+  const slot = document.getElementById('trip-img-slot-' + idx);
+  const origContent = slot.innerHTML;
+  slot.innerHTML = '<div style="font-size:11px;color:var(--text-muted);text-align:center;">กำลังโหลด...</div>';
+  // Compress to keep under Google Sheets 45k char limit
+  compressImageToBase64(file, (compressed) => {
+    _tripImages[idx] = compressed;
+    slot.innerHTML = origContent;
     const preview = document.getElementById('trip-img-preview-' + idx);
     const removeBtn = document.getElementById('trip-img-remove-' + idx);
-    const slot = document.getElementById('trip-img-slot-' + idx);
-    preview.src = e.target.result;
+    preview.src = compressed;
     preview.style.display = 'block';
     removeBtn.style.display = 'block';
-    slot.querySelector('span:first-child').style.display = 'none';
-    slot.querySelector('span:nth-child(2)').style.display = 'none';
-    // Save as JSON array — keep only non-empty, preserve original order
+    const icons = slot.querySelectorAll('span');
+    icons.forEach(s => s.style.display = 'none');
+    // Save as JSON array
     const toSave = _tripImages.filter(x => x);
     document.getElementById('trip-image').value = toSave.length ? JSON.stringify(toSave) : '';
-  };
-  reader.readAsDataURL(file);
+    showToast('รูปที่ ' + (idx + 1) + ' พร้อมแล้ว ✓', 'success');
+  }, 800, 800, 0.72);
 }
 
 function removeTripImage(event, idx) {
@@ -4718,6 +4726,35 @@ function triggerImagePreviewDownload() {
 }
 
 // ============================================================
+// DATE HELPERS  (DD/MM/YYYY  ↔  YYYY-MM-DD)
+// ============================================================
+function isoToDMY(iso) {
+  if (!iso) return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : iso;
+}
+function dmyToISO(dmy) {
+  if (!dmy) return '';
+  const m = dmy.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? m[3] + '-' + m[2] + '-' + m[1] : dmy;
+}
+
+// Init flatpickr date pickers for admin trip modal
+function initTripDatePickers() {
+  const cfg = {
+    dateFormat: 'd/m/Y',
+    allowInput: true,
+    locale: { firstDayOfWeek: 1 },
+    disableMobile: true,
+  };
+  flatpickr('#trip-date-start', { ...cfg, onChange: function(_, dateStr) {
+    const end = document.getElementById('trip-date-end');
+    if (end && !end.value) { const fp = end._flatpickr; if(fp) fp.setDate(dateStr, false, 'd/m/Y'); }
+  }});
+  flatpickr('#trip-date-end', cfg);
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
@@ -4732,6 +4769,7 @@ function adjustHeroPadding() {
 window.addEventListener('DOMContentLoaded', () => {
   showView('home');
   loadTrips();
+  initTripDatePickers();
   // Adjust hero padding after chips render
   requestAnimationFrame(() => { adjustHeroPadding(); });
   window.addEventListener('resize', adjustHeroPadding);
