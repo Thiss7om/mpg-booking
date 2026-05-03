@@ -1057,7 +1057,10 @@
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Email Address *</label>
-          <input class="input-field" id="b-email" placeholder="john@email.com" type="email" required>
+          <input class="input-field" id="b-email" placeholder="john@email.com" type="email" autocomplete="email" oninput="validateEmailInput(this)">
+          <div id="b-email-hint" style="font-size:10px; margin-top:4px; color:var(--text-muted); display:flex; align-items:center; gap:4px; display:none;">
+            <span class="mi" style="font-size:12px;">error_outline</span><span id="b-email-hint-text"></span>
+          </div>
         </div>
         <div style="padding: 12px 0; border-top: 1px solid var(--border);">
           <label style="font-size:11px; color: var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:8px;"><span class="mi" style="font-size:12px; margin-right:3px;">description</span>For Tax Invoice (Optional)</label>
@@ -2385,6 +2388,31 @@ function goToStep(step) {
   if (step === 4) loadSeatsForBooking();
 }
 
+function validateEmailInput(input) {
+  const val = input.value.trim();
+  const hint = document.getElementById('b-email-hint');
+  const hintText = document.getElementById('b-email-hint-text');
+  const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!val) {
+    input.style.borderColor = '';
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  if (emailRegex.test(val)) {
+    input.style.borderColor = 'var(--green, #4caf50)';
+    if (hint) hint.style.display = 'none';
+  } else {
+    input.style.borderColor = 'var(--pastel-red-deep)';
+    if (hint) { hint.style.display = 'flex'; hint.style.color = 'var(--pastel-red-deep)'; }
+    if (hintText) {
+      if (!val.includes('@')) hintText.textContent = 'ต้องมี @ เช่น yourname@gmail.com';
+      else if (val.split('@').length > 2) hintText.textContent = 'มี @ มากกว่าหนึ่งตัว';
+      else if (!val.split('@')[1]?.includes('.')) hintText.textContent = 'domain ต้องมี . เช่น gmail.com';
+      else hintText.textContent = 'รูปแบบ Email ไม่ถูกต้อง เช่น yourname@gmail.com';
+    }
+  }
+}
+
 function validateStep(step) {
   if (step === 1) {
     const nn = document.getElementById('b-nickname').value.trim();
@@ -2393,7 +2421,8 @@ function validateStep(step) {
     const ph = document.getElementById('b-phone').value.trim();
     const em = document.getElementById('b-email').value.trim();
     if (!nn || !fn || !ln || !ph) { showToast('กรุณากรอกข้อมูลให้ครบ (ชื่อเล่น, ชื่อ, นามสกุล, เบอร์โทร)', 'error'); return false; }
-    if (!em) { showToast('กรุณากรอก Email Address', 'error'); return false; }
+    if (!em) { showToast('กรุณากรอก Email Address', 'error'); document.getElementById('b-email').focus(); return false; }
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(em)) { showToast('รูปแบบ Email ไม่ถูกต้อง เช่น yourname@gmail.com', 'error'); document.getElementById('b-email').focus(); return false; }
     state.currentBooking.customer = {
       nickname: nn,
       firstname: fn, lastname: ln, phone: ph,
