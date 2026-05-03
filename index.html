@@ -1938,7 +1938,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbysAnwN52z8Przojd6uS6amqbomnKLUyv3Onms4u8n-FrfRVl7MtNlkhTmG9-Slq5lkZQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyLMn40qIIp9LqBgAnI3NeJ2YyojFCjXlgmYl-QnVp0FJoTDjw96AbUUqedULtiWNDWPA/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2373,7 +2373,7 @@ async function openTripModal(tripId) {
       <span style="opacity:0.4;">·</span>
       <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">calendar_today</span>${formatDateRange(trip)}</span>
     </p>
-    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description available.'}</p>
+    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px; white-space: pre-line;">${trip.description || 'No description available.'}</p>
     <div class="flex justify-between items-center">
       <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
       <button class="btn-primary" style="padding:12px 28px;" ${isFull ? 'disabled' : ''} onclick="closeModal('modal-trip'); startBooking('${trip.id}')">
@@ -2582,34 +2582,186 @@ async function loadPaymentDisplay(payType, total, depositAmt) {
   if (!depositAmt) depositAmt = Math.ceil(total * 0.5);
 
   const displayAmount = (payType === 'deposit') ? depositAmt : total;
-  const label = (payType === 'deposit') ? `มัดจำ 50%` : 'Total Amount';
+  const label = (payType === 'deposit') ? 'ยอดมัดจำที่ต้องชำระ (50%)' : 'ยอดรวมที่ต้องชำระ';
 
-  let html = `<div style="text-align:center; margin-bottom:20px;">
-    <div style="font-size:12px; color: var(--text-muted); margin-bottom:4px;">${label}</div>
-    <div style="font-family: 'Mitr', sans-serif; font-size:48px; color: var(--accent); font-weight:700;">฿${displayAmount.toLocaleString()}</div>
-    <div style="font-size:12px; color: var(--text-muted);">${state.currentBooking.passengers} ผู้โดยสาร × ฿${trip.price.toLocaleString()}${payType === 'deposit' ? ` (มัดจำ 50% = ฿${displayAmount.toLocaleString()})` : ''}</div>
+  // ── Determine PromptPay display id ──
+  const isPromptPay = s.bankName === 'PromptPay';
+  const ppType = s.promptPayType || '';
+  const ppId   = s.promptPayId   || '';
+  const ppLabel = ppType === 'citizen' ? '🪪 เลขบัตรประชาชน' : ppType === 'phone' ? '📱 เบอร์โทรศัพท์' : '⚡ พร้อมเพย์';
+
+  let html = `
+  <!-- ── Amount Hero ── -->
+  <div style="
+    text-align:center; padding:20px 16px 16px;
+    background:linear-gradient(135deg,rgba(255,224,138,0.18),rgba(255,179,179,0.12));
+    border:1.5px solid rgba(255,208,77,0.35); border-radius:16px; margin-bottom:16px;">
+    <div style="font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">${label}</div>
+    <div style="font-family:'Mitr',sans-serif; font-size:52px; color:var(--accent); font-weight:700; line-height:1;">฿${displayAmount.toLocaleString()}</div>
+    <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">
+      ${state.currentBooking.passengers} ผู้โดยสาร × ฿${trip.price.toLocaleString()}
+      ${payType === 'deposit' ? `<br><span style="color:var(--text-muted); font-size:11px;">มัดจำ 50% — ยอดที่เหลือ ฿${(total - depositAmt).toLocaleString()} ชำระภายหลัง</span>` : ''}
+    </div>
+  </div>
+
+  <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; font-weight:600; letter-spacing:0.04em;">
+    <span class="mi" style="font-size:14px; vertical-align:middle; margin-right:4px; color:var(--pastel-red-deep);">account_balance</span>ช่องทางการชำระเงิน
   </div>`;
 
+  // ── QR Code Section ──
   if (s.qrImage) {
-    html += `<div class="payment-card text-center mb-4">
-      <div style="font-size:13px; font-weight:600; margin-bottom:12px;">📱 QR Code Payment</div>
-      <img src="${s.qrImage}" style="max-width:180px; border-radius:8px; margin:0 auto; display:block;">
-    </div>`;
-  }
-  if (s.bankAccountNumber) {
-    html += `<div class="payment-card mb-4">
-      <div style="font-size:13px; font-weight:600; margin-bottom:12px;">🏦 Bank Transfer</div>
-      <div style="display:grid; gap:6px; font-size:13px; color: var(--text-secondary);">
-        <div><span style="color: var(--text-muted);">Bank:</span> ${s.bankName}</div>
-        <div><span style="color: var(--text-muted);">Account:</span> ${s.bankAccountName}</div>
-        <div class="font-mono" style="font-size:16px; color: var(--accent);">${s.bankAccountNumber}</div>
+    html += `
+    <div class="payment-card mb-4" style="text-align:center; padding:20px;">
+      <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px;">
+        <span style="font-size:20px;">📱</span>
+        <span style="font-size:14px; font-weight:700; font-family:'Mitr',sans-serif; color:var(--text-primary);">สแกน QR ชำระเงิน</span>
       </div>
+      <div style="
+        background:white; border-radius:16px; padding:12px;
+        display:inline-block; border:2px solid rgba(255,179,71,0.3);
+        box-shadow:0 4px 18px rgba(255,179,71,0.15); margin-bottom:12px;">
+        <img src="${s.qrImage}" style="width:200px; height:200px; object-fit:contain; border-radius:8px; display:block;">
+      </div>
+      ${s.companyName ? `<div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:2px;">${s.companyName}</div>` : ''}
+      ${isPromptPay && ppId ? `
+        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">${ppLabel} : <span class="font-mono" style="color:var(--accent); font-weight:700;">${ppId}</span></div>
+      ` : (s.bankAccountName ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">ชื่อบัญชี : ${s.bankAccountName}</div>` : '')}
+      <div style="font-size:11px; color:var(--text-muted);">สแกน QR ด้วย Mobile Banking หรือ แอปธนาคารใด ก็ได้</div>
     </div>`;
   }
-  if (!s.qrImage && !s.bankAccountNumber) {
-    html += `<div class="payment-card text-center" style="color: var(--text-muted);">💳 Payment details will appear here once configured by admin.</div>`;
+
+  // ── Bank / PromptPay Account Section ──
+  const hasAccountInfo = isPromptPay
+    ? (ppId || s.promptPayAccountName || s.bankAccountName)
+    : (s.bankAccountNumber || s.bankAccountName);
+
+  if (hasAccountInfo) {
+    if (isPromptPay) {
+      // ── PromptPay Card ──
+      html += `
+      <div class="payment-card mb-4" style="padding:18px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+          <span style="font-size:20px;">⚡</span>
+          <span style="font-size:14px; font-weight:700; font-family:'Mitr',sans-serif; color:var(--text-primary);">พร้อมเพย์ (PromptPay)</span>
+        </div>
+        <div style="display:grid; gap:10px;">
+          ${ppType ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(168,212,245,0.15); border-radius:10px; border:1px solid rgba(123,184,232,0.3);">
+            <span style="font-size:12px; color:var(--text-muted);">ประเภทพร้อมเพย์</span>
+            <span style="font-size:13px; font-weight:600; color:var(--blue);">${ppLabel}</span>
+          </div>` : ''}
+          ${ppId ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,224,138,0.15); border-radius:10px; border:1px solid rgba(255,208,77,0.35);">
+            <div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:2px;">หมายเลขพร้อมเพย์</div>
+              <div class="font-mono" style="font-size:18px; font-weight:700; color:var(--accent); letter-spacing:0.06em;">${ppId}</div>
+            </div>
+            <button onclick="copyToClipboard('${ppId}','promptpay-copy-btn')" id="promptpay-copy-btn" style="
+              background:rgba(255,179,71,0.18); border:1.5px solid rgba(255,179,71,0.4);
+              border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px;
+              font-family:'Mitr',sans-serif; color:#a06c00; white-space:nowrap;
+              transition:all 0.2s; display:flex; align-items:center; gap:4px;">
+              <span class="mi" style="font-size:14px;">content_copy</span>คัดลอก
+            </button>
+          </div>` : ''}
+          ${(s.bankAccountName || s.promptPayAccountName) ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(181,240,200,0.12); border-radius:10px; border:1px solid rgba(82,201,122,0.25);">
+            <span style="font-size:12px; color:var(--text-muted);">ชื่อบัญชี</span>
+            <span style="font-size:13px; font-weight:600; color:var(--text-primary);">${s.promptPayAccountName || s.bankAccountName}</span>
+          </div>` : ''}
+        </div>
+      </div>`;
+    } else {
+      // ── Bank Transfer Card ──
+      const bankColor = {
+        'กสิกรไทย':  '#00a550', 'Kasikorn': '#00a550',
+        'กรุงเทพ':   '#1e4d9b', 'Bangkok':  '#1e4d9b',
+        'ไทยพาณิชย์':'#4e2a84', 'SCB':      '#4e2a84',
+        'กรุงไทย':   '#1584c8', 'Krungthai':'#1584c8',
+        'ทหารไทย':   '#f90404', 'TMB':      '#f90404',
+      };
+      const bcolor = Object.entries(bankColor).find(([k]) => (s.bankName||'').includes(k))?.[1] || 'var(--pastel-blue-deep)';
+
+      html += `
+      <div class="payment-card mb-4" style="padding:18px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+          <span style="font-size:20px;">🏦</span>
+          <span style="font-size:14px; font-weight:700; font-family:'Mitr',sans-serif; color:var(--text-primary);">โอนเงินผ่านธนาคาร</span>
+        </div>
+        <div style="display:grid; gap:10px;">
+          ${s.bankName ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(168,212,245,0.12); border-radius:10px; border:1px solid rgba(123,184,232,0.3);">
+            <span style="font-size:12px; color:var(--text-muted);">ธนาคาร</span>
+            <span style="font-size:13px; font-weight:700; color:${bcolor};">${s.bankName}</span>
+          </div>` : ''}
+          ${s.bankAccountName ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(181,240,200,0.12); border-radius:10px; border:1px solid rgba(82,201,122,0.25);">
+            <span style="font-size:12px; color:var(--text-muted);">ชื่อบัญชี</span>
+            <span style="font-size:13px; font-weight:600; color:var(--text-primary);">${s.bankAccountName}</span>
+          </div>` : ''}
+          ${s.bankAccountNumber ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,224,138,0.15); border-radius:10px; border:1px solid rgba(255,208,77,0.35);">
+            <div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:2px;">เลขที่บัญชี</div>
+              <div class="font-mono" style="font-size:20px; font-weight:700; color:var(--accent); letter-spacing:0.1em;">${s.bankAccountNumber}</div>
+            </div>
+            <button onclick="copyToClipboard('${s.bankAccountNumber}','bank-copy-btn')" id="bank-copy-btn" style="
+              background:rgba(255,179,71,0.18); border:1.5px solid rgba(255,179,71,0.4);
+              border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px;
+              font-family:'Mitr',sans-serif; color:#a06c00; white-space:nowrap;
+              transition:all 0.2s; display:flex; align-items:center; gap:4px;">
+              <span class="mi" style="font-size:14px;">content_copy</span>คัดลอก
+            </button>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }
   }
+
+  if (!s.qrImage && !hasAccountInfo) {
+    html += `
+    <div class="payment-card text-center" style="color:var(--text-muted); padding:28px 20px;">
+      <span style="font-size:32px; display:block; margin-bottom:10px;">💳</span>
+      <div style="font-size:13px; font-weight:600; margin-bottom:4px;">ยังไม่มีข้อมูลการชำระเงิน</div>
+      <div style="font-size:12px;">รายละเอียดจะแสดงเมื่อ Admin กำหนดข้อมูลบัญชีแล้ว</div>
+    </div>`;
+  }
+
+  // ── Reminder note ──
+  html += `
+  <div style="
+    margin-top:14px; padding:12px 14px; border-radius:12px;
+    background:rgba(168,212,245,0.15); border:1px solid rgba(123,184,232,0.3);
+    font-size:12px; color:var(--text-secondary); line-height:1.6;">
+    <span class="mi" style="font-size:14px; vertical-align:middle; margin-right:4px; color:var(--blue);">info</span>
+    โอนเงิน <strong>฿${displayAmount.toLocaleString()}</strong> แล้วกด "ชำระแล้ว" เพื่ออัปโหลดสลิปในขั้นตอนถัดไป
+  </div>`;
+
   document.getElementById('payment-methods-display').innerHTML = html;
+}
+
+function copyToClipboard(text, btnId) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="mi" style="font-size:14px;">check_circle</span>คัดลอกแล้ว!';
+      btn.style.background = 'rgba(82,201,122,0.2)';
+      btn.style.borderColor = 'rgba(82,201,122,0.5)';
+      btn.style.color = '#1a7a40';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+    }
+    showToast('คัดลอกสำเร็จ!', 'success');
+  }).catch(() => {
+    // Fallback
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('คัดลอกสำเร็จ!', 'success');
+  });
 }
 
 // ── Image compressor: resize + JPEG-compress to keep base64 < 50k chars ──
@@ -4243,7 +4395,7 @@ function openUserTripModal(tripId) {
       <span style="opacity:0.4;">·</span>
       <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">calendar_today</span>${formatDateRange(trip)}</span>
     </p>
-    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description.'}</p>
+    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px; white-space: pre-line;">${trip.description || 'No description.'}</p>
     <div class="flex justify-between items-center">
       <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
       <button class="btn-primary" style="padding:12px 28px;" ${isFull ? 'disabled' : ''} onclick="closeModal('modal-trip'); startBooking('${trip.id}')">
@@ -4864,18 +5016,13 @@ function _drawSeatsCanvas(vansData, tripInfo, tripObj) {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Roof gradient bar
+    // Roof gradient bar (flat rounded-top strip — no oversized arc)
     const roofGrad = ctx.createLinearGradient(ox, oy, ox + vw, oy);
-    roofGrad.addColorStop(0,    '#ffb3b3');
-    roofGrad.addColorStop(0.5,  '#ffe08a');
-    roofGrad.addColorStop(1,    '#a8d4f5');
-    // Roof shape: top half of rounded rect
+    roofGrad.addColorStop(0,   '#ffb3b3');
+    roofGrad.addColorStop(0.5, '#ffe08a');
+    roofGrad.addColorStop(1,   '#a8d4f5');
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(ox + vw / 2, oy + ROOF_H * 1.5, vw * 0.6, Math.PI, 0);
-    ctx.lineTo(ox + vw, oy + ROOF_H);
-    ctx.lineTo(ox, oy + ROOF_H);
-    ctx.closePath();
+    rr(ox, oy, vw, ROOF_H, 18); // same rounded corners as the van card
     ctx.fillStyle = roofGrad;
     ctx.fill();
     ctx.restore();
