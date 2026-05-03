@@ -247,28 +247,23 @@
   /* ── Navbar ── */
   .navbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(253,248,245,0.92);
+    background: rgba(253,248,245,0.95);
     backdrop-filter: blur(20px);
     border-bottom: 1.5px solid rgba(255,179,179,0.25);
-    padding: 0 24px;
-    height: 64px;
-    display: flex; align-items: center; justify-content: space-between;
+    padding: 0;
+    display: flex; flex-direction: column; justify-content: flex-start;
     box-shadow: 0 2px 16px rgba(255,143,163,0.1);
+  }
+  /* Admin navbar stays as single-row */
+  #navbar-admin {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 24px;
   }
   @media (max-width: 768px) {
     #navbar-admin { padding-left: 66px; }
-    #navbar-search-bar {
-      order: 3;
-      width: 100%;
-      max-width: 100%;
-      padding-bottom: 4px;
-    }
-    #navbar-user {
-      flex-wrap: wrap;
-      height: auto !important;
-      min-height: 64px;
-      padding: 8px 14px 10px !important;
-    }
   }
 
   /* ── Hero ── */
@@ -642,6 +637,10 @@
     .admin-content { margin-left: 0; padding: 80px 16px 32px; }
     .trip-card { width: 240px; }
     .modal-box { max-height: 95vh; }
+    #navbar-user { padding: 0 !important; }
+    #navbar-search-bar { padding: 0 12px 10px !important; }
+    .cat-chip { padding: 5px 10px 5px 8px; font-size: 11px; }
+    .cat-chip .mi { font-size: 14px; }
   }
 
   /* Mobile sidebar overlay backdrop */
@@ -740,6 +739,46 @@
     background: linear-gradient(135deg, rgba(255,179,179,0.25), rgba(168,212,245,0.2));
   }
 
+  /* ── Category Chips ── */
+  .cat-chips {
+    display: flex; gap: 8px; align-items: center;
+    overflow-x: auto; flex-wrap: nowrap;
+    scrollbar-width: none; -ms-overflow-style: none;
+    padding: 2px 0;
+  }
+  .cat-chips::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 13px 6px 10px;
+    border-radius: 50px;
+    border: 1.5px solid var(--border);
+    background: white;
+    color: var(--text-secondary);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+    box-shadow: 0 1px 4px rgba(180,120,140,0.07);
+    flex-shrink: 0;
+  }
+  .cat-chip:hover {
+    border-color: var(--pastel-red-deep);
+    color: var(--text-primary);
+    background: rgba(255,179,179,0.08);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(255,143,163,0.15);
+  }
+  .cat-chip.active {
+    background: linear-gradient(135deg, var(--pastel-red-deep), var(--accent));
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255,143,163,0.35);
+    transform: translateY(-1px);
+  }
+  .cat-chip .mi { font-size: 15px; }
+
   /* ── Tab bar ── */
   .tab-bar {
     display: flex; gap: 4px; overflow-x: auto;
@@ -836,34 +875,57 @@
 <!-- ============================================
      NAVBAR
 ============================================ -->
-<nav class="navbar" id="navbar-user" style="height:auto; min-height:64px; flex-wrap:wrap; gap:8px; padding: 10px 20px;">
-  <div class="flex items-center gap-8" style="flex-shrink:0;">
+<nav class="navbar" id="navbar-user" style="height:auto; flex-wrap:wrap; gap:0; padding:0; align-items:stretch;">
+  <!-- Top row: logo + admin button -->
+  <div style="display:flex; align-items:center; justify-content:space-between; width:100%; padding:0 20px; height:56px; flex-shrink:0;">
     <div class="font-display text-2xl" style="cursor:pointer" onclick="showView('home')">
       <span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span><span style="font-size:14px; color: var(--text-secondary); font-weight:400; margin-left:6px; letter-spacing:0.05em;">BOOKING</span>
     </div>
-  </div>
-  <!-- Search + Category inline in navbar -->
-  <div id="navbar-search-bar" style="display:flex; gap:8px; align-items:center; flex:1; min-width:0; max-width:600px;">
-    <div style="position:relative; flex:1; min-width:0;">
-      <span class="mi" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:17px; color:var(--text-muted); pointer-events:none;">search</span>
-      <input class="input-field" id="searchInput" style="padding-left:34px; height:38px; font-size:13px;" placeholder="Search Trips..." oninput="filterTrips()">
+    <div class="flex items-center gap-3">
+      <button class="btn-outline" style="font-size:16px; padding:7px 10px; line-height:1;" onclick="showView('admin-login')" title="Admin Portal"><span class="mi" style="font-size:18px;">settings</span></button>
     </div>
-    <select class="input-field" id="categoryFilter" style="width:160px; height:38px; font-size:13px; flex-shrink:0;" onchange="filterTrips()">
-      <option value="">All Categories</option>
-      <option value="beach">🏖 Beach</option>
-      <option value="mountain">🏔 Mountain</option>
-      <option value="city">🏙 City Tour</option>
-      <option value="temple">🛕 Cultural</option>
-      <option value="waterfall">💧 Waterfall</option>
-      <option value="island">🏝 Island</option>
-      <option value="forest">🌿 Forest / Nature</option>
-      <option value="festival">🎉 Festival</option>
-      <option value="adventure">🧗 Adventure</option>
-      <option value="other">✦ Other</option>
-    </select>
   </div>
-  <div class="flex items-center gap-3" style="flex-shrink:0;">
-    <button class="btn-outline" style="font-size:16px; padding:7px 10px; line-height:1;" onclick="showView('admin-login')" title="Admin Portal"><span class="mi" style="font-size:18px;">settings</span></button>
+  <!-- Search + Category chips row -->
+  <div id="navbar-search-bar" style="width:100%; padding:0 16px 10px; display:flex; flex-direction:column; gap:8px;">
+    <div style="position:relative;">
+      <span class="mi" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:17px; color:var(--text-muted); pointer-events:none;">search</span>
+      <input class="input-field" id="searchInput" style="padding-left:36px; height:38px; font-size:13px;" placeholder="ค้นหาทริป..." oninput="filterTrips()">
+    </div>
+    <div class="cat-chips" id="category-chips">
+      <button class="cat-chip active" data-cat="" onclick="selectCatChip(this,'')">
+        <span class="mi">apps</span>ทั้งหมด
+      </button>
+      <button class="cat-chip" data-cat="beach" onclick="selectCatChip(this,'beach')">
+        <span class="mi">beach_access</span>Beach
+      </button>
+      <button class="cat-chip" data-cat="mountain" onclick="selectCatChip(this,'mountain')">
+        <span class="mi">landscape</span>Mountain
+      </button>
+      <button class="cat-chip" data-cat="city" onclick="selectCatChip(this,'city')">
+        <span class="mi">location_city</span>City Tour
+      </button>
+      <button class="cat-chip" data-cat="temple" onclick="selectCatChip(this,'temple')">
+        <span class="mi">temple_buddhist</span>Cultural
+      </button>
+      <button class="cat-chip" data-cat="waterfall" onclick="selectCatChip(this,'waterfall')">
+        <span class="mi">water</span>Waterfall
+      </button>
+      <button class="cat-chip" data-cat="island" onclick="selectCatChip(this,'island')">
+        <span class="mi">travel_explore</span>Island
+      </button>
+      <button class="cat-chip" data-cat="forest" onclick="selectCatChip(this,'forest')">
+        <span class="mi">forest</span>Forest
+      </button>
+      <button class="cat-chip" data-cat="festival" onclick="selectCatChip(this,'festival')">
+        <span class="mi">celebration</span>Festival
+      </button>
+      <button class="cat-chip" data-cat="adventure" onclick="selectCatChip(this,'adventure')">
+        <span class="mi">hiking</span>Adventure
+      </button>
+      <button class="cat-chip" data-cat="other" onclick="selectCatChip(this,'other')">
+        <span class="mi">interests</span>Other
+      </button>
+    </div>
   </div>
 </nav>
 
@@ -885,7 +947,7 @@
 ============================================ -->
 <div id="view-home" class="fade-in">
   <!-- Hero -->
-  <div class="hero-bg" style="padding-top: 80px;">
+  <div class="hero-bg" id="hero-section" style="padding-top: 130px;">
     <div class="hero-grid"></div>
     <div style="position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40 24px;">
       <div class="badge badge-gold mb-4">✦ Mom Please, Let me go ✦</div>
@@ -1522,16 +1584,16 @@
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Category</label>
         <select class="input-field" id="trip-category">
-          <option value="beach">🏖 Beach</option>
-          <option value="mountain">🏔 Mountain</option>
-          <option value="city">🏙 City Tour</option>
-          <option value="temple">🛕 Cultural</option>
-          <option value="waterfall">💧 Waterfall</option>
-          <option value="island">🏝 Island</option>
-          <option value="forest">🌿 Forest / Nature</option>
-          <option value="festival">🎉 Festival</option>
-          <option value="adventure">🧗 Adventure</option>
-          <option value="other">✦ Other</option>
+          <option value="beach">Beach</option>
+          <option value="mountain">Mountain</option>
+          <option value="city">City Tour</option>
+          <option value="temple">Cultural</option>
+          <option value="waterfall">Waterfall</option>
+          <option value="island">Island</option>
+          <option value="forest">Forest / Nature</option>
+          <option value="festival">Festival</option>
+          <option value="adventure">Adventure</option>
+          <option value="other">Other</option>
         </select>
       </div>
       <div>
@@ -1998,7 +2060,7 @@ function showView(viewName) {
   // Switch navbar based on view
   const adminViews = ['admin-login', 'admin'];
   switchNavbar(adminViews.includes(viewName) ? 'admin' : 'user');
-  // Show/hide search bar — only on home view
+  // Show search bar + chips only on home
   const searchBar = document.getElementById('navbar-search-bar');
   if (searchBar) searchBar.style.display = (viewName === 'home') ? 'flex' : 'none';
   window.scrollTo(0,0);
@@ -2022,9 +2084,19 @@ async function loadTrips() {
   }
 }
 
+// Track selected category chip
+let _selectedCat = '';
+
+function selectCatChip(el, cat) {
+  _selectedCat = cat;
+  document.querySelectorAll('#category-chips .cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterTrips();
+}
+
 function filterTrips() {
-  const query = document.getElementById('searchInput').value.toLowerCase();
-  const cat = document.getElementById('categoryFilter').value;
+  const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const cat = _selectedCat;
   state.filteredTrips = state.trips.filter(t => {
     const matchQ = !query || t.name.toLowerCase().includes(query) || t.destination.toLowerCase().includes(query);
     const matchCat = !cat || t.category === cat;
@@ -2070,7 +2142,7 @@ function renderTrips() {
   // Featured: only trips departing this month
   const thisMonthTrips = active.filter(t => isThisMonth(t));
   if (thisMonthTrips.length === 0) {
-    featured.innerHTML = '<div style="color: var(--text-muted); font-size:13px; padding:20px; display:flex; align-items:center; gap:8px;">📅 ไม่มีทริปออกเดินทางในเดือนนี้</div>';
+    featured.innerHTML = '<div style="color: var(--text-muted); font-size:13px; padding:20px; display:flex; align-items:center; gap:8px;"><span class="mi" style="font-size:16px;">calendar_today</span> ไม่มีทริปออกเดินทางในเดือนนี้</div>';
   } else {
     featured.innerHTML = thisMonthTrips.map(t => tripCardHTML(t, true)).join('');
   }
@@ -2094,8 +2166,10 @@ function getTripFirstImage(trip) {
 function tripCardHTML(trip, small) {
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
-  const catEmoji = { beach:'🏖', mountain:'🏔', city:'🏙', temple:'🛕', waterfall:'💧', island:'🏝', forest:'🌿', festival:'🎉', adventure:'🧗', other:'✦' }[trip.category] || '✦';
+  const CAT_ICON = { beach:'beach_access', mountain:'landscape', city:'location_city', temple:'temple_buddhist', waterfall:'water', island:'travel_explore', forest:'forest', festival:'celebration', adventure:'hiking', other:'interests' };
+  const CAT_NAME = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall', island:'Island', forest:'Forest', festival:'Festival', adventure:'Adventure', other:'Other' };
+  const catIcon = CAT_ICON[trip.category] || 'interests';
+  const catName = CAT_NAME[trip.category] || trip.category;
   const firstImg = getTripFirstImage(trip);
   const hasImg = !!firstImg;
 
@@ -2103,16 +2177,16 @@ function tripCardHTML(trip, small) {
     <div class="trip-card-img${hasImg ? '' : ' no-image'}" style="background: linear-gradient(135deg, ${getGradient(trip.category)});">
       ${hasImg
         ? `<img src="${firstImg}" alt="${trip.name}" onerror="this.remove(); this.parentElement.classList.add('no-image');">`
-        : `<span style="font-size:52px; opacity:0.6; z-index:1; position:relative;">${catEmoji}</span>`}
+        : `<span class="mi" style="font-size:58px; opacity:0.55; z-index:1; position:relative; color:white;">${catIcon}</span>`}
     </div>
     <div style="padding:14px;">
       <div class="flex justify-between items-start mb-1">
-        <span class="badge badge-gray">${catLabel}</span>
+        <span class="badge badge-gray" style="display:inline-flex;align-items:center;gap:4px;"><span class="mi" style="font-size:13px;">${catIcon}</span>${catName}</span>
         ${isFull ? '<span class="badge badge-red">FULL</span>' : '<span class="badge badge-green">' + avail + ' left</span>'}
       </div>
       <div style="font-weight:600; font-size:14px; margin:8px 0 4px; color: var(--text-primary);">${trip.name}</div>
-      <div style="font-size:12px; color: var(--text-muted); margin-bottom:8px;">📍 ${trip.destination}</div>
-      <div style="font-size:11px; color: var(--text-secondary); margin-bottom:12px;">📅 ${formatDateRange(trip)}</div>
+      <div style="font-size:12px; color: var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:4px;"><span class="mi" style="font-size:13px;">location_on</span>${trip.destination}</div>
+      <div style="font-size:11px; color: var(--text-secondary); margin-bottom:12px; display:flex; align-items:center; gap:4px;"><span class="mi" style="font-size:13px;">calendar_today</span>${formatDateRange(trip)}</div>
       <div class="flex justify-between items-center">
         <span style="font-family: 'Bebas Neue'; font-size:22px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
         <button class="btn-primary" style="padding:6px 14px; font-size:12px;" ${isFull ? 'disabled' : ''} onclick="event.stopPropagation(); startBooking('${trip.id}')">
@@ -2166,7 +2240,10 @@ async function openTripModal(tripId) {
   if (!trip) return;
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
+  const CAT_ICON = { beach:'beach_access', mountain:'landscape', city:'location_city', temple:'temple_buddhist', waterfall:'water', island:'travel_explore', forest:'forest', festival:'celebration', adventure:'hiking', other:'interests' };
+  const CAT_NAME = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall', island:'Island', forest:'Forest', festival:'Festival', adventure:'Adventure', other:'Other' };
+  const catIcon = CAT_ICON[trip.category] || 'interests';
+  const catName = CAT_NAME[trip.category] || trip.category;
 
   const firstImg1 = getTripFirstImage(trip);
   const imgEl = document.getElementById('trip-img-modal');
@@ -2175,15 +2252,20 @@ async function openTripModal(tripId) {
     imgEl.innerHTML = `<img src="${firstImg1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">
        <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.55); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px; z-index:2;">✕</button>`;
   } else {
-    imgEl.innerHTML = `<button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>`;
+    imgEl.innerHTML = `<span class="mi" style="font-size:64px; opacity:0.5; color:white;">${catIcon}</span>
+      <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>`;
   }
   document.getElementById('trip-modal-content').innerHTML = `
     <div class="flex gap-2 flex-wrap mb-3">
-      <span class="badge badge-gray">${catLabel}</span>
+      <span class="badge badge-gray" style="display:inline-flex;align-items:center;gap:4px;"><span class="mi" style="font-size:13px;">${catIcon}</span>${catName}</span>
       ${isFull ? '<span class="badge badge-red">FULL — No seats available</span>' : '<span class="badge badge-green">' + avail + ' seats available</span>'}
     </div>
     <h2 style="font-family: Bebas Neue; font-size:30px; margin-bottom:4px;">${trip.name}</h2>
-    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px;">📍 ${trip.destination} &nbsp;·&nbsp; 📅 ${formatDateRange(trip)}</p>
+    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">location_on</span>${trip.destination}</span>
+      <span style="opacity:0.4;">·</span>
+      <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">calendar_today</span>${formatDateRange(trip)}</span>
+    </p>
     <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description available.'}</p>
     <div class="flex justify-between items-center">
       <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
@@ -2221,7 +2303,11 @@ async function startBooking(tripId) {
       <div style="width:52px; height:52px; background: linear-gradient(135deg, ${getGradient(trip.category)}); border-radius:8px; flex-shrink:0; overflow:hidden;">${bookingThumbInner}</div>
       <div style="flex:1;">
         <div style="font-weight:600; font-size:14px;">${trip.name}</div>
-        <div style="font-size:12px; color: var(--text-muted);">📍 ${trip.destination} · 📅 ${formatDateRange(trip)}</div>
+        <div style="font-size:12px; color: var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="display:inline-flex; align-items:center; gap:3px;"><span class="mi" style="font-size:13px;">location_on</span>${trip.destination}</span>
+          <span style="opacity:0.4;">·</span>
+          <span style="display:inline-flex; align-items:center; gap:3px;"><span class="mi" style="font-size:13px;">calendar_today</span>${formatDateRange(trip)}</span>
+        </div>
       </div>
       <div style="font-family: Bebas Neue; font-size:24px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</div>
     </div>
@@ -3546,7 +3632,7 @@ async function loadAdminTrips() {
     <tr>
       <td>
         <div style="font-weight:500; font-size:13px;">${t.name}</div>
-        <div style="font-size:11px; color: var(--text-muted);">📍 ${t.destination}</div>
+        <div style="font-size:11px; color: var(--text-muted); display:flex; align-items:center; gap:3px;"><span class="mi" style="font-size:12px;">location_on</span>${t.destination}</div>
       </td>
       <td style="font-size:12px;">${formatDateRange(t)}</td>
       <td style="color: var(--accent); font-weight:600;">฿${Number(t.price).toLocaleString()}</td>
@@ -3874,8 +3960,10 @@ function openUserTripModal(tripId) {
   if (!trip) return;
   const isFull = trip.status === 'full' || trip.booked >= trip.seats;
   const avail = Math.max(0, trip.seats - trip.booked);
-  const catLabel = { beach:'🏖 Beach', mountain:'🏔 Mountain', city:'🏙 City Tour', temple:'🛕 Cultural', waterfall:'💧 Waterfall', island:'🏝 Island', forest:'🌿 Forest', festival:'🎉 Festival', adventure:'🧗 Adventure', other:'✦ Other' }[trip.category] || trip.category;
-  const catEmoji = { beach:'🏖', mountain:'🏔', city:'🏙', temple:'🛕', waterfall:'💧', island:'🏝', forest:'🌿', festival:'🎉', adventure:'🧗', other:'✦' }[trip.category] || '✦';
+  const CAT_ICON2 = { beach:'beach_access', mountain:'landscape', city:'location_city', temple:'temple_buddhist', waterfall:'water', island:'travel_explore', forest:'forest', festival:'celebration', adventure:'hiking', other:'interests' };
+  const CAT_NAME2 = { beach:'Beach', mountain:'Mountain', city:'City Tour', temple:'Cultural', waterfall:'Waterfall', island:'Island', forest:'Forest', festival:'Festival', adventure:'Adventure', other:'Other' };
+  const catIcon2 = CAT_ICON2[trip.category] || 'interests';
+  const catName2 = CAT_NAME2[trip.category] || trip.category;
 
   const modalFirstImg = getTripFirstImage(trip);
   const modalImgEl = document.getElementById('trip-img-modal');
@@ -3887,17 +3975,21 @@ function openUserTripModal(tripId) {
     `;
   } else {
     modalImgEl.innerHTML = `
-      <span style="font-size:64px; opacity:0.5;">${catEmoji}</span>
+      <span class="mi" style="font-size:64px; opacity:0.5; color:white;">${catIcon2}</span>
       <button onclick="closeModal('modal-trip')" style="position:absolute; top:16px; right:16px; background:rgba(0,0,0,0.5); color:white; border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:14px;">✕</button>
     `;
   }
   document.getElementById('trip-modal-content').innerHTML = `
     <div class="flex gap-2 flex-wrap mb-3">
-      <span class="badge badge-gray">${catLabel}</span>
+      <span class="badge badge-gray" style="display:inline-flex;align-items:center;gap:4px;"><span class="mi" style="font-size:13px;">${catIcon2}</span>${catName2}</span>
       ${isFull ? '<span class="badge badge-red">FULL</span>' : '<span class="badge badge-green">' + avail + ' left</span>'}
     </div>
     <h2 style="font-family: Bebas Neue; font-size:30px; margin-bottom:4px;">${trip.name}</h2>
-    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px;">📍 ${trip.destination} · 📅 ${formatDateRange(trip)}</p>
+    <p style="color: var(--text-muted); font-size:13px; margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">location_on</span>${trip.destination}</span>
+      <span style="opacity:0.4;">·</span>
+      <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">calendar_today</span>${formatDateRange(trip)}</span>
+    </p>
     <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description.'}</p>
     <div class="flex justify-between items-center">
       <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
@@ -4628,9 +4720,21 @@ function triggerImagePreviewDownload() {
 // ============================================================
 // INIT
 // ============================================================
+
+function adjustHeroPadding() {
+  const navbar = document.getElementById('navbar-user');
+  const hero   = document.getElementById('hero-section');
+  if (navbar && hero && navbar.style.display !== 'none') {
+    hero.style.paddingTop = navbar.offsetHeight + 'px';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   showView('home');
   loadTrips();
+  // Adjust hero padding after chips render
+  requestAnimationFrame(() => { adjustHeroPadding(); });
+  window.addEventListener('resize', adjustHeroPadding);
 
   // Init step dots
   document.getElementById('step-1-dot').className = 'step-dot active';
