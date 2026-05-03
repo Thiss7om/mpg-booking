@@ -1442,21 +1442,103 @@
         </div>
         <!-- Bank Transfer -->
         <div class="card p-6">
-          <h3 style="font-size:14px; font-weight:600; margin-bottom:16px; color: var(--text-primary);">Bank Transfer</h3>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <h3 style="font-size:14px; font-weight:600; color: var(--text-primary);">Bank Transfer</h3>
+            <div id="bank-last-updated" style="font-size:10px; color:var(--text-muted); display:none;">
+              <span class="mi" style="font-size:12px; vertical-align:middle;">update</span>
+              <span id="bank-last-updated-text"></span>
+            </div>
+          </div>
           <div style="display:grid; gap:10px;">
+            <!-- Bank Name Dropdown -->
             <div>
               <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Bank Name</label>
-              <input class="input-field" id="bank-name" placeholder="Kasikorn Bank">
+              <select class="input-field" id="bank-name" onchange="onBankNameChange(this.value)" style="cursor:pointer;">
+                <option value="">-- เลือกธนาคาร --</option>
+                <option value="PromptPay">⚡ PromptPay (พร้อมเพย์)</option>
+                <option value="กสิกรไทย (Kasikorn Bank)">🟢 กสิกรไทย (Kasikorn Bank)</option>
+                <option value="ไทยพาณิชย์ (SCB)">💜 ไทยพาณิชย์ (SCB)</option>
+                <option value="กรุงเทพ (Bangkok Bank)">💙 กรุงเทพ (Bangkok Bank)</option>
+                <option value="กรุงไทย (Krungthai Bank)">🔵 กรุงไทย (Krungthai Bank)</option>
+                <option value="กรุงศรีอยุธยา (Krungsri)">🟡 กรุงศรีอยุธยา (Krungsri)</option>
+                <option value="ทหารไทยธนชาต (TTB)">🩵 ทหารไทยธนชาต (TTB)</option>
+                <option value="ซีไอเอ็มบีไทย (CIMB Thai)">🔴 ซีไอเอ็มบีไทย (CIMB Thai)</option>
+                <option value="ยูโอบี (UOB)">⬛ ยูโอบี (UOB)</option>
+                <option value="ออมสิน (GSB)">🟣 ออมสิน (GSB)</option>
+                <option value="ธ.ก.ส. (BAAC)">🟤 ธ.ก.ส. (BAAC)</option>
+                <option value="อาคารสงเคราะห์ (GHB)">🏠 อาคารสงเคราะห์ (GHB)</option>
+                <option value="อิสลาม (Islamic Bank)">☪️ อิสลาม (Islamic Bank)</option>
+                <option value="แลนด์แอนด์เฮ้าส์ (LH Bank)">🏡 แลนด์แอนด์เฮ้าส์ (LH Bank)</option>
+                <option value="ทิสโก้ (TISCO)">🔶 ทิสโก้ (TISCO)</option>
+                <option value="เกียรตินาคินภัทร (KKP)">🔷 เกียรตินาคินภัทร (KKP)</option>
+              </select>
             </div>
-            <div>
+
+            <!-- PromptPay Type selector (shown only when PromptPay selected) -->
+            <div id="promptpay-type-section" style="display:none;">
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:6px;">ประเภทพร้อมเพย์</label>
+              <div style="display:flex; gap:8px;">
+                <label style="flex:1; cursor:pointer;">
+                  <div id="pp-btn-citizen" onclick="setPromptPayType('citizen')" style="
+                    border:1.5px solid var(--border); border-radius:10px; padding:10px 12px;
+                    text-align:center; font-size:12px; font-family:'Mitr',sans-serif;
+                    cursor:pointer; transition:all 0.2s; background:white; color:var(--text-secondary);">
+                    <div style="font-size:18px; margin-bottom:2px;">🪪</div>
+                    Citizen ID
+                  </div>
+                </label>
+                <label style="flex:1; cursor:pointer;">
+                  <div id="pp-btn-phone" onclick="setPromptPayType('phone')" style="
+                    border:1.5px solid var(--border); border-radius:10px; padding:10px 12px;
+                    text-align:center; font-size:12px; font-family:'Mitr',sans-serif;
+                    cursor:pointer; transition:all 0.2s; background:white; color:var(--text-secondary);">
+                    <div style="font-size:18px; margin-bottom:2px;">📱</div>
+                    Phone Number
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- PromptPay Citizen ID input -->
+            <div id="promptpay-citizen-section" style="display:none;">
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Citizen ID (บัตรประชาชน)</label>
+              <input class="input-field font-mono" id="promptpay-citizen-id"
+                placeholder="X-XXXX-XXXXX-XX-X"
+                inputmode="numeric" maxlength="17"
+                oninput="formatCitizenIdInput(this)">
+              <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">13 หลัก · รูปแบบ X-XXXX-XXXXX-XX-X</div>
+            </div>
+
+            <!-- PromptPay Phone Number input -->
+            <div id="promptpay-phone-section" style="display:none;">
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Phone Number (เบอร์โทรศัพท์)</label>
+              <input class="input-field font-mono" id="promptpay-phone"
+                placeholder="XXX-XXX-XXXX"
+                inputmode="numeric" maxlength="12"
+                oninput="formatPhoneInput(this)">
+              <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">10 หลัก · รูปแบบ 0XX-XXX-XXXX</div>
+            </div>
+
+            <!-- Account Name (hidden for PromptPay) -->
+            <div id="bank-account-name-section">
               <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Name</label>
               <input class="input-field" id="bank-account-name" placeholder="MPG Booking Co.">
             </div>
-            <div>
+
+            <!-- Account Number (hidden for PromptPay) -->
+            <div id="bank-account-number-section">
               <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Number</label>
-              <input class="input-field" id="bank-account-number" placeholder="XXX-X-XXXXX-X" inputmode="numeric">
+              <input class="input-field font-mono" id="bank-account-number"
+                placeholder="XXX-XXX-XXXXX"
+                inputmode="numeric" maxlength="16"
+                oninput="formatAccountNumberInput(this)">
+              <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">8–14 หลัก</div>
             </div>
-            <button class="btn-primary" onclick="savePaymentSettings()">Save Bank Details</button>
+
+            <button class="btn-primary" onclick="savePaymentSettings()">
+              <span class="mi" style="font-size:16px; vertical-align:middle; margin-right:4px;">save</span>
+              Save Bank Details
+            </button>
           </div>
         </div>
         <!-- Company Info for Receipts -->
@@ -1836,7 +1918,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbypiJ_UB2EIXwuTdKuOldW4NMzloVTI5HvFF2K3JCO3QbDAtf_9S4ZkaJSFT0SFUx8EPQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyAM12m84FV3mnVe31lh5nMbPFvUjYCoFXp7G80ePcG828V54axBimLlQeZ2XUcgQ1oFA/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -4470,7 +4552,7 @@ function _buildSeatsHTML(vansData, tripInfo, tripObj) {
   <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid rgba(255,179,71,0.35);">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
       <span style="font-size:22px;">🚐</span>
-      <span style="font-family:'Mitr',sans-serif;font-size:19px;font-weight:700;color:#3a2a35;">MPG BOOKING</span>
+      <span style="font-family:'Mitr',sans-serif;font-size:19px;font-weight:700;color:#3a2a35;">MPG BOOKING — SEAT MAP</span>
     </div>
     <div style="font-size:15px;font-weight:700;color:#3a2a35;margin-bottom:3px;">${tripName}</div>
     ${dest ? `<div style="font-size:12px;color:#7a6270;margin-bottom:2px;">📍 ${dest}</div>` : ''}
@@ -4501,8 +4583,16 @@ function _drawSeatsCanvas(vansData, tripInfo, tripObj) {
   const ROOF_H = 38;
   const FRONT_ROW_H = SEAT_H + 14;
   const DOOR_ROW_H = 20;
-  const HEADER_H = 90;
   const LEGEND_H = 36;
+
+  // Compute dynamic header height based on available info
+  const tripName  = tripObj ? tripObj.name : (tripInfo.split('—')[0] || '').trim();
+  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
+  const dest      = tripObj ? (tripObj.destination || '') : '';
+  let HEADER_H = 18 + 24; // logo line + tripName line
+  if (dest)      HEADER_H += 18;
+  if (dateRange) HEADER_H += 18;
+  HEADER_H += 16; // divider spacing
 
   // Compute van height: roof + front row + door + passenger rows
   function vanHeight(van) {
@@ -4510,8 +4600,8 @@ function _drawSeatsCanvas(vansData, tripInfo, tripObj) {
     return ROOF_H + FRONT_ROW_H + DOOR_ROW_H + pasRows * (SEAT_H + SEAT_GAP) + VAN_PAD * 2;
   }
 
-  // Layout: 2 vans per row
-  const VANS_PER_ROW = 2;
+  // Layout: 2 vans per row (but 1 van = 1 column only)
+  const VANS_PER_ROW = Math.min(2, vansData.length);
   const VAN_COL_W = VAN_INNER_W;
   const VAN_COL_GAP = 16;
   const rows = Math.ceil(vansData.length / VANS_PER_ROW);
@@ -4554,11 +4644,8 @@ function _drawSeatsCanvas(vansData, tripInfo, tripObj) {
 
   // ── Header ──
   let hy = PAD;
-  text('🚐 MPG BOOKING', PAD, hy + 22, 'bold 18px Mitr,sans-serif', '#3a2a35', 'left');
+  text('🚐 MPG BOOKING — SEAT MAP', PAD, hy + 22, 'bold 18px Mitr,sans-serif', '#3a2a35', 'left');
   hy += 28;
-  const tripName  = tripObj ? tripObj.name : (tripInfo.split('—')[0] || '').trim();
-  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
-  const dest      = tripObj ? (tripObj.destination || '') : '';
   text(tripName,  PAD, hy + 14, 'bold 14px Mitr,sans-serif', '#3a2a35', 'left', totalW - PAD * 2);
   hy += 18;
   if (dest) {
@@ -4922,10 +5009,26 @@ async function loadPaymentSettings() {
   const res = await apiCall('getSettings');
   if (!res.success) return;
   const s = res.data;
-  ['bankName','bankAccountName','bankAccountNumber'].forEach(k => {
-    const el = document.getElementById('bank-' + k.replace(/([A-Z])/g, '-$1').toLowerCase());
-    if (el && s[k]) el.value = s[k];
-  });
+
+  // ── Bank Name: set dropdown ──────────────────────────────
+  const bankSelect = document.getElementById('bank-name');
+  if (bankSelect && s.bankName) {
+    // Try to match option value exactly
+    let matched = false;
+    for (let opt of bankSelect.options) {
+      if (opt.value === s.bankName) { opt.selected = true; matched = true; break; }
+    }
+    if (!matched) {
+      // Add as custom option
+      const customOpt = document.createElement('option');
+      customOpt.value = s.bankName;
+      customOpt.textContent = s.bankName;
+      customOpt.selected = true;
+      bankSelect.appendChild(customOpt);
+    }
+    onBankNameChange(s.bankName, s);
+  }
+
   if (s.companyName) document.getElementById('co-name').value = s.companyName;
   if (s.companyTaxId) document.getElementById('co-taxid').value = s.companyTaxId;
   if (s.companyAddress) document.getElementById('co-address').value = s.companyAddress;
@@ -4933,6 +5036,107 @@ async function loadPaymentSettings() {
   if (s.qrImage) {
     document.getElementById('qr-display').innerHTML = `<img src="${s.qrImage}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
   }
+
+  // Show last updated if available
+  if (s.bankLastUpdated) {
+    const d = new Date(s.bankLastUpdated);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mn = String(d.getMinutes()).padStart(2,'0');
+    document.getElementById('bank-last-updated-text').textContent = `อัปเดตล่าสุด: ${dd}/${mm}/${yy} ${hh}:${mn}`;
+    document.getElementById('bank-last-updated').style.display = 'flex';
+    document.getElementById('bank-last-updated').style.alignItems = 'center';
+    document.getElementById('bank-last-updated').style.gap = '3px';
+  }
+}
+
+// ── PromptPay type toggle ──────────────────────────────────
+let _promptPayType = 'citizen'; // 'citizen' | 'phone'
+
+function setPromptPayType(type) {
+  _promptPayType = type;
+  const citizenSec = document.getElementById('promptpay-citizen-section');
+  const phoneSec   = document.getElementById('promptpay-phone-section');
+  const btnC = document.getElementById('pp-btn-citizen');
+  const btnP = document.getElementById('pp-btn-phone');
+  const activeStyle = 'border-color:var(--accent); background:rgba(255,224,138,0.2); color:#8a5a00;';
+  const inactiveStyle = 'border:1.5px solid var(--border); background:white; color:var(--text-secondary);';
+  if (type === 'citizen') {
+    citizenSec.style.display = 'block';
+    phoneSec.style.display   = 'none';
+    btnC.style.cssText += '; border-color:var(--accent); background:rgba(255,224,138,0.2); color:#8a5a00;';
+    btnP.style.cssText = 'border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center; font-size:12px; font-family:Mitr,sans-serif; cursor:pointer; transition:all 0.2s; background:white; color:var(--text-secondary);';
+  } else {
+    phoneSec.style.display   = 'block';
+    citizenSec.style.display = 'none';
+    btnP.style.cssText += '; border-color:var(--accent); background:rgba(255,224,138,0.2); color:#8a5a00;';
+    btnC.style.cssText = 'border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center; font-size:12px; font-family:Mitr,sans-serif; cursor:pointer; transition:all 0.2s; background:white; color:var(--text-secondary);';
+  }
+}
+
+function onBankNameChange(val, prefill) {
+  const isPromptPay = val === 'PromptPay';
+  document.getElementById('promptpay-type-section').style.display    = isPromptPay ? 'block' : 'none';
+  document.getElementById('bank-account-name-section').style.display = isPromptPay ? 'none' : 'block';
+  document.getElementById('bank-account-number-section').style.display = isPromptPay ? 'none' : 'block';
+
+  if (isPromptPay) {
+    // Restore PromptPay values if prefilling
+    if (prefill) {
+      if (prefill.promptPayType === 'phone') {
+        setPromptPayType('phone');
+        if (prefill.promptPayId) document.getElementById('promptpay-phone').value = formatPhoneDisplay(prefill.promptPayId);
+      } else {
+        setPromptPayType('citizen');
+        if (prefill.promptPayId) document.getElementById('promptpay-citizen-id').value = formatCitizenIdDisplay(prefill.promptPayId);
+      }
+    } else {
+      setPromptPayType(_promptPayType);
+    }
+  } else {
+    if (prefill) {
+      if (prefill.bankAccountName) document.getElementById('bank-account-name').value = prefill.bankAccountName;
+      if (prefill.bankAccountNumber) document.getElementById('bank-account-number').value = formatAccountNumberDisplay(prefill.bankAccountNumber);
+    }
+  }
+}
+
+// ── Citizen ID formatting: X-XXXX-XXXXX-XX-X ──────────────
+function formatCitizenIdDisplay(val) {
+  const digits = (val || '').replace(/\D/g, '').slice(0, 13);
+  if (digits.length <= 1) return digits;
+  if (digits.length <= 5) return digits.slice(0,1) + '-' + digits.slice(1);
+  if (digits.length <= 10) return digits.slice(0,1) + '-' + digits.slice(1,5) + '-' + digits.slice(5);
+  if (digits.length <= 12) return digits.slice(0,1) + '-' + digits.slice(1,5) + '-' + digits.slice(5,10) + '-' + digits.slice(10);
+  return digits.slice(0,1) + '-' + digits.slice(1,5) + '-' + digits.slice(5,10) + '-' + digits.slice(10,12) + '-' + digits.slice(12,13);
+}
+
+function formatCitizenIdInput(input) {
+  const cursor = input.selectionStart;
+  const prev   = input.value;
+  const digits = prev.replace(/\D/g,'');
+  const formatted = formatCitizenIdDisplay(digits);
+  input.value = formatted;
+  // Restore cursor position
+  const digitsBeforeCursor = prev.slice(0, cursor).replace(/\D/g,'').length;
+  let newCursor = 0, seen = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i])) seen++;
+    if (seen === digitsBeforeCursor) { newCursor = i + 1; break; }
+  }
+  if (newCursor < formatted.length && formatted[newCursor] === '-') newCursor++;
+  input.setSelectionRange(newCursor, newCursor);
+}
+
+// ── Account Number formatting (digits only, 8-14 digits) ──
+function formatAccountNumberDisplay(val) {
+  return (val || '').replace(/\D/g, '').slice(0, 14);
+}
+
+function formatAccountNumberInput(input) {
+  input.value = formatAccountNumberDisplay(input.value);
 }
 
 function handleQRUpload(input) {
@@ -4950,14 +5154,52 @@ function handleQRUpload(input) {
 }
 
 async function savePaymentSettings() {
-  const data = {
-    bankName: document.getElementById('bank-name').value,
-    bankAccountName: document.getElementById('bank-account-name').value,
-    bankAccountNumber: document.getElementById('bank-account-number').value
-  };
+  const bankName = document.getElementById('bank-name').value;
+  const isPromptPay = bankName === 'PromptPay';
+  let data = { bankName };
+
+  if (isPromptPay) {
+    data.promptPayType = _promptPayType;
+    if (_promptPayType === 'citizen') {
+      const raw = document.getElementById('promptpay-citizen-id').value.replace(/\D/g,'');
+      if (raw.length !== 13) { showToast('Citizen ID ต้องมี 13 หลัก', 'error'); return; }
+      data.promptPayId       = raw;
+      data.bankAccountName   = '';
+      data.bankAccountNumber = '';
+    } else {
+      const raw = document.getElementById('promptpay-phone').value.replace(/\D/g,'');
+      if (raw.length !== 10) { showToast('Phone Number ต้องมี 10 หลัก', 'error'); return; }
+      data.promptPayId       = raw;
+      data.bankAccountName   = '';
+      data.bankAccountNumber = '';
+    }
+  } else {
+    data.bankAccountName   = document.getElementById('bank-account-name').value;
+    const accNum           = document.getElementById('bank-account-number').value.replace(/\D/g,'');
+    if (accNum.length < 8 || accNum.length > 14) { showToast('Account Number ต้องมี 8–14 หลัก', 'error'); return; }
+    data.bankAccountNumber = accNum;
+    data.promptPayType     = '';
+    data.promptPayId       = '';
+  }
+
+  data.bankLastUpdated = new Date().toISOString();
   Object.assign(state.settings, data);
   const res = await apiCall('saveSettings', data);
-  if (res.success) { showToast('Bank details saved!', 'success'); logAction('Payment Settings', 'Bank info updated'); }
+  if (res.success) {
+    showToast('Bank details saved! ✅', 'success');
+    logAction('Payment Settings', 'Bank info updated');
+    // Update last-updated display
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const yy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mn = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('bank-last-updated-text').textContent = `อัปเดตล่าสุด: ${dd}/${mm}/${yy} ${hh}:${mn}`;
+    document.getElementById('bank-last-updated').style.display = 'flex';
+    document.getElementById('bank-last-updated').style.alignItems = 'center';
+    document.getElementById('bank-last-updated').style.gap = '3px';
+  }
 }
 
 async function saveCompanyInfo() {
