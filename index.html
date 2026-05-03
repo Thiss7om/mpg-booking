@@ -5429,15 +5429,26 @@ function formatAccountNumberInput(input) {
 function handleQRUpload(input) {
   const file = input.files[0];
   if (!file) return;
+
+  // Clear qr-display ทันที เพื่อป้องกันรูปเก่าค้างอยู่
+  document.getElementById('qr-display').innerHTML = `<div style="color:#999; font-size:12px; text-align:center;">กำลังโหลด...</div>`;
+
   const reader = new FileReader();
   reader.onload = (e) => {
-    state.settings.qrImage = e.target.result;
-    document.getElementById('qr-display').innerHTML = `<img src="${e.target.result}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
-    apiCall('saveSettings', { qrImage: e.target.result });
+    const newDataUrl = e.target.result;
+    // อัปเดต state ด้วยรูปใหม่
+    state.settings.qrImage = newDataUrl;
+    // บังคับ re-render ด้วย timestamp เพื่อหลีกเลี่ยง browser cache
+    const ts = Date.now();
+    document.getElementById('qr-display').innerHTML = `<img src="${newDataUrl}#${ts}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
+    apiCall('saveSettings', { qrImage: newDataUrl });
     showToast('QR uploaded!', 'success');
     logAction('QR Updated', 'Payment QR code updated');
   };
   reader.readAsDataURL(file);
+
+  // รีเซ็ต input value เพื่อให้สามารถเลือกไฟล์เดิมซ้ำได้
+  input.value = '';
 }
 
 async function savePaymentSettings() {
