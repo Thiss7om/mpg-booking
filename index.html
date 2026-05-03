@@ -3551,17 +3551,24 @@ async function searchBooking() {
       const settingsRes = await apiCall('getSettings');
       const s = settingsRes.success ? settingsRes.data : {};
       const depositAmt = Number(b.depositAmount||0);
+      const _isPromptPay1 = s.bankName === 'PromptPay';
+      const _ppId1 = s.promptPayId ? String(s.promptPayId).replace(/^'/,'') : '';
+      const _ppDisplay1 = _isPromptPay1 ? (_ppId1.length === 10 ? _ppId1.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3') : _ppId1) : '';
       remainingHtml = `
         <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.1); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
           <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">🪙 ชำระมัดจำ ฿${depositAmt.toLocaleString()}</div>
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">กรุณาโอนมัดจำตามช่องทางด้านล่าง แล้วรอ Admin ยืนยัน</div>
           ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
-          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+          ${_isPromptPay1 && (_ppDisplay1 || s.bankAccountName) ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+            <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">⚡ พร้อมเพย์ (PromptPay)</div>
+            ${(s.promptPayAccountName || s.bankAccountName) ? `<div style="font-weight:600; margin-bottom:6px;">${s.promptPayAccountName || s.bankAccountName}</div>` : ''}
+            ${_ppDisplay1 ? `<div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${_ppDisplay1}</div>` : ''}
+          </div>` : (!_isPromptPay1 && s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
             <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">🏦 ${s.bankName || 'Bank'}</div>
             <div style="font-weight:600; margin-bottom:4px;">${s.bankAccountName || ''}</div>
             <div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${s.bankAccountNumber}</div>
-          </div>` : ''}
-          ${!s.qrImage && !s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:8px;">💳 ติดต่อ Admin เพื่อรับข้อมูลการชำระเงิน</div>` : ''}
+          </div>` : '')}
+          ${!s.qrImage && !s.bankAccountNumber && !_ppDisplay1 ? `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:8px;">💳 ติดต่อ Admin เพื่อรับข้อมูลการชำระเงิน</div>` : ''}
           <div style="font-size:11px; color:var(--text-muted); background:rgba(255,179,179,0.1); border-radius:8px; padding:8px; text-align:center;">
             ⏳ หากโอนเงินแล้ว กรุณารอ Admin ยืนยัน จากนั้นค้นหา Booking ID อีกครั้งเพื่ออัปโหลด Slip ส่วนที่เหลือ
           </div>
@@ -3571,16 +3578,23 @@ async function searchBooking() {
       const settingsRes = await apiCall('getSettings');
       const s = settingsRes.success ? settingsRes.data : {};
       const remaining = Number(b.totalAmount||0) - Number(b.depositAmount||0);
+      const _isPromptPay2 = s.bankName === 'PromptPay';
+      const _ppId2 = s.promptPayId ? String(s.promptPayId).replace(/^'/,'') : '';
+      const _ppDisplay2 = _isPromptPay2 ? (_ppId2.length === 10 ? _ppId2.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3') : _ppId2) : '';
       remainingHtml = `
         <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.12); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
           <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">💰 ชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}</div>
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Admin ยืนยันมัดจำแล้ว กรุณาชำระยอดที่เหลือ</div>
           ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
-          ${s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+          ${_isPromptPay2 && (_ppDisplay2 || s.bankAccountName) ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
+            <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">⚡ พร้อมเพย์ (PromptPay)</div>
+            ${(s.promptPayAccountName || s.bankAccountName) ? `<div style="font-weight:600; margin-bottom:6px;">${s.promptPayAccountName || s.bankAccountName}</div>` : ''}
+            ${_ppDisplay2 ? `<div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${_ppDisplay2}</div>` : ''}
+          </div>` : (!_isPromptPay2 && s.bankAccountNumber ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
             <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">🏦 ${s.bankName || 'Bank'}</div>
             <div style="font-weight:600; margin-bottom:4px;">${s.bankAccountName || ''}</div>
             <div style="font-family:'DM Mono',monospace; font-size:18px; color:var(--accent); letter-spacing:0.05em;">${s.bankAccountNumber}</div>
-          </div>` : ''}
+          </div>` : '')}
           <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">📸 อัปโหลด Slip การชำระส่วนที่เหลือ:</div>
           <div class="upload-zone" style="padding:16px;" onclick="document.getElementById('remaining-slip-input-${b.id}').click()">
             <div style="font-size:24px;">📸</div>
@@ -5434,16 +5448,22 @@ function handleQRUpload(input) {
   document.getElementById('qr-display').innerHTML = `<div style="color:#999; font-size:12px; text-align:center;">กำลังโหลด...</div>`;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     const newDataUrl = e.target.result;
-    // อัปเดต state ด้วยรูปใหม่
+    // อัปเดต state ด้วยรูปใหม่ทันที
     state.settings.qrImage = newDataUrl;
     // บังคับ re-render ด้วย timestamp เพื่อหลีกเลี่ยง browser cache
     const ts = Date.now();
     document.getElementById('qr-display').innerHTML = `<img src="${newDataUrl}#${ts}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
-    apiCall('saveSettings', { qrImage: newDataUrl });
-    showToast('QR uploaded!', 'success');
-    logAction('QR Updated', 'Payment QR code updated');
+    // บันทึกลง Google Sheets (await เพื่อให้รู้ผล)
+    const res = await apiCall('saveSettings', { qrImage: newDataUrl });
+    if (res && res.success) {
+      showToast('✅ QR อัพโหลดและบันทึกสำเร็จ!', 'success');
+      logAction('QR Updated', 'Payment QR code updated');
+    } else {
+      showToast('⚠️ QR อัพโหลดแล้ว แต่บันทึกลง Server ไม่สำเร็จ — ลองอีกครั้ง', 'error');
+      console.error('saveSettings QR error:', res);
+    }
   };
   reader.readAsDataURL(file);
 
@@ -5807,8 +5827,8 @@ function initTripDatePickers() {
 // Configure the notice here — set to null or '' to hide
 const ADMIN_LOGIN_NOTICE = {
   enabled: true,
-  title: '📋 ประกาศสำหรับ Admin',
-  body: 'ยินดีต้อนรับเข้าสู่ระบบ MPG Booking Admin Portal<br>หากพบปัญหาการใช้งาน ติดต่อ Thiss7om'
+  title: '📋 สำหรับ Admin เท่านั้น',
+  body: 'ระบบ MPG Booking Admin Portal <br>หากพบปัญหาการใช้งาน ติดต่อ Admin'
 };
 
 function initAdminLoginNotice() {
