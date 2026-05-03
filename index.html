@@ -1710,7 +1710,7 @@
     <div class="flex justify-between items-center mb-3">
       <h3 class="font-display text-2xl"><span class="mi" style="font-size:22px; margin-right:6px;">directions_bus</span>MANAGE SEATS</h3>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button onclick="captureSeatsImage()" style="background:rgba(232,184,75,0.15); border:1px solid rgba(232,184,75,0.4); color:var(--accent); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="mi" style="font-size:14px;">photo_camera</span>บันทึกรูปที่นั่ง</button>
+        <button onclick="captureSeatsImage()" style="background:linear-gradient(135deg,rgba(255,179,71,0.2),rgba(255,143,163,0.15)); border:1px solid rgba(255,179,71,0.5); color:#a06000; padding:7px 14px; border-radius:10px; font-size:12px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px; font-family:'Mitr',sans-serif; box-shadow:0 2px 8px rgba(255,179,71,0.18);"><span class="mi" style="font-size:15px;">photo_camera</span>บันทึกรูปกรุ๊ปนี้</button>
         <button onclick="closeModal('modal-seats-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
       </div>
     </div>
@@ -4340,130 +4340,170 @@ async function saveAdminSeats() {
 }
 
 // ── CAPTURE SEAT IMAGE ───────────────────────────────────────
+
+// Helper: build a self-contained printable wrapper DOM for one or all vans
+function _buildPrintNode(vanNodes, tripInfo, tripObj) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = [
+    'font-family: Mitr, Sarabun, sans-serif',
+    'background: #fdf8f5',
+    'padding: 20px 20px 16px',
+    'display: inline-block',
+    'min-width: 300px',
+    'border-radius: 20px',
+    'box-shadow: 0 8px 32px rgba(180,120,140,0.18)',
+  ].join(';');
+
+  // ── Trip info header ──
+  const tripName  = tripObj ? tripObj.name        : (tripInfo.split('—')[0] || '').trim();
+  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
+  const dest      = tripObj ? tripObj.destination  : '';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid rgba(255,179,71,0.3);';
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:20px;">🚐</span>
+      <span style="font-family:Mitr,sans-serif;font-size:18px;font-weight:700;color:#3a2a35;">MPG BOOKING</span>
+    </div>
+    <div style="font-family:Mitr,sans-serif;font-size:15px;font-weight:700;color:#3a2a35;margin-bottom:3px;">${tripName}</div>
+    ${dest ? `<div style="font-size:12px;color:#7a6270;margin-bottom:2px;">📍 ${dest}</div>` : ''}
+    ${dateRange ? `<div style="font-size:12px;color:#7a6270;">📅 ${dateRange}</div>` : ''}
+  `;
+  wrap.appendChild(header);
+
+  // ── Van blocks ──
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:14px;justify-content:center;';
+  vanNodes.forEach(vn => {
+    const clone = vn.cloneNode(true);
+    // Make sure background & border are fully opaque for screenshot
+    clone.style.background = 'linear-gradient(160deg,#fff5f7,#f0f7ff)';
+    clone.style.border = '2px solid rgba(255,179,179,0.4)';
+    clone.style.borderRadius = '20px';
+    clone.style.padding = '16px';
+    clone.style.minWidth = '220px';
+    clone.style.boxSizing = 'border-box';
+    // Remove onclick handlers so they don't show pointer styles
+    clone.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
+    grid.appendChild(clone);
+  });
+  wrap.appendChild(grid);
+
+  // ── Legend ──
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:10px;border-top:1px solid rgba(180,140,160,0.15);font-size:11px;color:#7a6270;';
+  legend.innerHTML = `
+    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(181,240,200,0.6);border:1px solid rgba(82,201,122,0.6);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>ว่าง</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,179,179,0.5);border:1px solid rgba(255,107,138,0.5);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>จองแล้ว</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(168,212,245,0.5);border:1px solid rgba(90,172,240,0.5);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>Staff</span>
+  `;
+  wrap.appendChild(legend);
+
+  return wrap;
+}
+
+// Helper: run html2canvas on a node that is temporarily appended off-screen
+async function _captureNode(node) {
+  node.style.position = 'fixed';
+  node.style.top = '-9999px';
+  node.style.left = '0';
+  node.style.zIndex = '-1';
+  document.body.appendChild(node);
+  await new Promise(r => setTimeout(r, 120)); // let fonts/layout settle
+  const canvas = await html2canvas(node, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#fdf8f5',
+    logging: false,
+    allowTaint: true,
+  });
+  document.body.removeChild(node);
+  return canvas;
+}
+
 async function captureSeatsImage() {
   const container = document.getElementById('admin-van-container');
-  const tripInfo = document.getElementById('admin-seats-trip-info').textContent;
-  
-  // Build a clean printable canvas using DOM snapshot approach
-  const vans = container.querySelectorAll('[style*="flex:0 0 auto"]');
-  const SEAT_W = 58, SEAT_H = 58, PAD = 16, ROW_GAP = 10, VAN_PAD = 14;
-  const VAN_W = 3 * SEAT_W + 2 * ROW_GAP + VAN_PAD * 2;
-  const totalVans = vans.length;
-  
-  const canvas = document.createElement('canvas');
-  const SCALE = 2;
-  const headerH = 50;
-  const vanH = 280;
-  const cols = Math.min(totalVans, 3);
-  const rows = Math.ceil(totalVans / cols);
-  canvas.width  = (VAN_W * cols + PAD * (cols + 1)) * SCALE;
-  canvas.height = (headerH + vanH * rows + PAD * (rows + 1) + 40) * SCALE;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(SCALE, SCALE);
-  
-  // Background
-  ctx.fillStyle = '#0e0e18';
-  ctx.fillRect(0, 0, canvas.width / SCALE, canvas.height / SCALE);
-  
-  // Header
-  ctx.fillStyle = '#e8b84b';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('🚐 MPG BOOKING — ' + tripInfo, canvas.width / SCALE / 2, 32);
-  
-  const totalSeats = parseInt(container.dataset.totalSeats) || 10;
-  const seatsPerVan = 10;
-  
-  const colorAvail  = { bg: 'rgba(181,240,200,0.7)',  border: '#52c97a' };
-  const colorBooked = { bg: 'rgba(255,150,150,0.7)',  border: '#ff6b8a' };
-  const colorStaff  = { bg: 'rgba(140,200,255,0.7)',  border: '#5aaef0' };
-  
-  for (let v = 0; v < totalVans; v++) {
-    const startSeat = v * seatsPerVan + 1;
-    const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
-    const col = v % cols;
-    const row = Math.floor(v / cols);
-    const ox = PAD + col * (VAN_W + PAD);
-    const oy = headerH + PAD + row * (vanH + PAD);
-    
-    // Van box
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    ctx.strokeStyle = 'rgba(232,184,75,0.3)';
-    ctx.lineWidth = 1;
-    roundRect(ctx, ox, oy, VAN_W, vanH, 12);
-    ctx.fill(); ctx.stroke();
-    
-    // Van title
-    ctx.fillStyle = '#e8b84b';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`คันที่ ${v + 1} / ${totalVans}`, ox + VAN_W / 2, oy + 22);
-    
-    // Draw seats
-    function drawSeat(seatNum, sx, sy) {
-      const el = document.getElementById('admin-seat-' + seatNum);
-      let color = colorAvail;
-      let label = 'S' + seatNum;
-      let textColor = '#1a1a2a';
-      if (el) {
-        if (el.classList.contains('seat-booked')) {
-          color = colorBooked; label = el.querySelector('span') ? el.querySelector('span').textContent.trim() || 'จองแล้ว' : 'จองแล้ว';
-        } else if (el.classList.contains('seat-staff')) {
-          color = colorStaff; label = 'Staff';
-        }
-      }
-      ctx.fillStyle = color.bg;
-      ctx.strokeStyle = color.border;
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, sx, sy, SEAT_W, SEAT_H, 8);
-      ctx.fill(); ctx.stroke();
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('💺', sx + SEAT_W / 2, sy + 22);
-      ctx.fillText(label.substring(0, 8), sx + SEAT_W / 2, sy + 40);
+  const tripInfo  = document.getElementById('admin-seats-trip-info').textContent;
+  const tripId    = container.dataset.tripId;
+  const tripObj   = state.trips ? state.trips.find(t => t.id === tripId) : null;
+
+  // Collect individual van DOM nodes (direct children of the container)
+  const vanNodes = Array.from(container.children);
+  if (!vanNodes.length) { showToast('ไม่พบข้อมูลที่นั่ง', 'error'); return; }
+
+  const numVans = vanNodes.length;
+  const safeName = tripInfo.replace(/[^a-z0-9ก-ฮ\s]/gi, '_').replace(/\s+/g, '_').substring(0, 40);
+
+  // Show options modal
+  const optionHtml = `
+    <div id="_capture-modal" style="
+      position:fixed;inset:0;z-index:9999;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(58,42,53,0.45);backdrop-filter:blur(6px);
+    " onclick="if(event.target===this)this.remove()">
+      <div style="
+        background:#fff;border-radius:24px;padding:28px 24px;
+        max-width:360px;width:calc(100% - 32px);
+        box-shadow:0 24px 60px rgba(180,120,140,0.25);
+        font-family:Mitr,Sarabun,sans-serif;
+      ">
+        <div style="font-size:20px;font-weight:700;color:#3a2a35;margin-bottom:4px;">📸 บันทึกรูปที่นั่ง</div>
+        <div style="font-size:12px;color:#7a6270;margin-bottom:20px;">${tripInfo}</div>
+        <div style="display:grid;gap:10px;">
+          <button id="_cap-all" style="
+            background:linear-gradient(135deg,#ffb347,#ff8fa3);color:#fff;border:none;
+            border-radius:14px;padding:14px;cursor:pointer;font-family:Mitr,sans-serif;
+            font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(255,143,163,0.35);
+          ">🚐 บันทึกทั้งหมด (${numVans} คัน รวมเป็นรูปเดียว)</button>
+          ${numVans > 1 ? vanNodes.map((_, i) => `
+          <button id="_cap-van-${i}" style="
+            background:rgba(168,212,245,0.25);color:#1a5fa0;
+            border:1.5px solid rgba(90,172,240,0.4);
+            border-radius:14px;padding:12px;cursor:pointer;font-family:Mitr,sans-serif;
+            font-size:13px;font-weight:600;
+          ">🚌 บันทึกแยก คันที่ ${i+1}/${numVans}</button>
+          `).join('') : ''}
+          <button onclick="document.getElementById('_capture-modal').remove()" style="
+            background:white;color:#7a6270;border:1.5px solid rgba(180,140,160,0.25);
+            border-radius:14px;padding:11px;cursor:pointer;font-size:13px;
+            font-family:Mitr,sans-serif;
+          ">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', optionHtml);
+
+  function removeCaptureModal() {
+    const m = document.getElementById('_capture-modal');
+    if (m) m.remove();
+  }
+
+  async function doCapture(nodes, filenameSuffix) {
+    removeCaptureModal();
+    showToast('⏳ กำลังสร้างรูปภาพ...', 'info');
+    try {
+      const printNode = _buildPrintNode(nodes, tripInfo, tripObj);
+      const canvas = await _captureNode(printNode);
+      const filename = `seats_${safeName}${filenameSuffix}.png`;
+      showImagePreviewModal(canvas.toDataURL('image/png'), filename);
+    } catch(e) {
+      console.error(e);
+      showToast('เกิดข้อผิดพลาด: ' + e.message, 'error');
     }
-    
-    // Front seat
-    const frontX = ox + VAN_PAD;
-    const frontY = oy + 36;
-    drawSeat(startSeat, frontX, frontY);
-    // Driver box
-    ctx.fillStyle = 'rgba(150,120,255,0.3)';
-    ctx.strokeStyle = 'rgba(150,120,255,0.6)';
-    roundRect(ctx, ox + VAN_W - VAN_PAD - SEAT_W, frontY, SEAT_W, SEAT_H, 8);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ddd';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('🧑‍✈️', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 22);
-    ctx.fillText('Driver', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 40);
-    
-    // Passenger seats
-    const passengers = [];
-    for (let s = startSeat + 1; s <= endSeat; s++) passengers.push(s);
-    let pRow = 0, pCol = 0;
-    passengers.forEach((s, i) => {
-      pRow = Math.floor(i / 3);
-      pCol = i % 3;
-      const sx = ox + VAN_PAD + pCol * (SEAT_W + ROW_GAP);
-      const sy = frontY + SEAT_H + 18 + pRow * (SEAT_H + 8);
-      drawSeat(s, sx, sy);
+  }
+
+  // All vans
+  document.getElementById('_cap-all').onclick = () => doCapture(vanNodes, '');
+
+  // Per-van buttons
+  if (numVans > 1) {
+    vanNodes.forEach((_, i) => {
+      const btn = document.getElementById(`_cap-van-${i}`);
+      if (btn) btn.onclick = () => doCapture([vanNodes[i]], `_คันที่${i+1}`);
     });
   }
-  
-  // Legend
-  const legendY = canvas.height / SCALE - 30;
-  ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
-  [[colorAvail,'ว่าง'],[colorBooked,'จองแล้ว'],[colorStaff,'Staff']].forEach(([c, lbl], i) => {
-    const lx = PAD + i * 100;
-    ctx.fillStyle = c.bg; ctx.strokeStyle = c.border; ctx.lineWidth = 1;
-    ctx.fillRect(lx, legendY, 12, 12); ctx.strokeRect(lx, legendY, 12, 12);
-    ctx.fillStyle = '#aaa'; ctx.fillText(lbl, lx + 16, legendY + 10);
-  });
-  
-  // Show popup preview instead of direct download
-  showImagePreviewModal(canvas.toDataURL('image/png'), `seats_${tripInfo.replace(/[^a-z0-9ก-ฮ]/gi, '_')}.png`);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -5049,7 +5089,7 @@ window.openTripModal = function(tripId) {
         style="font-size:15px;"
         onkeydown="if(event.key==='Enter') confirmStaffName()">
       <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">
-        💡 ถ้าใส่ชื่อ จะแสดงเป็น <strong style="color:var(--pastel-blue-deep);">Tom Staff</strong> บนที่นั่ง
+        💡 ถ้าใส่ชื่อ จะแสดงเป็น <strong style="color:var(--pastel-blue-deep);">Leehleeleo Staff</strong> บนที่นั่ง
       </div>
     </div>
     <div style="display:flex; gap:10px; margin-top:16px;">
