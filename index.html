@@ -1053,7 +1053,7 @@
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Phone Number *</label>
-          <input class="input-field" id="b-phone" placeholder="0812345678" type="tel" inputmode="numeric">
+          <input class="input-field" id="b-phone" placeholder="082-123-4567" type="tel" inputmode="numeric" oninput="formatPhoneInput(this)" maxlength="12">
         </div>
         <div>
           <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">Email Address *</label>
@@ -1466,7 +1466,7 @@
             <input class="input-field" id="co-name" placeholder="Company Name">
             <input class="input-field" id="co-taxid" placeholder="Tax ID" inputmode="numeric">
             <input class="input-field" id="co-address" placeholder="Address">
-            <input class="input-field" id="co-phone" placeholder="Phone" inputmode="numeric">
+            <input class="input-field" id="co-phone" placeholder="082-123-4567" inputmode="numeric" oninput="formatPhoneInput(this)" maxlength="12">
             <button class="btn-primary" onclick="saveCompanyInfo()">Save Info</button>
           </div>
         </div>
@@ -1671,7 +1671,7 @@
       </div>
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Phone</label>
-        <input class="input-field" id="edit-phone">
+        <input class="input-field" id="edit-phone" oninput="formatPhoneInput(this)" maxlength="12" inputmode="numeric" placeholder="082-123-4567">
       </div>
       <div>
         <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Email</label>
@@ -1710,7 +1710,7 @@
     <div class="flex justify-between items-center mb-3">
       <h3 class="font-display text-2xl"><span class="mi" style="font-size:22px; margin-right:6px;">directions_bus</span>MANAGE SEATS</h3>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button onclick="showSeatsImageOptions()" style="background:rgba(232,184,75,0.15); border:1px solid rgba(232,184,75,0.4); color:var(--accent); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="mi" style="font-size:14px;">photo_camera</span>บันทึกรูปที่นั่ง</button>
+        <button onclick="captureSeatsImage()" style="background:rgba(232,184,75,0.15); border:1px solid rgba(232,184,75,0.4); color:var(--accent); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="mi" style="font-size:14px;">photo_camera</span>บันทึกรูปที่นั่ง</button>
         <button onclick="closeModal('modal-seats-admin')" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
       </div>
     </div>
@@ -1836,7 +1836,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzQgYtxxYrNypon-nJVcIIY-5T4GFdKDelCpeIQrVCg6Ku_Djq5b095Xyg2QLi9-yeCKw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbypiJ_UB2EIXwuTdKuOldW4NMzloVTI5HvFF2K3JCO3QbDAtf_9S4ZkaJSFT0SFUx8EPQ/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2271,7 +2271,7 @@ async function openTripModal(tripId) {
       <span style="opacity:0.4;">·</span>
       <span style="display:inline-flex;align-items:center;gap:3px;"><span class="mi" style="font-size:14px;">calendar_today</span>${formatDateRange(trip)}</span>
     </p>
-    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px; white-space:pre-wrap;">${trip.description || 'No description available.'}</p>
+    <p style="color: var(--text-secondary); font-size:14px; line-height:1.7; margin-bottom:20px;">${trip.description || 'No description available.'}</p>
     <div class="flex justify-between items-center">
       <span style="font-family: Bebas Neue; font-size:36px; color: var(--accent);">฿${Number(trip.price).toLocaleString()}</span>
       <button class="btn-primary" style="padding:12px 28px;" ${isFull ? 'disabled' : ''} onclick="closeModal('modal-trip'); startBooking('${trip.id}')">
@@ -2416,9 +2416,11 @@ function validateStep(step) {
     const nn = document.getElementById('b-nickname').value.trim();
     const fn = document.getElementById('b-firstname').value.trim();
     const ln = document.getElementById('b-lastname').value.trim();
-    const ph = document.getElementById('b-phone').value.trim();
+    const ph = getPlainPhone(document.getElementById('b-phone').value.trim());
     const em = document.getElementById('b-email').value.trim();
     if (!nn || !fn || !ln || !ph) { showToast('กรุณากรอกข้อมูลให้ครบ (ชื่อเล่น, ชื่อ, นามสกุล, เบอร์โทร)', 'error'); return false; }
+    if (ph.length !== 10) { showToast('เบอร์โทรต้องมี 10 หลัก เช่น 082-123-4567', 'error'); document.getElementById('b-phone').focus(); return false; }
+    if (em) { /* already validated below */ }
     if (!em) { showToast('กรุณากรอก Email Address', 'error'); document.getElementById('b-email').focus(); return false; }
     if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(em)) { showToast('รูปแบบ Email ไม่ถูกต้อง เช่น yourname@gmail.com', 'error'); document.getElementById('b-email').focus(); return false; }
     state.currentBooking.customer = {
@@ -3772,7 +3774,7 @@ function openEditBooking(id) {
   document.getElementById('edit-booking-id').value = b.id;
   document.getElementById('edit-firstname').value = b.firstname || '';
   document.getElementById('edit-lastname').value = b.lastname || '';
-  document.getElementById('edit-phone').value = b.phone || '';
+  document.getElementById('edit-phone').value = formatPhoneDisplay(b.phone || '');
   document.getElementById('edit-email').value = b.email || '';
   document.getElementById('edit-seats').value = Array.isArray(b.seats) ? b.seats.join(',') : (b.seats || '');
   document.getElementById('edit-status').value = b.status || 'pending';
@@ -3786,7 +3788,7 @@ async function saveBookingEdit() {
     id,
     firstname: document.getElementById('edit-firstname').value,
     lastname: document.getElementById('edit-lastname').value,
-    phone: document.getElementById('edit-phone').value,
+    phone: getPlainPhone(document.getElementById('edit-phone').value),
     email: document.getElementById('edit-email').value,
     seats: document.getElementById('edit-seats').value.split(',').map(s => parseInt(s.trim())).filter(Boolean),
     status: document.getElementById('edit-status').value,
@@ -4166,18 +4168,17 @@ function buildVanHTML(vanIndex, totalVans, startSeat, endSeat, booked, staff, na
     const clickable = !isBooked;
     const onclick = clickable ? `onclick="toggleAdminSeatNew(${seatNum})"` : '';
     const cursor = isBooked ? 'not-allowed' : 'pointer';
-
-    // Staff label: use stored name if available
+    // Resolve staff label from state
     let staffLabel = 'Staff';
-    if (isStaff && state.adminStaffNames && state.adminStaffNames[vanIndex !== undefined ? document.getElementById('admin-van-container')?.dataset.tripId : '']) {
+    if (isStaff) {
       const tripId = document.getElementById('admin-van-container')?.dataset.tripId;
-      const stored = tripId && state.adminStaffNames[tripId] && state.adminStaffNames[tripId][seatNum];
-      if (stored) staffLabel = stored + ' Staff';
+      if (tripId && state.adminStaffNames && state.adminStaffNames[tripId] && state.adminStaffNames[tripId][seatNum]) {
+        staffLabel = state.adminStaffNames[tripId][seatNum] + ' Staff';
+      }
     }
-
     const labelHTML = isBooked
       ? `<span style="font-size:9px;line-height:1.2;display:block;word-break:break-all;max-width:46px;">${name || 'จองแล้ว'}</span>`
-      : `<span id="admin-seat-label-${seatNum}" style="font-size:9px;max-width:52px;word-break:break-all;text-align:center;">${isStaff ? staffLabel : 'S' + seatNum}</span>`;
+      : `<span id="admin-seat-label-${seatNum}" style="font-size:9px;max-width:50px;word-break:break-all;text-align:center;line-height:1.1;">${isStaff ? staffLabel : 'S' + seatNum}</span>`;
     const icon = isBooked ? '' : '<span style="font-size:13px;">💺</span>';
     return `<div class="seat ${cls}" id="admin-seat-${seatNum}" ${onclick} style="cursor:${cursor};" title="Seat ${seatNum}">${icon}${labelHTML}</div>`;
   }
@@ -4222,12 +4223,35 @@ function renderAllVans(totalSeats, booked, staff, nameMap) {
 }
 
 function applyAdminSeatStyle(seatNum, isBooked, isStaff, nameMap) {
-  const tripId = document.getElementById('admin-van-container')?.dataset.tripId;
+  const el = document.getElementById('admin-seat-' + seatNum);
+  if (!el) return;
+  el.classList.remove('seat-available', 'seat-booked', 'seat-staff', 'seat-selected');
+  el.style.cursor = 'pointer';
+
+  // Resolve staff display label
   let staffLabel = 'Staff';
-  if (isStaff && tripId && state.adminStaffNames && state.adminStaffNames[tripId] && state.adminStaffNames[tripId][seatNum]) {
-    staffLabel = state.adminStaffNames[tripId][seatNum] + ' Staff';
+  if (isStaff) {
+    const tripId = document.getElementById('admin-van-container')?.dataset.tripId;
+    if (tripId && state.adminStaffNames && state.adminStaffNames[tripId] && state.adminStaffNames[tripId][seatNum]) {
+      staffLabel = state.adminStaffNames[tripId][seatNum] + ' Staff';
+    }
   }
-  applyAdminSeatStyleWithName(seatNum, isBooked, isStaff, nameMap, staffLabel);
+
+  if (isBooked) {
+    el.classList.add('seat-booked');
+    el.style.cursor = 'not-allowed';
+    el.onclick = null;
+    const name = nameMap[seatNum] || '';
+    el.innerHTML = `<span style="font-size:9px;line-height:1.2;display:block;word-break:break-all;max-width:46px;">${name || 'จองแล้ว'}</span>`;
+  } else if (isStaff) {
+    el.classList.add('seat-staff');
+    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}" style="font-size:9px;max-width:50px;word-break:break-all;text-align:center;line-height:1.1;">${staffLabel}</span>`;
+    el.onclick = () => toggleAdminSeatNew(seatNum);
+  } else {
+    el.classList.add('seat-available', 'admin-seat');
+    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}">S${seatNum}</span>`;
+    el.onclick = () => toggleAdminSeatNew(seatNum);
+  }
 }
 
 async function openAdminSeats(tripId) {
@@ -4246,6 +4270,9 @@ async function openAdminSeats(tripId) {
   document.getElementById('modal-seats-admin').style.display = 'flex';
 }
 
+// ── STAFF NAME POPUP ─────────────────────────────────────────
+let _pendingStaffSeatNum = null;
+
 function toggleAdminSeatNew(seatNum) {
   const tripId = document.getElementById('admin-van-container').dataset.tripId;
   if (!tripId) return;
@@ -4255,45 +4282,48 @@ function toggleAdminSeatNew(seatNum) {
 
   const idx = state.adminSeats[tripId].indexOf(seatNum);
   if (idx >= 0) {
-    // remove staff
+    // Remove staff — instant, no popup needed
     state.adminSeats[tripId].splice(idx, 1);
     delete state.adminStaffNames[tripId][seatNum];
+    const nameMap = buildSeatNameMap(tripId);
+    applyAdminSeatStyle(seatNum, false, false, nameMap);
+    markModalDirty('modal-seats-admin');
   } else {
-    // add staff — prompt for name
-    const staffName = prompt('ชื่อ Staff (กด OK เพื่อแสดงเฉพาะ "Staff")', '');
-    state.adminSeats[tripId].push(seatNum);
-    state.adminStaffNames[tripId][seatNum] = staffName ? staffName.trim() : '';
+    // Adding staff — open name popup
+    _pendingStaffSeatNum = seatNum;
+    const modal = document.getElementById('modal-staff-name');
+    const input = document.getElementById('staff-name-input');
+    input.value = '';
+    modal.style.display = 'flex';
+    setTimeout(() => input.focus(), 80);
   }
-  const nameMap = buildSeatNameMap(tripId);
-  const isStaff = state.adminSeats[tripId].includes(seatNum);
-  const staffLabel = isStaff
-    ? (state.adminStaffNames[tripId][seatNum]
-        ? state.adminStaffNames[tripId][seatNum] + ' Staff'
-        : 'Staff')
-    : '';
-  applyAdminSeatStyleWithName(seatNum, false, isStaff, nameMap, staffLabel);
 }
 
-function applyAdminSeatStyleWithName(seatNum, isBooked, isStaff, nameMap, staffLabel) {
-  const el = document.getElementById('admin-seat-' + seatNum);
-  if (!el) return;
-  el.classList.remove('seat-available', 'seat-booked', 'seat-staff', 'seat-selected');
-  el.style.cursor = 'pointer';
-  if (isBooked) {
-    el.classList.add('seat-booked');
-    el.style.cursor = 'not-allowed';
-    el.onclick = null;
-    const name = nameMap[seatNum] || '';
-    el.innerHTML = `<span style="font-size:9px;line-height:1.2;display:block;word-break:break-all;max-width:46px;">${name || 'จองแล้ว'}</span>`;
-  } else if (isStaff) {
-    el.classList.add('seat-staff');
-    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}" style="font-size:9px;max-width:52px;word-break:break-all;text-align:center;">${staffLabel || 'Staff'}</span>`;
-    el.onclick = () => toggleAdminSeatNew(seatNum);
-  } else {
-    el.classList.add('seat-available', 'admin-seat');
-    el.innerHTML = `<span style="font-size:13px;">💺</span><span id="admin-seat-label-${seatNum}">S${seatNum}</span>`;
-    el.onclick = () => toggleAdminSeatNew(seatNum);
-  }
+function confirmStaffName() {
+  const seatNum = _pendingStaffSeatNum;
+  if (seatNum === null) return;
+  const tripId = document.getElementById('admin-van-container').dataset.tripId;
+  if (!tripId) return;
+
+  const rawName = document.getElementById('staff-name-input').value.trim();
+  if (!state.adminSeats[tripId]) state.adminSeats[tripId] = [];
+  if (!state.adminStaffNames) state.adminStaffNames = {};
+  if (!state.adminStaffNames[tripId]) state.adminStaffNames[tripId] = {};
+
+  state.adminSeats[tripId].push(seatNum);
+  state.adminStaffNames[tripId][seatNum] = rawName;
+
+  document.getElementById('modal-staff-name').style.display = 'none';
+  _pendingStaffSeatNum = null;
+
+  const nameMap = buildSeatNameMap(tripId);
+  applyAdminSeatStyle(seatNum, false, true, nameMap);
+  markModalDirty('modal-seats-admin');
+}
+
+function cancelStaffName() {
+  document.getElementById('modal-staff-name').style.display = 'none';
+  _pendingStaffSeatNum = null;
 }
 
 function toggleAdminSeat(el, tripId, seatNum) { toggleAdminSeatNew(seatNum); }
@@ -4310,166 +4340,130 @@ async function saveAdminSeats() {
 }
 
 // ── CAPTURE SEAT IMAGE ───────────────────────────────────────
-// Build a clean off-screen HTML snapshot of the seat map and use html2canvas
-async function captureSeatsImage(vanIndexOnly) {
+async function captureSeatsImage() {
   const container = document.getElementById('admin-van-container');
-  const tripInfo  = document.getElementById('admin-seats-trip-info').textContent;
+  const tripInfo = document.getElementById('admin-seats-trip-info').textContent;
+  
+  // Build a clean printable canvas using DOM snapshot approach
+  const vans = container.querySelectorAll('[style*="flex:0 0 auto"]');
+  const SEAT_W = 58, SEAT_H = 58, PAD = 16, ROW_GAP = 10, VAN_PAD = 14;
+  const VAN_W = 3 * SEAT_W + 2 * ROW_GAP + VAN_PAD * 2;
+  const totalVans = vans.length;
+  
+  const canvas = document.createElement('canvas');
+  const SCALE = 2;
+  const headerH = 50;
+  const vanH = 280;
+  const cols = Math.min(totalVans, 3);
+  const rows = Math.ceil(totalVans / cols);
+  canvas.width  = (VAN_W * cols + PAD * (cols + 1)) * SCALE;
+  canvas.height = (headerH + vanH * rows + PAD * (rows + 1) + 40) * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+  
+  // Background
+  ctx.fillStyle = '#0e0e18';
+  ctx.fillRect(0, 0, canvas.width / SCALE, canvas.height / SCALE);
+  
+  // Header
+  ctx.fillStyle = '#e8b84b';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🚐 MPG BOOKING — ' + tripInfo, canvas.width / SCALE / 2, 32);
+  
   const totalSeats = parseInt(container.dataset.totalSeats) || 10;
   const seatsPerVan = 10;
-  const numVans = Math.ceil(totalSeats / seatsPerVan);
-
-  // helper: collect state of a single seat element
-  function getSeatState(seatNum) {
-    const el = document.getElementById('admin-seat-' + seatNum);
-    if (!el) return { type: 'available', label: 'S' + seatNum };
-    if (el.classList.contains('seat-booked')) {
-      const span = el.querySelector('span:last-child');
-      return { type: 'booked', label: (span ? span.textContent.trim() : '') || 'จองแล้ว' };
-    }
-    if (el.classList.contains('seat-staff')) {
-      const span = el.querySelector('span:last-child');
-      const lbl = span ? span.textContent.trim() : 'Staff';
-      return { type: 'staff', label: lbl || 'Staff' };
-    }
-    return { type: 'available', label: 'S' + seatNum };
-  }
-
-  // Build HTML for one van panel
-  function buildVanPanel(vIdx) {
-    const startSeat = vIdx * seatsPerVan + 1;
+  
+  const colorAvail  = { bg: 'rgba(181,240,200,0.7)',  border: '#52c97a' };
+  const colorBooked = { bg: 'rgba(255,150,150,0.7)',  border: '#ff6b8a' };
+  const colorStaff  = { bg: 'rgba(140,200,255,0.7)',  border: '#5aaef0' };
+  
+  for (let v = 0; v < totalVans; v++) {
+    const startSeat = v * seatsPerVan + 1;
     const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
-    const seatsInVan = endSeat - startSeat + 1;
-
-    function seatBox(seatNum) {
-      const s = getSeatState(seatNum);
-      const colorMap = {
-        available: 'background:rgba(181,240,200,0.55);border:2px solid rgba(82,201,122,0.7);color:#1a7a40;',
-        booked:    'background:rgba(255,179,179,0.55);border:2px solid rgba(255,107,138,0.7);color:#c0003a;',
-        staff:     'background:rgba(168,212,245,0.55);border:2px solid rgba(90,172,240,0.7);color:#1a5fa0;',
-      };
-      return `<div style="${colorMap[s.type]}border-radius:10px;width:62px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Mitr',sans-serif;flex-shrink:0;">
-        <span style="font-size:14px;line-height:1;">💺</span>
-        <span style="margin-top:2px;word-break:break-all;max-width:58px;text-align:center;line-height:1.1;">${s.label.substring(0,9)}</span>
-      </div>`;
+    const col = v % cols;
+    const row = Math.floor(v / cols);
+    const ox = PAD + col * (VAN_W + PAD);
+    const oy = headerH + PAD + row * (vanH + PAD);
+    
+    // Van box
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = 'rgba(232,184,75,0.3)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, ox, oy, VAN_W, vanH, 12);
+    ctx.fill(); ctx.stroke();
+    
+    // Van title
+    ctx.fillStyle = '#e8b84b';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`คันที่ ${v + 1} / ${totalVans}`, ox + VAN_W / 2, oy + 22);
+    
+    // Draw seats
+    function drawSeat(seatNum, sx, sy) {
+      const el = document.getElementById('admin-seat-' + seatNum);
+      let color = colorAvail;
+      let label = 'S' + seatNum;
+      let textColor = '#1a1a2a';
+      if (el) {
+        if (el.classList.contains('seat-booked')) {
+          color = colorBooked; label = el.querySelector('span') ? el.querySelector('span').textContent.trim() || 'จองแล้ว' : 'จองแล้ว';
+        } else if (el.classList.contains('seat-staff')) {
+          color = colorStaff; label = 'Staff';
+        }
+      }
+      ctx.fillStyle = color.bg;
+      ctx.strokeStyle = color.border;
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, sx, sy, SEAT_W, SEAT_H, 8);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('💺', sx + SEAT_W / 2, sy + 22);
+      ctx.fillText(label.substring(0, 8), sx + SEAT_W / 2, sy + 40);
     }
-
-    const driverBox = `<div style="background:rgba(212,184,240,0.4);border:2px solid rgba(180,140,220,0.6);border-radius:10px;width:62px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#5a3a80;font-family:'Mitr',sans-serif;flex-shrink:0;">
-      <span style="font-size:16px;line-height:1;">🧑‍✈️</span><span>Driver</span></div>`;
-
-    // passenger seats grouped in rows of 3
-    const pasSeats = [];
-    for (let s = startSeat + 1; s <= endSeat; s++) pasSeats.push(s);
-    let pasRowsHTML = '';
-    for (let i = 0; i < pasSeats.length; i += 3) {
-      const row = pasSeats.slice(i, i + 3);
-      pasRowsHTML += `<div style="display:flex;justify-content:space-around;margin-bottom:10px;">${row.map(s => seatBox(s)).join('')}</div>`;
-    }
-
-    return `<div style="background:linear-gradient(160deg,#fff5f7,#f0f7ff);border:2px solid rgba(255,179,179,0.35);border-radius:20px;padding:18px;min-width:240px;max-width:300px;flex:1;">
-      <div style="background:linear-gradient(90deg,#ffb3b3,#ffe08a,#a8d4f5);border-radius:50% 50% 0 0;height:38px;display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;font-family:'Mitr',sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.2);margin-bottom:14px;">
-        🚐 คันที่ ${vIdx + 1}${numVans > 1 ? ' / ' + numVans : ''} — ${seatsInVan} ที่นั่ง
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px;">
-        ${seatBox(startSeat)}
-        <span style="font-size:10px;color:#bba8b2;letter-spacing:0.05em;">FRONT</span>
-        ${driverBox}
-      </div>
-      <div style="border-top:1px dashed rgba(180,140,160,0.3);margin-bottom:14px;position:relative;">
-        <span style="position:absolute;top:-8px;left:10px;background:white;padding:0 6px;font-size:9px;color:#bba8b2;letter-spacing:0.1em;">Door</span>
-      </div>
-      ${pasRowsHTML}
-    </div>`;
+    
+    // Front seat
+    const frontX = ox + VAN_PAD;
+    const frontY = oy + 36;
+    drawSeat(startSeat, frontX, frontY);
+    // Driver box
+    ctx.fillStyle = 'rgba(150,120,255,0.3)';
+    ctx.strokeStyle = 'rgba(150,120,255,0.6)';
+    roundRect(ctx, ox + VAN_W - VAN_PAD - SEAT_W, frontY, SEAT_W, SEAT_H, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ddd';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🧑‍✈️', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 22);
+    ctx.fillText('Driver', ox + VAN_W - VAN_PAD - SEAT_W / 2, frontY + 40);
+    
+    // Passenger seats
+    const passengers = [];
+    for (let s = startSeat + 1; s <= endSeat; s++) passengers.push(s);
+    let pRow = 0, pCol = 0;
+    passengers.forEach((s, i) => {
+      pRow = Math.floor(i / 3);
+      pCol = i % 3;
+      const sx = ox + VAN_PAD + pCol * (SEAT_W + ROW_GAP);
+      const sy = frontY + SEAT_H + 18 + pRow * (SEAT_H + 8);
+      drawSeat(s, sx, sy);
+    });
   }
-
-  // Legend bar
-  const legendHTML = `<div style="display:flex;gap:16px;font-size:11px;color:#7a6270;font-family:'Sarabun',sans-serif;margin-top:10px;flex-wrap:wrap;">
-    <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;background:rgba(181,240,200,0.7);border:1.5px solid rgba(82,201,122,0.8);border-radius:3px;"></span>ว่าง</span>
-    <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;background:rgba(255,179,179,0.7);border:1.5px solid rgba(255,107,138,0.8);border-radius:3px;"></span>จองแล้ว</span>
-    <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;background:rgba(168,212,245,0.7);border:1.5px solid rgba(90,172,240,0.8);border-radius:3px;"></span>Staff</span>
-  </div>`;
-
-  async function renderAndCapture(vansHtml, filename) {
-    // Build off-screen wrapper
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:9999;background:white;padding:20px;font-family:Sarabun,sans-serif;';
-    wrap.innerHTML = `
-      <div style="margin-bottom:14px;">
-        <div style="font-family:Mitr,sans-serif;font-size:18px;font-weight:700;color:#3a2a35;margin-bottom:2px;">
-          🚐 MPG BOOKING — SEAT MAP
-        </div>
-        <div style="font-size:13px;color:#7a6270;">${tripInfo}</div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:flex-start;">${vansHtml}</div>
-      ${legendHTML}
-    `;
-    document.body.appendChild(wrap);
-    try {
-      const canvas = await html2canvas(wrap, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      showImagePreviewModal(canvas.toDataURL('image/png'), filename);
-    } catch(e) {
-      showToast('เกิดข้อผิดพลาดในการบันทึกรูป: ' + e.message, 'error');
-    } finally {
-      document.body.removeChild(wrap);
-    }
-  }
-
-  const safeTrip = tripInfo.replace(/[^a-z0-9ก-ฮ\s]/gi, '_').replace(/\s+/g,'_');
-
-  if (typeof vanIndexOnly === 'number') {
-    // Save single van
-    await renderAndCapture(buildVanPanel(vanIndexOnly), `seats_van${vanIndexOnly+1}_${safeTrip}.png`);
-  } else {
-    // Save all vans
-    let all = '';
-    for (let v = 0; v < numVans; v++) all += buildVanPanel(v);
-    await renderAndCapture(all, `seats_all_${safeTrip}.png`);
-  }
-}
-
-// Show capture options: all or per-van
-function showSeatsImageOptions() {
-  const container = document.getElementById('admin-van-container');
-  const totalSeats = parseInt(container.dataset.totalSeats) || 10;
-  const numVans = Math.ceil(totalSeats / 10);
-
-  let btns = `<button onclick="captureSeatsImage(); closeModal('modal-seats-capture-opts');" style="
-    background:linear-gradient(135deg,#ffb347,#ffd04d);color:#3a2a35;border:none;
-    border-radius:12px;padding:12px 18px;font-family:'Mitr',sans-serif;font-size:13px;
-    font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;display:flex;align-items:center;gap:8px;justify-content:center;">
-    <span class="mi" style="font-size:16px;">photo_camera</span>บันทึกทุกคัน (รูปเดียว)
-  </button>`;
-  for (let v = 0; v < numVans; v++) {
-    btns += `<button onclick="captureSeatsImage(${v}); closeModal('modal-seats-capture-opts');" style="
-      background:rgba(168,212,245,0.25);color:#1a5fa0;border:1.5px solid rgba(90,172,240,0.4);
-      border-radius:12px;padding:10px 18px;font-family:'Mitr',sans-serif;font-size:13px;
-      font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;display:flex;align-items:center;gap:8px;justify-content:center;">
-      <span class="mi" style="font-size:16px;">directions_bus</span>บันทึกเฉพาะคันที่ ${v+1}
-    </button>`;
-  }
-
-  let modal = document.getElementById('modal-seats-capture-opts');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modal-seats-capture-opts';
-    modal.className = 'modal-overlay';
-    modal.style.zIndex = '9999';
-    modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
-    modal.innerHTML = `<div style="background:white;border-radius:20px;padding:24px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(180,120,140,0.22);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-        <h3 style="font-family:'Mitr',sans-serif;font-size:16px;color:#3a2a35;">📸 เลือกวิธีบันทึกรูป</h3>
-        <button onclick="closeModal('modal-seats-capture-opts')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#bba8b2;">✕</button>
-      </div>
-      <div id="seats-capture-btns"></div>
-    </div>`;
-    document.body.appendChild(modal);
-  }
-  document.getElementById('seats-capture-btns').innerHTML = btns;
-  modal.style.display = 'flex';
+  
+  // Legend
+  const legendY = canvas.height / SCALE - 30;
+  ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  [[colorAvail,'ว่าง'],[colorBooked,'จองแล้ว'],[colorStaff,'Staff']].forEach(([c, lbl], i) => {
+    const lx = PAD + i * 100;
+    ctx.fillStyle = c.bg; ctx.strokeStyle = c.border; ctx.lineWidth = 1;
+    ctx.fillRect(lx, legendY, 12, 12); ctx.strokeRect(lx, legendY, 12, 12);
+    ctx.fillStyle = '#aaa'; ctx.fillText(lbl, lx + 16, legendY + 10);
+  });
+  
+  // Show popup preview instead of direct download
+  showImagePreviewModal(canvas.toDataURL('image/png'), `seats_${tripInfo.replace(/[^a-z0-9ก-ฮ]/gi, '_')}.png`);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -4586,7 +4580,7 @@ async function loadPaymentSettings() {
   if (s.companyName) document.getElementById('co-name').value = s.companyName;
   if (s.companyTaxId) document.getElementById('co-taxid').value = s.companyTaxId;
   if (s.companyAddress) document.getElementById('co-address').value = s.companyAddress;
-  if (s.companyPhone) document.getElementById('co-phone').value = s.companyPhone;
+  if (s.companyPhone) document.getElementById('co-phone').value = formatPhoneDisplay(s.companyPhone);
   if (s.qrImage) {
     document.getElementById('qr-display').innerHTML = `<img src="${s.qrImage}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
   }
@@ -4622,7 +4616,7 @@ async function saveCompanyInfo() {
     companyName: document.getElementById('co-name').value,
     companyTaxId: document.getElementById('co-taxid').value,
     companyAddress: document.getElementById('co-address').value,
-    companyPhone: document.getElementById('co-phone').value
+    companyPhone: getPlainPhone(document.getElementById('co-phone').value)
   };
   Object.assign(state.settings, data);
   const res = await apiCall('saveSettings', data);
@@ -4651,16 +4645,86 @@ function logAction(action, detail) {
 }
 
 // ============================================================
-// MODAL HELPERS
+// MODAL HELPERS  +  UNSAVED-CHANGES GUARD
 // ============================================================
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
+
+// Modals that have editable fields and need unsaved-change protection
+const GUARDED_MODALS = ['modal-trip-admin', 'modal-edit-booking', 'modal-add-admin', 'modal-seats-admin'];
+
+// Track dirty state per modal
+const _modalDirty = {};
+let _pendingCloseId = null;   // which modal is waiting to be force-closed
+
+// Mark a modal as dirty (has unsaved changes)
+function markModalDirty(modalId) { _modalDirty[modalId] = true; }
+function clearModalDirty(modalId) { _modalDirty[modalId] = false; }
+
+// Attach input listeners to all fields inside a guarded modal
+function attachDirtyListeners(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  modal.querySelectorAll('input, textarea, select').forEach(el => {
+    el.addEventListener('input',  () => markModalDirty(modalId));
+    el.addEventListener('change', () => markModalDirty(modalId));
+  });
 }
 
-// Close modal on overlay click
+// Central close function — checks dirty state for guarded modals
+function closeModal(id) {
+  if (GUARDED_MODALS.includes(id) && _modalDirty[id]) {
+    _pendingCloseId = id;
+    document.getElementById('modal-unsaved').style.display = 'flex';
+  } else {
+    _forceCloseModal(id);
+  }
+}
+
+function _forceCloseModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+  clearModalDirty(id);
+  _pendingCloseId = null;
+}
+
+function closeUnsavedModal() {
+  document.getElementById('modal-unsaved').style.display = 'none';
+  _pendingCloseId = null;
+}
+
+function confirmLeaveModal() {
+  document.getElementById('modal-unsaved').style.display = 'none';
+  if (_pendingCloseId) _forceCloseModal(_pendingCloseId);
+}
+
+// Overlay-click guard: for guarded modals show warning instead of instant close
 document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', (e) => { if (e.target === el) el.style.display = 'none'; });
+  el.addEventListener('click', (e) => {
+    if (e.target !== el) return;
+    const id = el.id;
+    if (!id) { el.style.display = 'none'; return; }
+    // Non-edit modals (receipt, image-preview, search, trip view etc.) close instantly
+    if (!GUARDED_MODALS.includes(id)) {
+      el.style.display = 'none';
+      return;
+    }
+    // Guarded modal — only warn if dirty
+    if (_modalDirty[id]) {
+      _pendingCloseId = id;
+      document.getElementById('modal-unsaved').style.display = 'flex';
+    }
+    // If not dirty, clicking outside does nothing (admin must use ✕ or Cancel/Save)
+  });
 });
+
+// Attach dirty listeners once DOM is ready (called in DOMContentLoaded below)
+function initModalDirtyListeners() {
+  GUARDED_MODALS.forEach(id => attachDirtyListeners(id));
+}
+
+// Also re-attach whenever a guarded modal is opened (because innerHTML may be rebuilt)
+// Patch openTripModal_admin, openEditBooking, openAddAdminModal, openAdminSeats
+const _origOpenTripModal_admin = typeof openTripModal_admin === 'function' ? openTripModal_admin : null;
+// (patching done after all functions defined — see bottom of script)
 
 // ============================================================
 // TOAST
@@ -4863,6 +4927,7 @@ window.addEventListener('DOMContentLoaded', () => {
   showView('home');
   loadTrips();
   initTripDatePickers();
+  initModalDirtyListeners();
   // Adjust hero padding after chips render
   requestAnimationFrame(() => { adjustHeroPadding(); });
   window.addEventListener('resize', adjustHeroPadding);
@@ -4893,7 +4958,158 @@ window.openTripModal = function(tripId) {
   if (state.view === 'admin') { openTripModal_admin(tripId); }
   else { openUserTripModal(tripId); }
 };
+
+// ── Patch admin modal openers to reset dirty state ──────────
+(function patchAdminModalOpeners() {
+  // openTripModal_admin
+  const _orig_openTripModal_admin = openTripModal_admin;
+  window.openTripModal_admin = function(tripId) {
+    clearModalDirty('modal-trip-admin');
+    _orig_openTripModal_admin(tripId);
+    // Re-attach after modal is populated
+    setTimeout(() => attachDirtyListeners('modal-trip-admin'), 50);
+  };
+
+  // openEditBooking
+  const _orig_openEditBooking = openEditBooking;
+  window.openEditBooking = function(id) {
+    clearModalDirty('modal-edit-booking');
+    _orig_openEditBooking(id);
+    setTimeout(() => attachDirtyListeners('modal-edit-booking'), 50);
+  };
+
+  // openAddAdminModal
+  const _orig_openAddAdminModal = openAddAdminModal;
+  window.openAddAdminModal = function() {
+    clearModalDirty('modal-add-admin');
+    _orig_openAddAdminModal();
+    setTimeout(() => attachDirtyListeners('modal-add-admin'), 50);
+  };
+
+  // openAdminSeats
+  const _orig_openAdminSeats = openAdminSeats;
+  window.openAdminSeats = async function(tripId) {
+    clearModalDirty('modal-seats-admin');
+    await _orig_openAdminSeats(tripId);
+    setTimeout(() => attachDirtyListeners('modal-seats-admin'), 50);
+  };
+
+  // saveTrip — clear dirty on success (saveTrip calls closeModal internally)
+  const _orig_saveTrip = saveTrip;
+  window.saveTrip = async function() {
+    clearModalDirty('modal-trip-admin');
+    await _orig_saveTrip();
+  };
+
+  // saveBookingEdit
+  const _orig_saveBookingEdit = saveBookingEdit;
+  window.saveBookingEdit = async function() {
+    clearModalDirty('modal-edit-booking');
+    await _orig_saveBookingEdit();
+  };
+
+  // saveNewAdminUser
+  const _orig_saveNewAdminUser = saveNewAdminUser;
+  window.saveNewAdminUser = async function() {
+    clearModalDirty('modal-add-admin');
+    await _orig_saveNewAdminUser();
+  };
+
+  // saveAdminSeats
+  const _orig_saveAdminSeats = saveAdminSeats;
+  window.saveAdminSeats = async function() {
+    clearModalDirty('modal-seats-admin');
+    await _orig_saveAdminSeats();
+  };
+})();
 </script>
+<!-- ============================================
+     STAFF NAME MODAL
+============================================ -->
+<div id="modal-staff-name" class="modal-overlay" style="display:none; z-index:600;">
+  <div style="
+    background: var(--bg-card);
+    border: 1.5px solid rgba(90,172,240,0.3);
+    border-radius: 20px;
+    width: 100%; max-width: 360px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(90,172,240,0.18);
+    animation: fadeIn 0.2s ease;
+  ">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <span style="font-size:28px;">🧑‍💼</span>
+      <div>
+        <h3 style="font-family:'Mitr',sans-serif; font-size:16px; font-weight:600; color:var(--text-primary);">ตั้งชื่อ Staff</h3>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:1px;">กรอกชื่อหรือเว้นว่างเพื่อแสดงเฉพาะ "Staff"</p>
+      </div>
+    </div>
+    <div style="margin:16px 0 8px;">
+      <label style="font-size:11px; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px; font-weight:600;">ชื่อ Staff (ไม่บังคับ)</label>
+      <input id="staff-name-input" class="input-field" placeholder="เช่น Tom, นุ่น, Krit..." 
+        style="font-size:15px;"
+        onkeydown="if(event.key==='Enter') confirmStaffName()">
+      <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+        💡 ถ้าใส่ชื่อ จะแสดงเป็น <strong style="color:var(--pastel-blue-deep);">Tom Staff</strong> บนที่นั่ง
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button onclick="cancelStaffName()" style="
+        flex:1; background:white; color:var(--text-secondary);
+        border:1.5px solid var(--border); border-radius:12px;
+        padding:11px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+        transition:all 0.2s;
+      ">ยกเลิก</button>
+      <button onclick="confirmStaffName()" style="
+        flex:2;
+        background: linear-gradient(135deg, var(--pastel-blue-deep), #5aacf0);
+        color:#fff; border:none; border-radius:12px;
+        padding:11px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+        box-shadow:0 4px 14px rgba(90,172,240,0.35);
+        transition:all 0.2s;
+        display:flex; align-items:center; justify-content:center; gap:6px;
+      "><span class="mi" style="font-size:16px;">person_pin</span>ยืนยัน Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     UNSAVED CHANGES WARNING MODAL
+============================================ -->
+<div id="modal-unsaved" class="modal-overlay" style="display:none; z-index:700;">
+  <div style="
+    background: var(--bg-card);
+    border: 1.5px solid rgba(255,107,138,0.35);
+    border-radius: 20px;
+    width: 100%; max-width: 380px;
+    padding: 28px 24px;
+    box-shadow: 0 24px 60px rgba(255,143,163,0.22);
+    animation: fadeIn 0.2s ease;
+    text-align: center;
+  ">
+    <div style="font-size:48px; margin-bottom:12px;">⚠️</div>
+    <h3 style="font-family:'Mitr',sans-serif; font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:8px;">ยังไม่ได้บันทึก!</h3>
+    <p style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px;">คุณมีข้อมูลที่ยังไม่ได้บันทึก<br>ต้องการออกโดยไม่บันทึกหรือไม่?</p>
+    <div style="display:flex; gap:10px;">
+      <button id="unsaved-stay-btn" onclick="closeUnsavedModal()" style="
+        flex:1; background:white; color:var(--text-secondary);
+        border:1.5px solid var(--border); border-radius:12px;
+        padding:12px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+      ">← กลับแก้ไข</button>
+      <button id="unsaved-leave-btn" onclick="confirmLeaveModal()" style="
+        flex:1.5;
+        background: linear-gradient(135deg,#ff8fa3,#ff6b8a);
+        color:#fff; border:none; border-radius:12px;
+        padding:12px 12px; cursor:pointer;
+        font-family:'Mitr',sans-serif; font-size:13px; font-weight:600;
+        box-shadow:0 4px 14px rgba(255,107,138,0.35);
+      ">ออกโดยไม่บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================
      RECEIPT MODAL
 ============================================ -->
@@ -5011,6 +5227,41 @@ window.openTripModal = function(tripId) {
 
 
 <script>
+// ── Phone Number Formatting ──────────────────────────────────────────
+// Strip all non-digits from phone string
+function getPlainPhone(val) {
+  return (val || '').replace(/\D/g, '');
+}
+
+// Format plain digits → XXX-XXX-XXXX display
+function formatPhoneDisplay(val) {
+  const digits = getPlainPhone(val);
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return digits.slice(0,3) + '-' + digits.slice(3);
+  return digits.slice(0,3) + '-' + digits.slice(3,6) + '-' + digits.slice(6,10);
+}
+
+// Called oninput — formats as user types, keeps cursor sane
+function formatPhoneInput(input) {
+  const cursorPos = input.selectionStart;
+  const prevVal   = input.value;
+  const digits    = getPlainPhone(prevVal);
+  const formatted = formatPhoneDisplay(digits);
+  input.value = formatted;
+  // Adjust cursor: count forward through digits typed
+  let newCursor = 0, digitsSeen = 0;
+  const digitsBeforeCursor = getPlainPhone(prevVal.slice(0, cursorPos)).length;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i])) digitsSeen++;
+    if (digitsSeen === digitsBeforeCursor) { newCursor = i + 1; break; }
+  }
+  // If we just typed a dash position, push cursor forward
+  if (newCursor < formatted.length && formatted[newCursor] === '-') newCursor++;
+  input.setSelectionRange(newCursor, newCursor);
+}
+// ────────────────────────────────────────────────────────────────────
+
 // Copyright now lives in the sidebar under Sign Out
 </script>
 </body>
