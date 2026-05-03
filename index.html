@@ -1938,7 +1938,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyLMn40qIIp9LqBgAnI3NeJ2YyojFCjXlgmYl-QnVp0FJoTDjw96AbUUqedULtiWNDWPA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDkXBB1F5o5L2_sI8RvB6ZKvjPE7bLgn3cLNEUSMTDw0SEINPBQIpG-J8zHs_UhS5sEw/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2022,7 +2022,8 @@ async function _apiCallInner(action, data = {}) {
     if (state.adminUser && !data.adminUser) data.adminUser = state.adminUser.username || 'admin';
 
     // Actions ที่เป็น read-only ไม่มีข้อมูลใหญ่ → GET
-    const GET_ACTIONS = ['getTrips','getTripById','getSeats','getSettings','getBookingById','getBookings','getLogs','getAdminUsers'];
+    // getSettings และ getQRImage ใช้ POST เสมอ เพราะ response อาจใหญ่ (qrImage base64)
+    const GET_ACTIONS = ['getTrips','getTripById','getSeats','getBookingById','getBookings','getLogs','getAdminUsers'];
     const useGet = GET_ACTIONS.includes(action) && !data.slipData;
 
     if (useGet) {
@@ -2124,6 +2125,13 @@ function demoHandler(action, data) {
     case 'saveSettings': {
       Object.assign(state.settings, data);
       return { success: true };
+    }
+    case 'saveQRImage': {
+      if (data.qrImage) state.settings.qrImage = data.qrImage;
+      return { success: true };
+    }
+    case 'getQRImage': {
+      return { success: true, data: { qrImage: state.settings.qrImage || '' } };
     }
     case 'getLogs': return { success: true, data: [
       { timestamp: '2025-07-22 10:00', admin: 'admin', action: 'Login', detail: 'Admin logged in' },
@@ -2574,9 +2582,18 @@ function selectPaymentType(type) {
 }
 
 async function loadPaymentDisplay(payType, total, depositAmt) {
-  const res = await apiCall('getSettings');
-  if (!res.success) return;
-  const s = res.data;
+  // โหลด settings และ QR แบบ parallel
+  const [settingsRes, qrRes] = await Promise.all([
+    apiCall('getSettings'),
+    apiCall('getQRImage')
+  ]);
+  if (!settingsRes.success) return;
+  const s = settingsRes.data;
+  // รวม qrImage เข้า s และ update state
+  s.qrImage = qrRes.success ? (qrRes.data?.qrImage || '') : (state.settings.qrImage || '');
+  state.settings.qrImage = s.qrImage;
+  // merge settings ที่เหลือด้วย
+  Object.assign(state.settings, s);
   const trip = state.currentBooking.trip;
   if (!total) total = trip.price * (state.currentBooking.passengers || 1);
   if (!depositAmt) depositAmt = Math.ceil(total * 0.5);
@@ -3547,9 +3564,10 @@ async function searchBooking() {
     // Build remaining/deposit payment section
     let remainingHtml = '';
     if (b.status === 'deposit_pending') {
-      // มัดจำยังรอยืนยัน — แสดง bank/QR เพื่อชำระมัดจำ + hint รอ admin ยืนยัน
-      const settingsRes = await apiCall('getSettings');
+      // มัดจำยังรอยืนยัน — โหลด settings + QR แบบ parallel
+      const [settingsRes, qrRes] = await Promise.all([apiCall('getSettings'), apiCall('getQRImage')]);
       const s = settingsRes.success ? settingsRes.data : {};
+      s.qrImage = qrRes.success ? (qrRes.data?.qrImage || '') : '';
       const depositAmt = Number(b.depositAmount||0);
       const _isPromptPay1 = s.bankName === 'PromptPay';
       const _ppId1 = s.promptPayId ? String(s.promptPayId).replace(/^'/,'') : '';
@@ -3558,7 +3576,7 @@ async function searchBooking() {
         <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.1); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
           <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">🪙 ชำระมัดจำ ฿${depositAmt.toLocaleString()}</div>
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">กรุณาโอนมัดจำตามช่องทางด้านล่าง แล้วรอ Admin ยืนยัน</div>
-          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
+          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);" loading="eager"></div>` : ''}
           ${_isPromptPay1 && (_ppDisplay1 || s.bankAccountName) ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
             <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">⚡ พร้อมเพย์ (PromptPay)</div>
             ${(s.promptPayAccountName || s.bankAccountName) ? `<div style="font-weight:600; margin-bottom:6px;">${s.promptPayAccountName || s.bankAccountName}</div>` : ''}
@@ -3574,9 +3592,10 @@ async function searchBooking() {
           </div>
         </div>`;
     } else if (b.status === 'deposit_confirmed') {
-      // มัดจำยืนยันแล้ว — แสดงช่องชำระส่วนที่เหลือ
-      const settingsRes = await apiCall('getSettings');
+      // มัดจำยืนยันแล้ว — โหลด settings + QR แบบ parallel
+      const [settingsRes, qrRes] = await Promise.all([apiCall('getSettings'), apiCall('getQRImage')]);
       const s = settingsRes.success ? settingsRes.data : {};
+      s.qrImage = qrRes.success ? (qrRes.data?.qrImage || '') : '';
       const remaining = Number(b.totalAmount||0) - Number(b.depositAmount||0);
       const _isPromptPay2 = s.bankName === 'PromptPay';
       const _ppId2 = s.promptPayId ? String(s.promptPayId).replace(/^'/,'') : '';
@@ -3585,7 +3604,7 @@ async function searchBooking() {
         <div style="margin-top:16px; padding:16px; background:rgba(255,224,138,0.12); border:1.5px solid rgba(255,208,77,0.4); border-radius:14px;">
           <div style="font-weight:700; font-size:13px; color:#a06c00; margin-bottom:4px;">💰 ชำระส่วนที่เหลือ ฿${remaining.toLocaleString()}</div>
           <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Admin ยืนยันมัดจำแล้ว กรุณาชำระยอดที่เหลือ</div>
-          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);"></div>` : ''}
+          ${s.qrImage ? `<div style="text-align:center; margin-bottom:12px;"><img src="${s.qrImage}" style="max-width:160px; border-radius:10px; border:2px solid rgba(255,208,77,0.3);" loading="eager"></div>` : ''}
           ${_isPromptPay2 && (_ppDisplay2 || s.bankAccountName) ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px; background:white; border-radius:10px; padding:12px;">
             <div style="color:var(--text-muted); font-size:11px; margin-bottom:4px;">⚡ พร้อมเพย์ (PromptPay)</div>
             ${(s.promptPayAccountName || s.bankAccountName) ? `<div style="font-weight:600; margin-bottom:6px;">${s.promptPayAccountName || s.bankAccountName}</div>` : ''}
@@ -5305,20 +5324,27 @@ function loadTripImages(imageVal) {
 }
 
 async function loadPaymentSettings() {
-  const res = await apiCall('getSettings');
-  if (!res.success) return;
-  const s = res.data;
+  // โหลด settings (ไม่มี qrImage) และ QR image แบบ parallel
+  const [settingsRes, qrRes] = await Promise.all([
+    apiCall('getSettings'),
+    apiCall('getQRImage')
+  ]);
+  if (!settingsRes.success) return;
+  const s = settingsRes.data;
+
+  // อัปเดต state.settings รวมถึง qrImage
+  const qrImage = qrRes.success ? (qrRes.data?.qrImage || '') : '';
+  s.qrImage = qrImage;
+  Object.assign(state.settings, s);
 
   // ── Bank Name: set dropdown ──────────────────────────────
   const bankSelect = document.getElementById('bank-name');
   if (bankSelect && s.bankName) {
-    // Try to match option value exactly
     let matched = false;
     for (let opt of bankSelect.options) {
       if (opt.value === s.bankName) { opt.selected = true; matched = true; break; }
     }
     if (!matched) {
-      // Add as custom option
       const customOpt = document.createElement('option');
       customOpt.value = s.bankName;
       customOpt.textContent = s.bankName;
@@ -5332,8 +5358,14 @@ async function loadPaymentSettings() {
   if (s.companyTaxId) document.getElementById('co-taxid').value = s.companyTaxId;
   if (s.companyAddress) document.getElementById('co-address').value = s.companyAddress;
   if (s.companyPhone) document.getElementById('co-phone').value = formatPhoneDisplay(s.companyPhone);
-  if (s.qrImage) {
-    document.getElementById('qr-display').innerHTML = `<img src="${s.qrImage}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
+
+  // แสดง QR image พร้อม cache-bust timestamp
+  const qrDisplay = document.getElementById('qr-display');
+  if (qrImage) {
+    const ts = Date.now();
+    qrDisplay.innerHTML = `<img src="${qrImage}" style="max-width:120px; max-height:120px; object-fit:contain;" data-ts="${ts}">`;
+  } else {
+    qrDisplay.innerHTML = `<div style="color:#999; font-size:12px; text-align:center;">No QR uploaded</div>`;
   }
 
   // Show last updated if available
@@ -5444,30 +5476,30 @@ function handleQRUpload(input) {
   const file = input.files[0];
   if (!file) return;
 
-  // Clear qr-display ทันที เพื่อป้องกันรูปเก่าค้างอยู่
+  // แสดง loading ทันที
   document.getElementById('qr-display').innerHTML = `<div style="color:#999; font-size:12px; text-align:center;">กำลังโหลด...</div>`;
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const newDataUrl = e.target.result;
+  // บีบอัดรูปก่อนอัพโหลดเพื่อลดขนาด base64
+  compressImageToBase64(file, async (compressed) => {
     // อัปเดต state ด้วยรูปใหม่ทันที
-    state.settings.qrImage = newDataUrl;
-    // บังคับ re-render ด้วย timestamp เพื่อหลีกเลี่ยง browser cache
+    state.settings.qrImage = compressed;
+    // แสดงรูปใหม่ทันทีพร้อม cache-bust timestamp
     const ts = Date.now();
-    document.getElementById('qr-display').innerHTML = `<img src="${newDataUrl}#${ts}" style="max-width:120px; max-height:120px; object-fit:contain;">`;
-    // บันทึกลง Google Sheets (await เพื่อให้รู้ผล)
-    const res = await apiCall('saveSettings', { qrImage: newDataUrl });
+    document.getElementById('qr-display').innerHTML =
+      `<img src="${compressed}" style="max-width:120px; max-height:120px; object-fit:contain;" data-ts="${ts}">`;
+
+    // บันทึกลง PropertiesService ผ่าน saveQRImage endpoint (POST เสมอ)
+    const res = await apiCall('saveQRImage', { qrImage: compressed });
     if (res && res.success) {
       showToast('✅ QR อัพโหลดและบันทึกสำเร็จ!', 'success');
-      logAction('QR Updated', 'Payment QR code updated');
+      logAction('QR Updated', 'Payment QR code updated (' + Math.round(compressed.length/1024) + 'KB)');
     } else {
-      showToast('⚠️ QR อัพโหลดแล้ว แต่บันทึกลง Server ไม่สำเร็จ — ลองอีกครั้ง', 'error');
-      console.error('saveSettings QR error:', res);
+      showToast('⚠️ QR แสดงแล้ว แต่บันทึกลง Server ไม่สำเร็จ: ' + (res?.error || 'unknown'), 'error');
+      console.error('saveQRImage error:', res);
     }
-  };
-  reader.readAsDataURL(file);
+  });
 
-  // รีเซ็ต input value เพื่อให้สามารถเลือกไฟล์เดิมซ้ำได้
+  // รีเซ็ต input เพื่อให้เลือกไฟล์เดิมซ้ำได้
   input.value = '';
 }
 
