@@ -886,7 +886,7 @@
       <span style="color:#e85555;">M</span><span style="color:#f5c842;">P</span><span style="color:#3a7bd5;">G</span><span style="font-size:14px; color: var(--text-secondary); font-weight:400; margin-left:6px; letter-spacing:0.05em;">BOOKING</span>
     </div>
     <div class="flex items-center gap-3">
-      <button class="btn-outline" style="font-size:16px; padding:7px 10px; line-height:1;" onclick="showView('admin-login')" title="Admin Portal"><span class="mi" style="font-size:18px;">settings</span></button>
+      <button class="btn-outline" style="font-size:16px; padding:7px 10px; line-height:1;" onclick="goToAdminPortal()" title="Admin Portal"><span class="mi" style="font-size:18px;">settings</span></button>
     </div>
   </div>
   <!-- Search + Category chips row -->
@@ -941,6 +941,10 @@
     </div>
   </div>
   <div class="flex items-center gap-3">
+    <!-- Booking Page button — visible only when admin is logged in -->
+    <button id="navbar-booking-btn" class="btn-outline" style="display:none; font-size:12px; padding:7px 14px; gap:5px; align-items:center;" onclick="adminGoToBooking()">
+      <span class="mi" style="font-size:15px; margin-right:4px;">confirmation_number</span>Booking Page
+    </button>
     <button class="btn-outline" style="font-size:12px; padding:7px 14px;" onclick="adminReload()"><span class="mi" style="font-size:14px; margin-right:4px;">refresh</span></button>
     <div id="navbar-admin-user" style="display:none; font-size:12px; color: var(--text-muted); padding: 0 4px;"></div>
   </div>
@@ -1207,6 +1211,16 @@
 
       <!-- STEP A: Username / Password -->
       <div class="card p-8" id="login-step-credentials">
+        <!-- Admin Announcement Message Box -->
+        <div id="admin-login-notice" style="display:none; margin-bottom:20px; padding:12px 16px; background:rgba(255,224,138,0.18); border:1.5px solid rgba(255,208,77,0.5); border-radius:14px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-size:20px; flex-shrink:0; margin-top:1px;">📢</span>
+            <div>
+              <div style="font-family:'Mitr',sans-serif; font-size:13px; font-weight:700; color:#8a5a00; margin-bottom:4px;" id="admin-notice-title">ประกาศสำหรับ Admin</div>
+              <div style="font-size:12px; color:#a06c00; line-height:1.6;" id="admin-notice-body">กรุณาเข้าสู่ระบบเพื่อจัดการการจองและทริป</div>
+            </div>
+          </div>
+        </div>
         <div style="margin-bottom:16px;">
           <label style="font-size:11px; color: var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px;">USERNAME</label>
           <input class="input-field" id="admin-username" placeholder="admin">
@@ -1519,7 +1533,13 @@
               <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">10 หลัก · รูปแบบ 0XX-XXX-XXXX</div>
             </div>
 
-            <!-- Account Name (hidden for PromptPay) -->
+            <!-- PromptPay Account Name (shown only for PromptPay) -->
+            <div id="promptpay-account-name-section" style="display:none;">
+              <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Name (ชื่อบัญชี)</label>
+              <input class="input-field" id="promptpay-account-name" placeholder="ชื่อ-นามสกุล / ชื่อบริษัท">
+            </div>
+
+            <!-- Account Name (shown only for regular bank) -->
             <div id="bank-account-name-section">
               <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">Account Name</label>
               <input class="input-field" id="bank-account-name" placeholder="MPG Booking Co.">
@@ -1918,7 +1938,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyAM12m84FV3mnVe31lh5nMbPFvUjYCoFXp7G80ePcG828V54axBimLlQeZ2XUcgQ1oFA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbysAnwN52z8Przojd6uS6amqbomnKLUyv3Onms4u8n-FrfRVl7MtNlkhTmG9-Slq5lkZQ/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -3452,6 +3472,24 @@ async function searchBooking() {
   }
 }
 
+// Navigate to admin portal — if already logged in, go straight to dashboard
+function goToAdminPortal() {
+  if (state.adminLoggedIn) {
+    // Hide return bar if visible
+    const bar = document.getElementById('admin-return-bar');
+    if (bar) bar.style.display = 'none';
+    _originalShowView('admin');
+    switchNavbar('admin');
+    const searchBar = document.getElementById('navbar-search-bar');
+    if (searchBar) searchBar.style.display = 'none';
+    state.view = 'admin';
+    window.scrollTo(0,0);
+    showToast('กลับสู่ Admin Portal แล้ว ✓', 'success');
+  } else {
+    showView('admin-login');
+  }
+}
+
 // ============================================================
 // ADMIN — 2-Step Login (Credentials → OTP)
 // ============================================================
@@ -3511,6 +3549,9 @@ async function adminVerifyOTP() {
     document.getElementById('dashboard-date').textContent = `${dd}/${mm}/${yyyy}`;
     const navUser = document.getElementById('navbar-admin-user');
     if (navUser) { navUser.textContent = '👤 ' + _loginUsername; navUser.style.display = ''; }
+    // Show booking page button in admin navbar
+    const bookingBtn = document.getElementById('navbar-booking-btn');
+    if (bookingBtn) bookingBtn.style.display = 'flex';
     // Attach tab/window-close guard
     window.addEventListener('beforeunload', _adminBeforeUnload);
     // Reset login form
@@ -3561,8 +3602,91 @@ function adminLogout() {
   state.adminToken = '';
   // Remove beforeunload guard
   window.removeEventListener('beforeunload', _adminBeforeUnload);
+  // Hide booking button
+  const bookingBtn = document.getElementById('navbar-booking-btn');
+  if (bookingBtn) bookingBtn.style.display = 'none';
   showView('home');
   showToast('ออกจากระบบแล้ว', 'info');
+}
+
+// Navigate to Booking Page while keeping admin session alive
+function adminGoToBooking() {
+  // Show user navbar with the booking content
+  document.getElementById('navbar-user').style.display = '';
+  document.getElementById('navbar-admin').style.display = 'none';
+  // Show search bar & chips
+  const searchBar = document.getElementById('navbar-search-bar');
+  if (searchBar) searchBar.style.display = 'flex';
+  // Show home view
+  ['home','booking','confirmation','admin-login','admin'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = 'none';
+  });
+  const homeEl = document.getElementById('view-home');
+  if (homeEl) { homeEl.style.display = ''; homeEl.className = homeEl.className.replace('fade-in','') + ' fade-in'; }
+  state.view = 'home-from-admin';
+  window.scrollTo(0,0);
+  // Adjust hero padding
+  requestAnimationFrame(() => adjustHeroPadding());
+  // Show a floating "Back to Admin Portal" button
+  showAdminReturnBar();
+}
+
+// Show a sticky bar to return to admin portal
+function showAdminReturnBar() {
+  let bar = document.getElementById('admin-return-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'admin-return-bar';
+    bar.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span class="mi" style="font-size:18px; color:#1a5fa0;">admin_panel_settings</span>
+        <span style="font-size:13px; font-weight:600; color:#1a5fa0;">คุณ login อยู่ในฐานะ Admin</span>
+        <span style="font-size:12px; color:#7a6270;">— กำลังดู Booking Page</span>
+        <button onclick="returnToAdmin()" style="
+          margin-left:auto;
+          background:linear-gradient(135deg,#7bb8e8,#5aacf0);
+          color:#fff; border:none; border-radius:20px;
+          padding:8px 18px; cursor:pointer;
+          font-family:'Mitr',sans-serif; font-size:12px; font-weight:700;
+          box-shadow:0 3px 10px rgba(90,172,240,0.35);
+          display:flex; align-items:center; gap:5px;
+        "><span class="mi" style="font-size:15px;">arrow_back</span>Admin Portal</button>
+      </div>`;
+    bar.style.cssText = `
+      position:fixed; bottom:0; left:0; right:0; z-index:150;
+      background:rgba(240,247,255,0.97);
+      backdrop-filter:blur(12px);
+      border-top:2px solid rgba(90,172,240,0.35);
+      padding:10px 20px;
+      box-shadow:0 -4px 20px rgba(90,172,240,0.15);
+      font-family:'Sarabun',sans-serif;
+    `;
+    document.body.appendChild(bar);
+  }
+  bar.style.display = '';
+}
+
+function returnToAdmin() {
+  // Hide return bar
+  const bar = document.getElementById('admin-return-bar');
+  if (bar) bar.style.display = 'none';
+  // Close any open modals
+  document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+  // Restore admin view
+  document.getElementById('navbar-user').style.display = 'none';
+  document.getElementById('navbar-admin').style.display = '';
+  const searchBar = document.getElementById('navbar-search-bar');
+  if (searchBar) searchBar.style.display = 'none';
+  ['home','booking','confirmation','admin-login','admin'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = 'none';
+  });
+  const adminEl = document.getElementById('view-admin');
+  if (adminEl) { adminEl.style.display = ''; adminEl.className = adminEl.className.replace('fade-in','') + ' fade-in'; }
+  state.view = 'admin';
+  window.scrollTo(0,0);
+  showToast('กลับสู่ Admin Portal แล้ว ✓', 'success');
 }
 
 async function adminReload() {
@@ -3595,12 +3719,26 @@ function _adminBeforeUnload(e) {
 // Override showView to intercept navigating away from admin without sign-out
 const _originalShowView = showView;
 window.showView = function(viewName) {
-  if (state.adminLoggedIn && viewName !== 'admin') {
+  // If admin is logged in and navigating to home/booking from admin — use adminGoToBooking instead
+  if (state.adminLoggedIn && (viewName === 'home' || viewName === 'booking' || viewName === 'confirmation') && state.view === 'admin') {
+    adminGoToBooking();
+    return;
+  }
+  // If navigating to admin-login while already logged in — go straight to admin dashboard
+  if (state.adminLoggedIn && viewName === 'admin-login') {
+    _originalShowView('admin');
+    return;
+  }
+  if (state.adminLoggedIn && viewName !== 'admin' && viewName !== 'home' && viewName !== 'booking' && viewName !== 'confirmation' && viewName !== 'home-from-admin') {
     if (!confirm('ต้องการออกจาก Admin Portal?\nกด OK เพื่อ Sign Out และกลับหน้าหลัก')) return;
     state.adminLoggedIn = false;
     state.adminUser = null;
     state.adminToken = '';
     window.removeEventListener('beforeunload', _adminBeforeUnload);
+    const bookingBtn = document.getElementById('navbar-booking-btn');
+    if (bookingBtn) bookingBtn.style.display = 'none';
+    const bar = document.getElementById('admin-return-bar');
+    if (bar) bar.style.display = 'none';
     showToast('ออกจากระบบแล้ว', 'info');
   }
   _originalShowView(viewName);
@@ -5078,9 +5216,10 @@ function setPromptPayType(type) {
 
 function onBankNameChange(val, prefill) {
   const isPromptPay = val === 'PromptPay';
-  document.getElementById('promptpay-type-section').style.display    = isPromptPay ? 'block' : 'none';
-  document.getElementById('bank-account-name-section').style.display = isPromptPay ? 'none' : 'block';
-  document.getElementById('bank-account-number-section').style.display = isPromptPay ? 'none' : 'block';
+  document.getElementById('promptpay-type-section').style.display          = isPromptPay ? 'block' : 'none';
+  document.getElementById('promptpay-account-name-section').style.display  = isPromptPay ? 'block' : 'none';
+  document.getElementById('bank-account-name-section').style.display       = isPromptPay ? 'none' : 'block';
+  document.getElementById('bank-account-number-section').style.display     = isPromptPay ? 'none' : 'block';
 
   if (isPromptPay) {
     // Restore PromptPay values if prefilling
@@ -5092,6 +5231,7 @@ function onBankNameChange(val, prefill) {
         setPromptPayType('citizen');
         if (prefill.promptPayId) document.getElementById('promptpay-citizen-id').value = formatCitizenIdDisplay(prefill.promptPayId);
       }
+      if (prefill.bankAccountName) document.getElementById('promptpay-account-name').value = prefill.bankAccountName;
     } else {
       setPromptPayType(_promptPayType);
     }
@@ -5164,13 +5304,13 @@ async function savePaymentSettings() {
       const raw = document.getElementById('promptpay-citizen-id').value.replace(/\D/g,'');
       if (raw.length !== 13) { showToast('Citizen ID ต้องมี 13 หลัก', 'error'); return; }
       data.promptPayId       = raw;
-      data.bankAccountName   = '';
+      data.bankAccountName   = document.getElementById('promptpay-account-name').value;
       data.bankAccountNumber = '';
     } else {
       const raw = document.getElementById('promptpay-phone').value.replace(/\D/g,'');
       if (raw.length !== 10) { showToast('Phone Number ต้องมี 10 หลัก', 'error'); return; }
       data.promptPayId       = raw;
-      data.bankAccountName   = '';
+      data.bankAccountName   = document.getElementById('promptpay-account-name').value;
       data.bankAccountNumber = '';
     }
   } else {
@@ -5503,6 +5643,31 @@ function initTripDatePickers() {
 }
 
 // ============================================================
+// ADMIN LOGIN NOTICE (message box shown on login page for admins)
+// ============================================================
+
+// Configure the notice here — set to null or '' to hide
+const ADMIN_LOGIN_NOTICE = {
+  enabled: true,
+  title: '📋 ประกาศสำหรับ Admin',
+  body: 'ยินดีต้อนรับเข้าสู่ระบบ MPG Booking Admin Portal<br>หากพบปัญหาการใช้งาน ติดต่อ Thiss7om'
+};
+
+function initAdminLoginNotice() {
+  const noticeBox = document.getElementById('admin-login-notice');
+  if (!noticeBox) return;
+  if (!ADMIN_LOGIN_NOTICE || !ADMIN_LOGIN_NOTICE.enabled) {
+    noticeBox.style.display = 'none';
+    return;
+  }
+  const titleEl = document.getElementById('admin-notice-title');
+  const bodyEl  = document.getElementById('admin-notice-body');
+  if (titleEl) titleEl.innerHTML = ADMIN_LOGIN_NOTICE.title || 'ประกาศสำหรับ Admin';
+  if (bodyEl)  bodyEl.innerHTML  = ADMIN_LOGIN_NOTICE.body  || '';
+  noticeBox.style.display = '';
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
@@ -5519,6 +5684,7 @@ window.addEventListener('DOMContentLoaded', () => {
   loadTrips();
   initTripDatePickers();
   initModalDirtyListeners();
+  initAdminLoginNotice();
   // Adjust hero padding after chips render
   requestAnimationFrame(() => { adjustHeroPadding(); });
   window.addEventListener('resize', adjustHeroPadding);
