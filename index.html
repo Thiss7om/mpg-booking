@@ -4490,50 +4490,250 @@ function _buildSeatsHTML(vansData, tripInfo, tripObj) {
 </body></html>`;
 }
 
-async function _renderHTMLToCanvas(htmlStr) {
-  return new Promise((resolve, reject) => {
-    // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:0;border:none;visibility:hidden;';
-    iframe.width  = '1400';
-    iframe.height = '1200';
-    document.body.appendChild(iframe);
+// Pure Canvas 2D drawing — no iframe, no html2canvas dependency
+function _drawSeatsCanvas(vansData, tripInfo, tripObj) {
+  const SC = 2; // retina scale
+  const PAD = 28;
+  const SEAT_W = 68, SEAT_H = 64, SEAT_GAP = 10;
+  const SEAT_R = 10;
+  const VAN_PAD = 18;
+  const VAN_INNER_W = 3 * SEAT_W + 2 * SEAT_GAP + VAN_PAD * 2; // 3 cols
+  const ROOF_H = 38;
+  const FRONT_ROW_H = SEAT_H + 14;
+  const DOOR_ROW_H = 20;
+  const HEADER_H = 90;
+  const LEGEND_H = 36;
 
-    iframe.onload = async () => {
-      try {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        const root = doc.getElementById('capture-root');
-        // Wait for fonts
-        await new Promise(r => setTimeout(r, 600));
-        // Size iframe to content
-        const w = root.scrollWidth + 4;
-        const h = root.scrollHeight + 4;
-        iframe.width  = w;
-        iframe.height = h;
-        await new Promise(r => setTimeout(r, 80));
+  // Compute van height: roof + front row + door + passenger rows
+  function vanHeight(van) {
+    const pasRows = Math.ceil((van.seats.length - 1) / 3);
+    return ROOF_H + FRONT_ROW_H + DOOR_ROW_H + pasRows * (SEAT_H + SEAT_GAP) + VAN_PAD * 2;
+  }
 
-        const canvas = await iframe.contentWindow.html2canvas(root, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#fdf8f5',
-          logging: false,
-          width: w,
-          height: h,
-        });
-        document.body.removeChild(iframe);
-        resolve(canvas);
-      } catch(e) {
-        document.body.removeChild(iframe);
-        reject(e);
-      }
-    };
+  // Layout: 2 vans per row
+  const VANS_PER_ROW = 2;
+  const VAN_COL_W = VAN_INNER_W;
+  const VAN_COL_GAP = 16;
+  const rows = Math.ceil(vansData.length / VANS_PER_ROW);
+  const maxVanH = Math.max(...vansData.map(vanHeight));
 
-    // Write HTML into iframe (include html2canvas script)
-    const h2cSrc = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    // Inject h2c script into the html before writing
-    const withScript = htmlStr.replace('</head>', `<script src="${h2cSrc}"><\/script></head>`);
-    iframe.srcdoc = withScript;
+  const totalW = PAD * 2 + VANS_PER_ROW * VAN_COL_W + (VANS_PER_ROW - 1) * VAN_COL_GAP;
+  const totalH = PAD + HEADER_H + rows * (maxVanH + VAN_COL_GAP) - VAN_COL_GAP + LEGEND_H + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = totalW  * SC;
+  canvas.height = totalH  * SC;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SC, SC);
+
+  // ── helpers ──
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function text(str, x, y, font, color, align = 'center', maxW = 9999) {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(str, x, y, maxW);
+  }
+
+  // ── Background ──
+  ctx.fillStyle = '#fdf8f5';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  // ── Header ──
+  let hy = PAD;
+  text('🚐 MPG BOOKING', PAD, hy + 22, 'bold 18px Mitr,sans-serif', '#3a2a35', 'left');
+  hy += 28;
+  const tripName  = tripObj ? tripObj.name : (tripInfo.split('—')[0] || '').trim();
+  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
+  const dest      = tripObj ? (tripObj.destination || '') : '';
+  text(tripName,  PAD, hy + 14, 'bold 14px Mitr,sans-serif', '#3a2a35', 'left', totalW - PAD * 2);
+  hy += 18;
+  if (dest) {
+    text('📍 ' + dest, PAD, hy + 12, '12px Mitr,sans-serif', '#7a6270', 'left');
+    hy += 16;
+  }
+  if (dateRange) {
+    text('📅 ' + dateRange, PAD, hy + 12, '12px Mitr,sans-serif', '#7a6270', 'left');
+    hy += 16;
+  }
+  // Divider
+  hy = PAD + HEADER_H - 8;
+  ctx.strokeStyle = 'rgba(255,179,71,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PAD, hy); ctx.lineTo(totalW - PAD, hy); ctx.stroke();
+
+  // ── Seat colors ──
+  const SC_COLORS = {
+    available: { bg: 'rgba(181,240,200,0.55)', border: 'rgba(82,201,122,0.7)',   fg: '#1a7a40' },
+    booked:    { bg: 'rgba(255,179,179,0.65)', border: 'rgba(255,107,138,0.7)',  fg: '#c0003a' },
+    staff:     { bg: 'rgba(168,212,245,0.65)', border: 'rgba(90,172,240,0.7)',   fg: '#1a5fa0' },
+    driver:    { bg: 'rgba(212,184,240,0.55)', border: 'rgba(180,140,220,0.6)',  fg: '#5a3a80' },
+  };
+
+  function drawSeat(type, label, sx, sy, w = SEAT_W, h = SEAT_H) {
+    const c = SC_COLORS[type] || SC_COLORS.available;
+    // Fill
+    rr(sx, sy, w, h, SEAT_R);
+    ctx.fillStyle = c.bg;
+    ctx.fill();
+    // Border
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Bottom nub
+    rr(sx + 8, sy + h, w - 16, 6, 3);
+    ctx.fillStyle = c.bg;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Icon
+    const icon = type === 'driver' ? '🧑‍✈️' : type === 'booked' ? '' : '💺';
+    const cx = sx + w / 2;
+    if (icon) {
+      ctx.font = '15px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(icon, cx, sy + h * 0.42);
+    }
+    // Label
+    const fontSize = label.length > 7 ? 8 : label.length > 5 ? 9 : 10;
+    ctx.font = `bold ${fontSize}px Mitr,sans-serif`;
+    ctx.fillStyle = c.fg;
+    ctx.textAlign = 'center';
+    // Wrap if needed
+    const maxLabelW = w - 6;
+    if (ctx.measureText(label).width > maxLabelW) {
+      const half = Math.ceil(label.length / 2);
+      ctx.fillText(label.slice(0, half), cx, sy + (icon ? h * 0.68 : h * 0.52));
+      ctx.fillText(label.slice(half),    cx, sy + (icon ? h * 0.83 : h * 0.68));
+    } else {
+      ctx.fillText(label, cx, sy + (icon ? h * 0.78 : h * 0.58));
+    }
+  }
+
+  function drawVan(van, ox, oy) {
+    const vw = VAN_INNER_W;
+    const vh = vanHeight(van);
+
+    // Van card background (gradient simulation: two rects)
+    const grad = ctx.createLinearGradient(ox, oy, ox + vw, oy + vh);
+    grad.addColorStop(0, '#fff5f7');
+    grad.addColorStop(1, '#f0f7ff');
+    rr(ox, oy, vw, vh, 18);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,179,179,0.45)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Roof gradient bar
+    const roofGrad = ctx.createLinearGradient(ox, oy, ox + vw, oy);
+    roofGrad.addColorStop(0,    '#ffb3b3');
+    roofGrad.addColorStop(0.5,  '#ffe08a');
+    roofGrad.addColorStop(1,    '#a8d4f5');
+    // Roof shape: top half of rounded rect
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ox + vw / 2, oy + ROOF_H * 1.5, vw * 0.6, Math.PI, 0);
+    ctx.lineTo(ox + vw, oy + ROOF_H);
+    ctx.lineTo(ox, oy + ROOF_H);
+    ctx.closePath();
+    ctx.fillStyle = roofGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // Roof text
+    const roofLabel = `🚐 คันที่ ${van.vanNum} / ${van.totalVans} — ${van.seatsInVan} ที่นั่ง`;
+    ctx.font = 'bold 11px Mitr,sans-serif';
+    ctx.fillStyle = '#3a2a35';
+    ctx.textAlign = 'center';
+    ctx.fillText(roofLabel, ox + vw / 2, oy + ROOF_H * 0.65);
+
+    let cy = oy + ROOF_H + VAN_PAD * 0.5;
+
+    // Front row: frontSeat | FRONT label | Driver
+    const frontSeat = van.seats[0];
+    const frontY = cy;
+    drawSeat(frontSeat.type, frontSeat.label, ox + VAN_PAD, frontY);
+    ctx.font = '9px Mitr,sans-serif';
+    ctx.fillStyle = '#bba8b2';
+    ctx.textAlign = 'center';
+    ctx.fillText('FRONT', ox + vw / 2, frontY + SEAT_H / 2 + 4);
+    drawSeat('driver', 'Driver', ox + vw - VAN_PAD - SEAT_W, frontY);
+
+    cy += SEAT_H + 10;
+
+    // Door divider
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(180,140,160,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ox + VAN_PAD, cy);
+    ctx.lineTo(ox + vw - VAN_PAD, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '9px Mitr,sans-serif';
+    ctx.fillStyle = '#bba8b2';
+    ctx.textAlign = 'left';
+    ctx.fillText('Door', ox + VAN_PAD + 4, cy - 2);
+    cy += DOOR_ROW_H;
+
+    // Passenger rows (3 per row)
+    const pasSeats = van.seats.slice(1);
+    for (let i = 0; i < pasSeats.length; i += 3) {
+      const row = pasSeats.slice(i, i + 3);
+      row.forEach((s, ci) => {
+        drawSeat(s.type, s.label, ox + VAN_PAD + ci * (SEAT_W + SEAT_GAP), cy);
+      });
+      cy += SEAT_H + SEAT_GAP;
+    }
+  }
+
+  // ── Draw all vans ──
+  const startY = PAD + HEADER_H;
+  vansData.forEach((van, idx) => {
+    const col = idx % VANS_PER_ROW;
+    const row = Math.floor(idx / VANS_PER_ROW);
+    const ox  = PAD + col * (VAN_COL_W + VAN_COL_GAP);
+    const oy  = startY + row * (maxVanH + VAN_COL_GAP);
+    drawVan(van, ox, oy);
   });
+
+  // ── Legend ──
+  const legendY = totalH - LEGEND_H + 8;
+  const legendItems = [
+    { bg: 'rgba(181,240,200,0.65)', border: 'rgba(82,201,122,0.7)',  label: 'ว่าง' },
+    { bg: 'rgba(255,179,179,0.65)', border: 'rgba(255,107,138,0.7)', label: 'จองแล้ว' },
+    { bg: 'rgba(168,212,245,0.65)', border: 'rgba(90,172,240,0.7)',  label: 'Staff' },
+  ];
+  let lx = PAD;
+  legendItems.forEach(item => {
+    ctx.fillStyle = item.bg;
+    ctx.strokeStyle = item.border;
+    ctx.lineWidth = 1;
+    rr(lx, legendY, 12, 12, 3);
+    ctx.fill(); ctx.stroke();
+    ctx.font = '11px Mitr,sans-serif';
+    ctx.fillStyle = '#7a6270';
+    ctx.textAlign = 'left';
+    ctx.fillText(item.label, lx + 16, legendY + 10);
+    lx += 16 + ctx.measureText(item.label).width + 14;
+  });
+
+  return canvas;
 }
 
 async function captureSeatsImage() {
@@ -4596,8 +4796,7 @@ async function captureSeatsImage() {
     removeCaptureModal();
     showToast('⏳ กำลังสร้างรูปภาพ...', 'info');
     try {
-      const htmlStr = _buildSeatsHTML(vansSubset, tripInfo, tripObj);
-      const canvas  = await _renderHTMLToCanvas(htmlStr);
+      const canvas   = _drawSeatsCanvas(vansSubset, tripInfo, tripObj);
       const filename = `seats_${safeName}${filenameSuffix}.png`;
       showImagePreviewModal(canvas.toDataURL('image/png'), filename);
     } catch(e) {
