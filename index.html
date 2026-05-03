@@ -4342,84 +4342,198 @@ async function saveAdminSeats() {
 // ── CAPTURE SEAT IMAGE ───────────────────────────────────────
 
 // Helper: build a self-contained printable wrapper DOM for one or all vans
-function _buildPrintNode(vanNodes, tripInfo, tripObj) {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = [
-    'font-family: Mitr, Sarabun, sans-serif',
-    'background: #fdf8f5',
-    'padding: 20px 20px 16px',
-    'display: inline-block',
-    'min-width: 300px',
-    'border-radius: 20px',
-    'box-shadow: 0 8px 32px rgba(180,120,140,0.18)',
-  ].join(';');
+// ── SEAT IMAGE CAPTURE SYSTEM ────────────────────────────────
+// Reads live DOM state, builds 100% inline-styled HTML, renders via
+// a hidden <iframe> so html2canvas sees a clean, stylesheet-free document.
 
-  // ── Trip info header ──
-  const tripName  = tripObj ? tripObj.name        : (tripInfo.split('—')[0] || '').trim();
-  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
-  const dest      = tripObj ? tripObj.destination  : '';
-
-  const header = document.createElement('div');
-  header.style.cssText = 'margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid rgba(255,179,71,0.3);';
-  header.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <span style="font-size:20px;">🚐</span>
-      <span style="font-family:Mitr,sans-serif;font-size:18px;font-weight:700;color:#3a2a35;">MPG BOOKING</span>
-    </div>
-    <div style="font-family:Mitr,sans-serif;font-size:15px;font-weight:700;color:#3a2a35;margin-bottom:3px;">${tripName}</div>
-    ${dest ? `<div style="font-size:12px;color:#7a6270;margin-bottom:2px;">📍 ${dest}</div>` : ''}
-    ${dateRange ? `<div style="font-size:12px;color:#7a6270;">📅 ${dateRange}</div>` : ''}
-  `;
-  wrap.appendChild(header);
-
-  // ── Van blocks ──
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:14px;justify-content:center;';
-  vanNodes.forEach(vn => {
-    const clone = vn.cloneNode(true);
-    // Make sure background & border are fully opaque for screenshot
-    clone.style.background = 'linear-gradient(160deg,#fff5f7,#f0f7ff)';
-    clone.style.border = '2px solid rgba(255,179,179,0.4)';
-    clone.style.borderRadius = '20px';
-    clone.style.padding = '16px';
-    clone.style.minWidth = '220px';
-    clone.style.boxSizing = 'border-box';
-    // Remove onclick handlers so they don't show pointer styles
-    clone.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
-    grid.appendChild(clone);
-  });
-  wrap.appendChild(grid);
-
-  // ── Legend ──
-  const legend = document.createElement('div');
-  legend.style.cssText = 'display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:10px;border-top:1px solid rgba(180,140,160,0.15);font-size:11px;color:#7a6270;';
-  legend.innerHTML = `
-    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(181,240,200,0.6);border:1px solid rgba(82,201,122,0.6);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>ว่าง</span>
-    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,179,179,0.5);border:1px solid rgba(255,107,138,0.5);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>จองแล้ว</span>
-    <span><span style="display:inline-block;width:10px;height:10px;background:rgba(168,212,245,0.5);border:1px solid rgba(90,172,240,0.5);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>Staff</span>
-  `;
-  wrap.appendChild(legend);
-
-  return wrap;
+function _readSeatData() {
+  // Returns array of van data objects from the live admin-van-container
+  const container = document.getElementById('admin-van-container');
+  const tripId    = container.dataset.tripId || '';
+  const totalSeats = parseInt(container.dataset.totalSeats) || 10;
+  const seatsPerVan = 10;
+  const numVans = Math.ceil(totalSeats / seatsPerVan);
+  const vans = [];
+  for (let v = 0; v < numVans; v++) {
+    const startSeat = v * seatsPerVan + 1;
+    const endSeat   = Math.min(startSeat + seatsPerVan - 1, totalSeats);
+    const seats = [];
+    for (let s = startSeat; s <= endSeat; s++) {
+      const el = document.getElementById('admin-seat-' + s);
+      let type = 'available'; // available | booked | staff | driver
+      let label = 'S' + s;
+      if (el) {
+        if (el.classList.contains('seat-booked')) {
+          type = 'booked';
+          // get name from inner span
+          const span = el.querySelector('span');
+          label = span ? span.textContent.trim() : 'จองแล้ว';
+          if (!label) label = 'จองแล้ว';
+        } else if (el.classList.contains('seat-staff')) {
+          type = 'staff';
+          const lbl = el.querySelector('[id^="admin-seat-label-"]');
+          label = lbl ? lbl.textContent.trim() : 'Staff';
+          if (!label) label = 'Staff';
+        }
+      }
+      seats.push({ num: s, type, label, isFirst: s === startSeat });
+    }
+    vans.push({ vanNum: v + 1, totalVans: numVans, seats, seatsInVan: seats.length });
+  }
+  return vans;
 }
 
-// Helper: run html2canvas on a node that is temporarily appended off-screen
-async function _captureNode(node) {
-  node.style.position = 'fixed';
-  node.style.top = '-9999px';
-  node.style.left = '0';
-  node.style.zIndex = '-1';
-  document.body.appendChild(node);
-  await new Promise(r => setTimeout(r, 120)); // let fonts/layout settle
-  const canvas = await html2canvas(node, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#fdf8f5',
-    logging: false,
-    allowTaint: true,
+function _buildSeatsHTML(vansData, tripInfo, tripObj) {
+  const tripName  = tripObj ? tripObj.name       : (tripInfo.split('—')[0] || '').trim();
+  const dateRange = tripObj ? formatDateRange(tripObj) : (tripInfo.split('—').slice(1).join('—') || '').trim();
+  const dest      = tripObj ? (tripObj.destination || '') : '';
+
+  // Colors — fully resolved, no CSS vars
+  const C = {
+    available: { bg: 'rgba(181,240,200,0.55)', border: 'rgba(82,201,122,0.6)',  color: '#1a7a40' },
+    booked:    { bg: 'rgba(255,179,179,0.55)', border: 'rgba(255,107,138,0.55)', color: '#c0003a' },
+    staff:     { bg: 'rgba(168,212,245,0.55)', border: 'rgba(90,172,240,0.5)',  color: '#1a5fa0' },
+    driver:    { bg: 'rgba(212,184,240,0.45)', border: 'rgba(180,140,220,0.5)', color: '#5a3a80' },
+  };
+
+  function seatBox(type, label, isDriver = false) {
+    const t = isDriver ? 'driver' : type;
+    const c = C[t];
+    const icon = isDriver ? '🧑‍✈️' : (type === 'booked' ? '' : '💺');
+    const lbl  = isDriver ? 'Driver' : label;
+    return `<div style="
+      width:62px;height:62px;border-radius:10px 10px 5px 5px;
+      background:${c.bg};border:2px solid ${c.border};color:${c.color};
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      font-family:'Mitr',sans-serif;font-size:10px;font-weight:700;
+      box-sizing:border-box;flex-shrink:0;
+    ">
+      ${icon ? `<div style="font-size:16px;line-height:1;">${icon}</div>` : ''}
+      <div style="font-size:${lbl.length > 6 ? '8px' : '10px'};text-align:center;line-height:1.2;word-break:break-all;max-width:56px;padding:0 2px;">${lbl}</div>
+    </div>`;
+  }
+
+  function vanBlock(van) {
+    const frontSeat = van.seats[0];
+    const pasSeats  = van.seats.slice(1);
+    // rows of 3
+    const rows = [];
+    for (let i = 0; i < pasSeats.length; i += 3) rows.push(pasSeats.slice(i, i+3));
+
+    const pasHTML = rows.map(row => `
+      <div style="display:flex;gap:10px;justify-content:flex-start;margin-bottom:10px;">
+        ${row.map(s => seatBox(s.type, s.label)).join('')}
+      </div>`).join('');
+
+    return `<div style="
+      background:linear-gradient(160deg,#fff5f7,#f0f7ff);
+      border:2px solid rgba(255,179,179,0.4);border-radius:18px;
+      padding:14px 16px 16px;box-sizing:border-box;
+      min-width:230px;max-width:280px;
+    ">
+      <!-- Van roof header -->
+      <div style="
+        background:linear-gradient(90deg,#ffb3b3,#ffe08a,#a8d4f5);
+        border-radius:50% 50% 0 0;height:36px;
+        display:flex;align-items:center;justify-content:center;
+        font-family:'Mitr',sans-serif;font-size:11px;font-weight:700;
+        color:#3a2a35;letter-spacing:0.08em;margin-bottom:12px;
+        text-shadow:0 1px 2px rgba(255,255,255,0.5);
+      ">🚐 คันที่ ${van.vanNum} / ${van.totalVans} — ${van.seatsInVan} ที่นั่ง</div>
+      <!-- Front row: first seat + FRONT label + Driver -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        ${seatBox(frontSeat.type, frontSeat.label)}
+        <div style="font-family:'Mitr',sans-serif;font-size:10px;color:#bba8b2;letter-spacing:0.08em;">FRONT</div>
+        ${seatBox('driver', 'Driver', true)}
+      </div>
+      <!-- Door label -->
+      <div style="border-top:1px dashed rgba(180,140,160,0.25);margin-bottom:10px;position:relative;">
+        <span style="position:absolute;top:-8px;left:8px;background:#fdf8f5;padding:0 6px;font-size:9px;color:#bba8b2;font-family:'Mitr',sans-serif;letter-spacing:0.1em;">Door</span>
+      </div>
+      <!-- Passenger rows -->
+      ${pasHTML}
+    </div>`;
+  }
+
+  const vansHTML = vansData.map(v => vanBlock(v)).join('');
+
+  return `<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#fdf8f5;}</style>
+</head><body>
+<div id="capture-root" style="
+  display:inline-block;padding:22px 22px 18px;background:#fdf8f5;
+  font-family:'Mitr',sans-serif;min-width:280px;
+">
+  <!-- Header -->
+  <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid rgba(255,179,71,0.35);">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <span style="font-size:22px;">🚐</span>
+      <span style="font-family:'Mitr',sans-serif;font-size:19px;font-weight:700;color:#3a2a35;">MPG BOOKING</span>
+    </div>
+    <div style="font-size:15px;font-weight:700;color:#3a2a35;margin-bottom:3px;">${tripName}</div>
+    ${dest ? `<div style="font-size:12px;color:#7a6270;margin-bottom:2px;">📍 ${dest}</div>` : ''}
+    ${dateRange ? `<div style="font-size:12px;color:#7a6270;">📅 ${dateRange}</div>` : ''}
+  </div>
+  <!-- Vans grid -->
+  <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:flex-start;">
+    ${vansHTML}
+  </div>
+  <!-- Legend -->
+  <div style="display:flex;gap:16px;margin-top:14px;padding-top:10px;border-top:1px solid rgba(180,140,160,0.18);font-size:11px;color:#7a6270;font-family:'Mitr',sans-serif;">
+    <span><span style="display:inline-block;width:11px;height:11px;background:rgba(181,240,200,0.7);border:1px solid rgba(82,201,122,0.7);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>ว่าง</span>
+    <span><span style="display:inline-block;width:11px;height:11px;background:rgba(255,179,179,0.7);border:1px solid rgba(255,107,138,0.6);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>จองแล้ว</span>
+    <span><span style="display:inline-block;width:11px;height:11px;background:rgba(168,212,245,0.7);border:1px solid rgba(90,172,240,0.6);border-radius:3px;margin-right:4px;vertical-align:middle;"></span>Staff</span>
+  </div>
+</div>
+</body></html>`;
+}
+
+async function _renderHTMLToCanvas(htmlStr) {
+  return new Promise((resolve, reject) => {
+    // Create hidden iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:0;border:none;visibility:hidden;';
+    iframe.width  = '1400';
+    iframe.height = '1200';
+    document.body.appendChild(iframe);
+
+    iframe.onload = async () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const root = doc.getElementById('capture-root');
+        // Wait for fonts
+        await new Promise(r => setTimeout(r, 600));
+        // Size iframe to content
+        const w = root.scrollWidth + 4;
+        const h = root.scrollHeight + 4;
+        iframe.width  = w;
+        iframe.height = h;
+        await new Promise(r => setTimeout(r, 80));
+
+        const canvas = await iframe.contentWindow.html2canvas(root, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#fdf8f5',
+          logging: false,
+          width: w,
+          height: h,
+        });
+        document.body.removeChild(iframe);
+        resolve(canvas);
+      } catch(e) {
+        document.body.removeChild(iframe);
+        reject(e);
+      }
+    };
+
+    // Write HTML into iframe (include html2canvas script)
+    const h2cSrc = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    // Inject h2c script into the html before writing
+    const withScript = htmlStr.replace('</head>', `<script src="${h2cSrc}"><\/script></head>`);
+    iframe.srcdoc = withScript;
   });
-  document.body.removeChild(node);
-  return canvas;
 }
 
 async function captureSeatsImage() {
@@ -4428,14 +4542,13 @@ async function captureSeatsImage() {
   const tripId    = container.dataset.tripId;
   const tripObj   = state.trips ? state.trips.find(t => t.id === tripId) : null;
 
-  // Collect individual van DOM nodes (direct children of the container)
-  const vanNodes = Array.from(container.children);
-  if (!vanNodes.length) { showToast('ไม่พบข้อมูลที่นั่ง', 'error'); return; }
+  const allVans = _readSeatData();
+  if (!allVans.length) { showToast('ไม่พบข้อมูลที่นั่ง', 'error'); return; }
 
-  const numVans = vanNodes.length;
+  const numVans = allVans.length;
   const safeName = tripInfo.replace(/[^a-z0-9ก-ฮ\s]/gi, '_').replace(/\s+/g, '_').substring(0, 40);
 
-  // Show options modal
+  // ── Options modal ──
   const optionHtml = `
     <div id="_capture-modal" style="
       position:fixed;inset:0;z-index:9999;
@@ -4446,33 +4559,32 @@ async function captureSeatsImage() {
         background:#fff;border-radius:24px;padding:28px 24px;
         max-width:360px;width:calc(100% - 32px);
         box-shadow:0 24px 60px rgba(180,120,140,0.25);
-        font-family:Mitr,Sarabun,sans-serif;
+        font-family:'Mitr',sans-serif;
       ">
-        <div style="font-size:20px;font-weight:700;color:#3a2a35;margin-bottom:4px;">📸 บันทึกรูปที่นั่ง</div>
+        <div style="font-size:18px;font-weight:700;color:#3a2a35;margin-bottom:4px;">📸 บันทึกรูปที่นั่ง</div>
         <div style="font-size:12px;color:#7a6270;margin-bottom:20px;">${tripInfo}</div>
         <div style="display:grid;gap:10px;">
           <button id="_cap-all" style="
             background:linear-gradient(135deg,#ffb347,#ff8fa3);color:#fff;border:none;
-            border-radius:14px;padding:14px;cursor:pointer;font-family:Mitr,sans-serif;
+            border-radius:14px;padding:14px;cursor:pointer;font-family:'Mitr',sans-serif;
             font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(255,143,163,0.35);
           ">🚐 บันทึกทั้งหมด (${numVans} คัน รวมเป็นรูปเดียว)</button>
-          ${numVans > 1 ? vanNodes.map((_, i) => `
+          ${numVans > 1 ? allVans.map((_, i) => `
           <button id="_cap-van-${i}" style="
-            background:rgba(168,212,245,0.25);color:#1a5fa0;
+            background:rgba(168,212,245,0.2);color:#1a5fa0;
             border:1.5px solid rgba(90,172,240,0.4);
-            border-radius:14px;padding:12px;cursor:pointer;font-family:Mitr,sans-serif;
+            border-radius:14px;padding:12px;cursor:pointer;font-family:'Mitr',sans-serif;
             font-size:13px;font-weight:600;
-          ">🚌 บันทึกแยก คันที่ ${i+1}/${numVans}</button>
+          ">🚌 บันทึกแยก คันที่ ${i+1} / ${numVans}</button>
           `).join('') : ''}
           <button onclick="document.getElementById('_capture-modal').remove()" style="
             background:white;color:#7a6270;border:1.5px solid rgba(180,140,160,0.25);
             border-radius:14px;padding:11px;cursor:pointer;font-size:13px;
-            font-family:Mitr,sans-serif;
+            font-family:'Mitr',sans-serif;
           ">ยกเลิก</button>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
   document.body.insertAdjacentHTML('beforeend', optionHtml);
 
   function removeCaptureModal() {
@@ -4480,28 +4592,26 @@ async function captureSeatsImage() {
     if (m) m.remove();
   }
 
-  async function doCapture(nodes, filenameSuffix) {
+  async function doCapture(vansSubset, filenameSuffix) {
     removeCaptureModal();
     showToast('⏳ กำลังสร้างรูปภาพ...', 'info');
     try {
-      const printNode = _buildPrintNode(nodes, tripInfo, tripObj);
-      const canvas = await _captureNode(printNode);
+      const htmlStr = _buildSeatsHTML(vansSubset, tripInfo, tripObj);
+      const canvas  = await _renderHTMLToCanvas(htmlStr);
       const filename = `seats_${safeName}${filenameSuffix}.png`;
       showImagePreviewModal(canvas.toDataURL('image/png'), filename);
     } catch(e) {
-      console.error(e);
+      console.error('captureSeatsImage error:', e);
       showToast('เกิดข้อผิดพลาด: ' + e.message, 'error');
     }
   }
 
-  // All vans
-  document.getElementById('_cap-all').onclick = () => doCapture(vanNodes, '');
+  document.getElementById('_cap-all').onclick = () => doCapture(allVans, '');
 
-  // Per-van buttons
   if (numVans > 1) {
-    vanNodes.forEach((_, i) => {
+    allVans.forEach((_, i) => {
       const btn = document.getElementById(`_cap-van-${i}`);
-      if (btn) btn.onclick = () => doCapture([vanNodes[i]], `_คันที่${i+1}`);
+      if (btn) btn.onclick = () => doCapture([allVans[i]], `_คันที่${i+1}`);
     });
   }
 }
