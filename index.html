@@ -1845,7 +1845,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyqEDtyPTijApUImv7S6mfA-6hFYP4QBifjfVa2M0X0rrKwPD3o70rrp3c4GbBDgb1FFg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWtzsVEWNB3xK16j6LFvlPiK0EnePjsw2kRCvnkVCzXBiItb_y3afx4fHEpr3XuMmM/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -2561,68 +2561,21 @@ function compressImageToBase64(file, callback, maxW = 800, maxH = 800, quality =
 // ============================================================
 
 // ── ตรวจสอบ slip ด้วย Claude Vision ──────────────────────────
+// ── verifySlipWithAI: ส่งรูปไปให้ GAS backend ตรวจสอบ ──────────
+// (เรียกผ่าน apiCall เพื่อหลีกเลี่ยง CORS ที่เกิดจากการเรียก Anthropic โดยตรง)
 async function verifySlipWithAI(base64DataUrl, expectedAmount) {
-  // ดึงแค่ base64 data (ตัด prefix "data:image/jpeg;base64,")
-  const base64Data = base64DataUrl.split(',')[1];
-  const mediaType  = base64DataUrl.split(';')[0].replace('data:', '') || 'image/jpeg';
-
-  const amountHint = expectedAmount
-    ? `ยอดเงินที่คาดหวังในการโอนคือ ฿${Number(expectedAmount).toLocaleString()} บาท`
-    : 'ไม่ทราบยอดเงินที่คาดหวัง';
-
-  const prompt = `คุณเป็นผู้เชี่ยวชาญในการตรวจสอบสลิปการโอนเงินธนาคารไทย
-
-วิเคราะห์รูปภาพสลิปการโอนเงินนี้และตอบกลับเป็น JSON เท่านั้น ไม่มีข้อความอื่น
-
-${amountHint}
-
-ตรวจสอบ:
-1. เป็นสลิปจริงหรือปลอม (ดูจากโลโก้ธนาคาร, ฟอนต์, เลย์เอาต์, รหัสธุรกรรม, timestamp, watermark)
-2. ข้อมูลที่ปรากฏบนสลิป
-3. สัญญาณเตือนที่น่าสงสัย
-
-ตอบกลับในรูปแบบ JSON ต่อไปนี้เท่านั้น:
-{
-  "isReal": true หรือ false,
-  "confidence": 0-100,
-  "bank": "ชื่อธนาคาร หรือ Unknown",
-  "amount": "จำนวนเงินที่อ่านได้ หรือ null",
-  "date": "วันที่ที่อ่านได้ หรือ null",
-  "transactionRef": "รหัสธุรกรรม หรือ null",
-  "summary": "สรุปสั้นๆ ภาษาไทย",
-  "warnings": ["รายการข้อน่าสงสัย"],
-  "verdict": "PASS หรือ FAIL หรือ UNCERTAIN"
-}`;
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64Data }
-            },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
+    const res = await apiCall('verifySlip', {
+      imageData:      base64DataUrl,
+      expectedAmount: expectedAmount || null
     });
-
-    if (!response.ok) throw new Error('API error: ' + response.status);
-    const data = await response.json();
-    const text = data.content?.find(b => b.type === 'text')?.text || '';
-    // Clean JSON
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response');
-    return JSON.parse(jsonMatch[0]);
+    if (!res.success) {
+      console.warn('verifySlip backend error:', res.error);
+      return null;
+    }
+    return res.result || null;
   } catch (err) {
-    console.error('Slip verify error:', err);
+    console.error('verifySlipWithAI error:', err);
     return null;
   }
 }
