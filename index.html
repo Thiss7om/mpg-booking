@@ -1289,6 +1289,9 @@
     <div class="sidebar-item" onclick="switchAdminTab('payments')" id="nav-payments">
       <span class="mi">credit_card</span> Payment Settings
     </div>
+    <div class="sidebar-item" onclick="switchAdminTab('revenue')" id="nav-revenue">
+      <span class="mi">monitoring</span> Revenue
+    </div>
     <div class="sidebar-item" onclick="switchAdminTab('logs')" id="nav-logs">
       <span class="mi">history</span> Activity Logs
     </div>
@@ -1571,6 +1574,124 @@
             <input class="input-field" id="co-phone" placeholder="082-123-4567" inputmode="numeric" oninput="formatPhoneInput(this)" maxlength="12">
             <button class="btn-primary" onclick="saveCompanyInfo()">Save Info</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================
+         REVENUE DASHBOARD TAB
+    ============================================ -->
+    <div id="admin-tab-revenue" style="display:none;" class="fade-in">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
+        <div class="section-heading mb-0">
+          <h2>REVENUE</h2>
+          <span id="revenue-subtitle">สรุปรายได้</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <!-- View Mode Tabs -->
+          <div class="tab-bar" style="margin-bottom:0; gap:2px;">
+            <button class="tab-btn active" id="rev-tab-trip" onclick="setRevenueView('trip')">By Trip</button>
+            <button class="tab-btn" id="rev-tab-month" onclick="setRevenueView('month')">Monthly</button>
+            <button class="tab-btn" id="rev-tab-year" onclick="setRevenueView('year')">Yearly</button>
+          </div>
+          <button onclick="exportRevenueReport()" class="btn-primary" style="font-size:12px; padding:8px 16px; display:flex; align-items:center; gap:6px;">
+            <span class="mi" style="font-size:16px;">download</span>Export Report
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards Row -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap:14px; margin-bottom:28px;">
+        <div class="stat-card" style="border-top:3px solid #7a4fa0;">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">payments</span>รายได้รวม</div>
+          <div class="font-display" style="font-size:22px; line-height:1.2; color:#7a4fa0;" id="rev-kpi-total">฿—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">จาก confirmed ทั้งหมด</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--green);">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">check_circle</span>รับแล้วเต็มจำนวน</div>
+          <div class="font-display" style="font-size:22px; line-height:1.2; color:var(--green);" id="rev-kpi-fullpaid">฿—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;" id="rev-kpi-fullpaid-count">0 รายการ</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--accent);">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">savings</span>มัดจำที่รับแล้ว</div>
+          <div class="font-display" style="font-size:22px; line-height:1.2; color:var(--accent);" id="rev-kpi-deposit">฿—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;" id="rev-kpi-deposit-count">0 รายการ</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--pastel-red-deep);">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">pending</span>ค้างชำระ (มัดจำ)</div>
+          <div class="font-display" style="font-size:22px; line-height:1.2; color:var(--pastel-red-deep);" id="rev-kpi-outstanding">฿—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;" id="rev-kpi-outstanding-count">0 รายการ</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--pastel-blue-deep);">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">people</span>ผู้โดยสารรวม</div>
+          <div class="font-display" style="font-size:36px; line-height:1; color:var(--pastel-blue-deep);" id="rev-kpi-pax">—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">คน (confirmed)</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid #52a0c9;">
+          <div style="font-size:10px; color:var(--text-muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:8px;"><span class="mi" style="font-size:13px; margin-right:3px;">trending_up</span>รายได้เฉลี่ย/จอง</div>
+          <div class="font-display" style="font-size:22px; line-height:1.2; color:#52a0c9;" id="rev-kpi-avg">฿—</div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">average per booking</div>
+        </div>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="card" style="padding:24px; margin-bottom:24px; overflow:hidden;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div class="font-display" style="font-size:16px; color:var(--text-primary);" id="rev-chart-title">Revenue by Trip</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;" id="rev-chart-sub">ยอดรายได้จาก Confirmed Bookings</div>
+          </div>
+          <!-- Year / Month filters (shown contextually) -->
+          <div id="rev-year-filter-wrap" style="display:flex; gap:8px; align-items:center;">
+            <select class="input-field" style="font-size:12px; width:auto; padding:7px 12px;" id="rev-year-select" onchange="renderRevenueView()">
+            </select>
+            <select class="input-field" style="font-size:12px; width:auto; padding:7px 12px; display:none;" id="rev-month-select" onchange="renderRevenueView()">
+              <option value="">ทุกเดือน</option>
+              <option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option>
+              <option value="3">มีนาคม</option><option value="4">เมษายน</option>
+              <option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option>
+              <option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option>
+              <option value="9">กันยายน</option><option value="10">ตุลาคม</option>
+              <option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+            </select>
+          </div>
+        </div>
+        <!-- SVG Bar Chart -->
+        <div id="rev-chart-container" style="overflow-x:auto;">
+          <svg id="rev-chart-svg" style="width:100%; min-width:320px; height:220px; display:block;"></svg>
+        </div>
+        <div id="rev-chart-empty" style="display:none; text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
+          <span class="mi" style="font-size:40px; display:block; margin-bottom:8px;">bar_chart</span>ยังไม่มีข้อมูล
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="card" style="overflow:hidden; margin-bottom:16px;">
+        <div style="padding:18px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div class="font-display" style="font-size:15px; color:var(--text-primary);" id="rev-table-title">รายละเอียด Revenue by Trip</div>
+          <input class="input-field" style="width:180px; font-size:12px;" placeholder="ค้นหา..." id="rev-search" oninput="filterRevenueTable()">
+        </div>
+        <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+          <table class="data-table" id="rev-table">
+            <thead id="rev-table-head"></thead>
+            <tbody id="rev-table-body">
+              <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:32px;">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Additional Insights Row -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:8px;">
+        <!-- Payment Type Breakdown -->
+        <div class="card" style="padding:20px;">
+          <div class="font-display" style="font-size:14px; color:var(--text-primary); margin-bottom:16px;"><span class="mi" style="font-size:16px; vertical-align:middle; margin-right:6px;">pie_chart</span>สัดส่วนการชำระ</div>
+          <div id="rev-payment-breakdown" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+        <!-- Top Trips by Revenue -->
+        <div class="card" style="padding:20px;">
+          <div class="font-display" style="font-size:14px; color:var(--text-primary); margin-bottom:16px;"><span class="mi" style="font-size:16px; vertical-align:middle; margin-right:6px;">emoji_events</span>Top Trips by Revenue</div>
+          <div id="rev-top-trips" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
       </div>
     </div>
@@ -1902,6 +2023,75 @@
   </div>
 </div>
 
+<!-- Change Admin Password Modal -->
+<div id="modal-change-pass" class="modal-overlay" style="display:none;">
+  <div class="modal-box p-6" style="max-width:440px;">
+    <div class="flex justify-between items-center mb-5">
+      <h3 class="font-display text-2xl"><span class="mi" style="font-size:22px; margin-right:6px;">lock_reset</span>เปลี่ยนรหัสผ่าน</h3>
+      <button onclick="closeChangePassModal()" style="color: var(--text-muted); font-size:20px; background:none; border:none; cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Step 1: กรอก password ใหม่ และขอ OTP -->
+    <div id="change-pass-step1">
+      <div style="background:rgba(168,212,245,0.15); border:1px solid rgba(90,172,240,0.3); border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:var(--text-secondary);">
+        <span class="mi" style="font-size:15px; margin-right:5px; vertical-align:middle; color:var(--blue);">info</span>
+        กำลังเปลี่ยนรหัสผ่านของ <strong id="change-pass-username-label" style="color:var(--text-primary); font-family:'DM Mono',monospace;"></strong>
+        <br><span style="font-size:11px; margin-top:4px; display:block;">ระบบจะส่ง OTP ยืนยันไปยัง email ที่ผูกกับบัญชีนี้</span>
+      </div>
+      <div style="display:grid; gap:12px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">รหัสผ่านใหม่ *</label>
+          <div style="position:relative;">
+            <input class="input-field" id="change-pass-new" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" style="padding-right:42px;">
+            <button onclick="togglePassVisibility('change-pass-new','change-pass-eye1')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;"><span class="mi" id="change-pass-eye1" style="font-size:18px;">visibility</span></button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:4px;">ยืนยันรหัสผ่านใหม่ *</label>
+          <div style="position:relative;">
+            <input class="input-field" id="change-pass-confirm" type="password" placeholder="พิมพ์รหัสผ่านอีกครั้ง" style="padding-right:42px;">
+            <button onclick="togglePassVisibility('change-pass-confirm','change-pass-eye2')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;"><span class="mi" id="change-pass-eye2" style="font-size:18px;">visibility</span></button>
+          </div>
+        </div>
+        <div id="change-pass-err1" style="display:none; color:var(--red); font-size:12px; padding:8px 12px; background:rgba(255,107,138,0.08); border-radius:8px;"></div>
+        <div class="flex gap-3 mt-1">
+          <button class="btn-outline" style="flex:1;" onclick="closeChangePassModal()">ยกเลิก</button>
+          <button class="btn-primary" style="flex:2;" onclick="requestPassOTP()">
+            <span class="mi" style="font-size:15px; margin-right:4px;">send</span>ส่ง OTP ยืนยัน
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: กรอก OTP -->
+    <div id="change-pass-step2" style="display:none;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:44px; margin-bottom:8px;">📧</div>
+        <p style="font-size:14px; color:var(--text-secondary);">ส่ง OTP ไปยัง email แล้ว</p>
+        <p id="change-pass-masked-email" style="font-size:13px; font-weight:600; color:var(--text-primary); margin-top:4px;"></p>
+        <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">OTP มีอายุ 10 นาที</p>
+      </div>
+      <div style="display:grid; gap:12px;">
+        <div>
+          <label style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:6px; text-align:center;">กรอกรหัส OTP 6 หลัก</label>
+          <input class="input-field" id="change-pass-otp" type="text" inputmode="numeric" maxlength="6"
+            placeholder="_ _ _ _ _ _"
+            style="text-align:center; font-family:'DM Mono',monospace; font-size:28px; letter-spacing:10px; padding:14px; font-weight:700;">
+        </div>
+        <div id="change-pass-err2" style="display:none; color:var(--red); font-size:12px; padding:8px 12px; background:rgba(255,107,138,0.08); border-radius:8px; text-align:center;"></div>
+        <div class="flex gap-3">
+          <button class="btn-outline" style="flex:1;" onclick="changePassBackToStep1()">← ย้อนกลับ</button>
+          <button class="btn-primary" style="flex:2;" onclick="confirmChangePass()">
+            <span class="mi" style="font-size:15px; margin-right:4px;">check_circle</span>ยืนยันเปลี่ยนรหัสผ่าน
+          </button>
+        </div>
+        <button onclick="requestPassOTP(true)" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;text-decoration:underline;padding:4px;">ส่ง OTP อีกครั้ง</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script>
 // ============================================================
 // GLOBAL LOADING OVERLAY
@@ -1938,7 +2128,7 @@ function hideLoading() {
 // ============================================================
 // CONFIGURATION — Replace with your GAS Web App URL
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDkXBB1F5o5L2_sI8RvB6ZKvjPE7bLgn3cLNEUSMTDw0SEINPBQIpG-J8zHs_UhS5sEw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzS_9PT5Qo-ysHCW1sHrHTjJhW9xC8WlnPPUoO38jkabfpBknyZHZhKk79G3Weke_8/exec';
 
 // For demo mode (no GAS backend), set this to true
 const DEMO_MODE = false;
@@ -3930,7 +4120,7 @@ window.showView = function(viewName) {
 };
 
 function switchAdminTab(tab) {
-  ['dashboard','trips','bookings','payments','logs','admin-users'].forEach(t => {
+  ['dashboard','trips','bookings','payments','revenue','logs','admin-users'].forEach(t => {
     const el = document.getElementById('admin-tab-' + t);
     const nav = document.getElementById('nav-' + t);
     if (el) el.style.display = t === tab ? '' : 'none';
@@ -3941,6 +4131,7 @@ function switchAdminTab(tab) {
   if (tab === 'payments') loadPaymentSettings();
   if (tab === 'logs') loadLogs();
   if (tab === 'admin-users') loadAdminUsers();
+  if (tab === 'revenue') initRevenueDashboard();
 }
 
 async function loadAdminData() {
@@ -5710,8 +5901,15 @@ async function loadAdminUsers() {
       <td style="font-size:11px; color:var(--text-muted);">${a.lastLogin ? (() => { const _d=new Date(a.lastLogin); const _dd=String(_d.getDate()).padStart(2,'0'); const _mm=String(_d.getMonth()+1).padStart(2,'0'); const _yy=_d.getFullYear(); const _hh=String(_d.getHours()).padStart(2,'0'); const _mn=String(_d.getMinutes()).padStart(2,'0'); return `${_dd}/${_mm}/${_yy} ${_hh}:${_mn}`; })() : '—'}</td>
       <td><span class="badge ${String(a.active) !== 'FALSE' && a.active !== false ? 'badge-green' : 'badge-gray'}">${String(a.active) !== 'FALSE' && a.active !== false ? 'Active' : 'Inactive'}</span></td>
       <td>
-        ${a.role === 'superadmin' ? '<span style="color:var(--text-muted); font-size:11px;">Protected</span>' :
-          `<button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="deleteAdminUser('${a.username}')">ลบ</button>`}
+        ${a.role === 'superadmin' ?
+          `<div style="display:flex;gap:6px;align-items:center;">
+             <button class="btn-outline" style="padding:3px 10px; font-size:10px;" onclick="openChangePassModal('${a.username}')"><span class="mi" style="font-size:12px;margin-right:3px;">lock_reset</span>เปลี่ยนรหัส</button>
+             <span style="color:var(--text-muted); font-size:11px;">Protected</span>
+           </div>` :
+          `<div style="display:flex;gap:6px;">
+             <button class="btn-outline" style="padding:3px 10px; font-size:10px;" onclick="openChangePassModal('${a.username}')"><span class="mi" style="font-size:12px;margin-right:3px;">lock_reset</span>เปลี่ยนรหัส</button>
+             <button class="btn-danger" style="padding:3px 8px; font-size:10px;" onclick="deleteAdminUser('${a.username}')">ลบ</button>
+           </div>`}
       </td>
     </tr>`).join('');
 }
@@ -5766,6 +5964,121 @@ async function deleteAdminUser(username) {
   } else {
     showToast(res.error || 'เกิดข้อผิดพลาด', 'error');
   }
+}
+
+// ============================================================
+// CHANGE ADMIN PASSWORD (with Email OTP Verification)
+// ============================================================
+let _changePassTarget = null;
+let _changePassNewHash = null;
+
+function openChangePassModal(username) {
+  _changePassTarget = username;
+  _changePassNewHash = null;
+  document.getElementById('change-pass-username-label').textContent = username;
+  document.getElementById('change-pass-new').value = '';
+  document.getElementById('change-pass-confirm').value = '';
+  document.getElementById('change-pass-otp').value = '';
+  document.getElementById('change-pass-err1').style.display = 'none';
+  document.getElementById('change-pass-err2').style.display = 'none';
+  document.getElementById('change-pass-step1').style.display = '';
+  document.getElementById('change-pass-step2').style.display = 'none';
+  document.getElementById('modal-change-pass').style.display = 'flex';
+}
+
+function closeChangePassModal() {
+  document.getElementById('modal-change-pass').style.display = 'none';
+  _changePassTarget = null;
+  _changePassNewHash = null;
+}
+
+function changePassBackToStep1() {
+  document.getElementById('change-pass-step1').style.display = '';
+  document.getElementById('change-pass-step2').style.display = 'none';
+  document.getElementById('change-pass-err2').style.display = 'none';
+}
+
+function togglePassVisibility(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon  = document.getElementById(iconId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = 'visibility_off';
+  } else {
+    input.type = 'password';
+    icon.textContent = 'visibility';
+  }
+}
+
+async function requestPassOTP(isResend) {
+  if (!_changePassTarget) return;
+  const errEl = document.getElementById('change-pass-err1');
+
+  if (!isResend) {
+    const newPass     = document.getElementById('change-pass-new').value;
+    const confirmPass = document.getElementById('change-pass-confirm').value;
+    errEl.style.display = 'none';
+
+    if (!newPass || newPass.length < 8) {
+      errEl.textContent = 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร';
+      errEl.style.display = '';
+      return;
+    }
+    if (newPass !== confirmPass) {
+      errEl.textContent = 'รหัสผ่านทั้งสองช่องไม่ตรงกัน';
+      errEl.style.display = '';
+      return;
+    }
+    _changePassNewHash = CryptoJS.SHA256(newPass).toString();
+  }
+
+  showLoading('กำลังส่ง OTP...');
+  const res = await apiCall('requestChangePassOTP', { targetUsername: _changePassTarget });
+  hideLoading();
+
+  if (!res.success) {
+    errEl.textContent = res.error || 'ส่ง OTP ไม่สำเร็จ';
+    errEl.style.display = '';
+    return;
+  }
+
+  document.getElementById('change-pass-masked-email').textContent = res.maskedEmail || 'email ที่ผูกกับบัญชีนี้';
+  document.getElementById('change-pass-otp').value = '';
+  document.getElementById('change-pass-err2').style.display = 'none';
+  document.getElementById('change-pass-step1').style.display = 'none';
+  document.getElementById('change-pass-step2').style.display = '';
+  if (isResend) showToast('ส่ง OTP อีกครั้งแล้ว ตรวจสอบ email', 'info');
+}
+
+async function confirmChangePass() {
+  if (!_changePassTarget || !_changePassNewHash) return;
+  const otp = document.getElementById('change-pass-otp').value.trim();
+  const errEl = document.getElementById('change-pass-err2');
+  errEl.style.display = 'none';
+
+  if (!otp || otp.length !== 6) {
+    errEl.textContent = 'กรุณากรอกรหัส OTP 6 หลัก';
+    errEl.style.display = '';
+    return;
+  }
+
+  showLoading('กำลังตรวจสอบ OTP...');
+  const res = await apiCall('verifyChangePassOTP', {
+    targetUsername: _changePassTarget,
+    otp,
+    newPasswordHash: _changePassNewHash
+  });
+  hideLoading();
+
+  if (!res.success) {
+    errEl.textContent = res.error || 'รหัส OTP ไม่ถูกต้อง';
+    errEl.style.display = '';
+    return;
+  }
+
+  closeChangePassModal();
+  showToast('success', 'เปลี่ยนรหัสผ่านสำเร็จ', 'รหัสผ่านของ "' + _changePassTarget + '" ถูกอัปเดตแล้ว');
+  logAction('Password Changed', 'Changed password for admin: ' + _changePassTarget);
 }
 
 // ============================================================
@@ -6230,6 +6543,440 @@ function formatPhoneInput(input) {
 // ────────────────────────────────────────────────────────────────────
 
 // Copyright now lives in the sidebar under Sign Out
+
+// ══════════════════════════════════════════════════════════════
+// REVENUE DASHBOARD
+// ══════════════════════════════════════════════════════════════
+
+let revState = {
+  view: 'trip',      // 'trip' | 'month' | 'year'
+  year: new Date().getFullYear(),
+  month: '',
+  tableData: [],
+  rawData: []
+};
+
+function initRevenueDashboard() {
+  // Populate year select
+  const yearSel = document.getElementById('rev-year-select');
+  if (yearSel && yearSel.options.length === 0) {
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear; y >= thisYear - 4; y--) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y + ' (พ.ศ. ' + (y + 543) + ')';
+      if (y === thisYear) o.selected = true;
+      yearSel.appendChild(o);
+    }
+  }
+  renderRevenueView();
+}
+
+function setRevenueView(view) {
+  revState.view = view;
+  ['trip','month','year'].forEach(v => {
+    const btn = document.getElementById('rev-tab-' + v);
+    if (btn) btn.className = 'tab-btn' + (v === view ? ' active' : '');
+  });
+  // Show/hide month filter
+  const monthSel = document.getElementById('rev-month-select');
+  if (monthSel) monthSel.style.display = view === 'trip' ? 'block' : 'none';
+  renderRevenueView();
+}
+
+function renderRevenueView() {
+  const bookings = state.allBookings || [];
+  revState.year = parseInt(document.getElementById('rev-year-select')?.value || new Date().getFullYear());
+  revState.month = document.getElementById('rev-month-select')?.value || '';
+
+  updateRevenueKPIs(bookings);
+
+  if (revState.view === 'trip')  renderRevenueByTrip(bookings);
+  if (revState.view === 'month') renderRevenueByMonth(bookings);
+  if (revState.view === 'year')  renderRevenueByYear(bookings);
+  renderRevenueInsights(bookings);
+}
+
+function getRevenueFromBooking(b) {
+  const status = b.status || '';
+  // Count revenue from confirmed + deposit_confirmed + remaining_uploaded + deposit only if confirmed
+  if (status === 'confirmed') return parseFloat(b.totalAmount) || 0;
+  if (status === 'deposit_confirmed' || status === 'remaining_uploaded') return parseFloat(b.depositAmount) || 0;
+  return 0;
+}
+
+function getFullRevenueFromBooking(b) {
+  const status = b.status || '';
+  if (status === 'confirmed') return parseFloat(b.totalAmount) || 0;
+  return 0;
+}
+
+function getOutstandingFromBooking(b) {
+  const status = b.status || '';
+  if (['deposit_confirmed','remaining_uploaded'].includes(status)) {
+    const total = parseFloat(b.totalAmount) || 0;
+    const deposit = parseFloat(b.depositAmount) || 0;
+    return Math.max(0, total - deposit);
+  }
+  return 0;
+}
+
+function updateRevenueKPIs(bookings) {
+  const confirmed = bookings.filter(b => b.status === 'confirmed');
+  const depositConf = bookings.filter(b => ['deposit_confirmed','remaining_uploaded'].includes(b.status));
+
+  const totalRevenue = confirmed.reduce((s, b) => s + (parseFloat(b.totalAmount)||0), 0);
+  const fullPaidRev  = confirmed.reduce((s, b) => s + (parseFloat(b.totalAmount)||0), 0);
+  const depositRev   = depositConf.reduce((s, b) => s + (parseFloat(b.depositAmount)||0), 0);
+  const outstanding  = depositConf.reduce((s, b) => s + getOutstandingFromBooking(b), 0);
+  const totalPax     = confirmed.reduce((s, b) => s + (parseInt(b.passengers)||0), 0);
+  const avgRev       = confirmed.length > 0 ? totalRevenue / confirmed.length : 0;
+
+  document.getElementById('rev-kpi-total').textContent       = '฿' + totalRevenue.toLocaleString();
+  document.getElementById('rev-kpi-fullpaid').textContent    = '฿' + fullPaidRev.toLocaleString();
+  document.getElementById('rev-kpi-fullpaid-count').textContent = confirmed.length + ' รายการ';
+  document.getElementById('rev-kpi-deposit').textContent     = '฿' + depositRev.toLocaleString();
+  document.getElementById('rev-kpi-deposit-count').textContent  = depositConf.length + ' รายการ';
+  document.getElementById('rev-kpi-outstanding').textContent = '฿' + outstanding.toLocaleString();
+  document.getElementById('rev-kpi-outstanding-count').textContent = depositConf.length + ' รายการ';
+  document.getElementById('rev-kpi-pax').textContent         = totalPax.toLocaleString();
+  document.getElementById('rev-kpi-avg').textContent         = '฿' + Math.round(avgRev).toLocaleString();
+}
+
+function renderRevenueByTrip(bookings) {
+  const yr = revState.year;
+  const mo = parseInt(revState.month) || 0;
+  document.getElementById('rev-chart-title').textContent = 'Revenue by Trip';
+  document.getElementById('rev-chart-sub').textContent   = 'ยอดรายได้แยกตามทริป (Confirmed)';
+  document.getElementById('rev-table-title').textContent = 'รายละเอียด Revenue by Trip';
+  document.getElementById('rev-year-filter-wrap').style.display = 'flex';
+  document.getElementById('rev-month-select').style.display = 'block';
+
+  // Filter by year / month if needed
+  let filtered = bookings.filter(b => {
+    if (!['confirmed','deposit_confirmed','remaining_uploaded'].includes(b.status)) return false;
+    const d = new Date(b.createdAt);
+    if (isNaN(d)) return true;
+    if (yr && d.getFullYear() !== yr) return false;
+    if (mo && (d.getMonth()+1) !== mo) return false;
+    return true;
+  });
+
+  // Group by tripId
+  const map = {};
+  filtered.forEach(b => {
+    const tid = b.tripId || 'unknown';
+    const tname = b.tripName || tid;
+    if (!map[tid]) map[tid] = { id: tid, name: tname, revenue: 0, deposit: 0, outstanding: 0, bookings: 0, pax: 0 };
+    map[tid].bookings++;
+    map[tid].pax += parseInt(b.passengers) || 0;
+    if (b.status === 'confirmed') {
+      map[tid].revenue += parseFloat(b.totalAmount) || 0;
+    } else {
+      map[tid].deposit += parseFloat(b.depositAmount) || 0;
+      map[tid].outstanding += getOutstandingFromBooking(b);
+    }
+  });
+
+  const rows = Object.values(map).sort((a,b) => (b.revenue+b.deposit) - (a.revenue+a.deposit));
+  revState.tableData = rows;
+  revState.rawData = rows;
+
+  // Chart
+  drawBarChart(rows.map(r => ({ label: r.name, value: r.revenue + r.deposit, secondary: r.outstanding })));
+
+  // Table
+  document.getElementById('rev-table-head').innerHTML = `
+    <tr>
+      <th>ทริป</th>
+      <th style="text-align:right">จำนวนจอง</th>
+      <th style="text-align:right">ผู้โดยสาร</th>
+      <th style="text-align:right">รายได้ (Confirmed)</th>
+      <th style="text-align:right">มัดจำรับแล้ว</th>
+      <th style="text-align:right">ค้างชำระ</th>
+    </tr>`;
+  renderRevenueTableRows();
+}
+
+function renderRevenueByMonth(bookings) {
+  const yr = revState.year;
+  document.getElementById('rev-chart-title').textContent = `Revenue ปี ${yr} (พ.ศ. ${yr+543}) แยกเดือน`;
+  document.getElementById('rev-chart-sub').textContent   = 'ยอดรายได้รายเดือน';
+  document.getElementById('rev-table-title').textContent = 'รายละเอียดรายเดือน';
+  document.getElementById('rev-year-filter-wrap').style.display = 'flex';
+  document.getElementById('rev-month-select').style.display = 'none';
+
+  const MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const map = {};
+  MONTHS.forEach((m, i) => { map[i+1] = { label: m, num: i+1, revenue: 0, deposit: 0, outstanding: 0, bookings: 0, pax: 0 }; });
+
+  bookings.filter(b => {
+    if (!['confirmed','deposit_confirmed','remaining_uploaded'].includes(b.status)) return false;
+    const d = new Date(b.createdAt);
+    return !isNaN(d) && d.getFullYear() === yr;
+  }).forEach(b => {
+    const m = new Date(b.createdAt).getMonth() + 1;
+    map[m].bookings++;
+    map[m].pax += parseInt(b.passengers) || 0;
+    if (b.status === 'confirmed') map[m].revenue += parseFloat(b.totalAmount) || 0;
+    else { map[m].deposit += parseFloat(b.depositAmount) || 0; map[m].outstanding += getOutstandingFromBooking(b); }
+  });
+
+  const rows = Object.values(map);
+  revState.tableData = rows;
+  revState.rawData = rows;
+  drawBarChart(rows.map(r => ({ label: r.label, value: r.revenue + r.deposit, secondary: r.outstanding })));
+
+  document.getElementById('rev-table-head').innerHTML = `
+    <tr>
+      <th>เดือน</th>
+      <th style="text-align:right">จำนวนจอง</th>
+      <th style="text-align:right">ผู้โดยสาร</th>
+      <th style="text-align:right">รายได้ (Confirmed)</th>
+      <th style="text-align:right">มัดจำรับแล้ว</th>
+      <th style="text-align:right">ค้างชำระ</th>
+    </tr>`;
+  renderRevenueTableRows();
+}
+
+function renderRevenueByYear(bookings) {
+  document.getElementById('rev-chart-title').textContent = 'Revenue แยกปี (ทุกปี)';
+  document.getElementById('rev-chart-sub').textContent   = 'ยอดรายได้ย้อนหลัง';
+  document.getElementById('rev-table-title').textContent = 'รายละเอียดรายปี';
+  document.getElementById('rev-year-filter-wrap').style.display = 'none';
+
+  const map = {};
+  bookings.filter(b => ['confirmed','deposit_confirmed','remaining_uploaded'].includes(b.status)).forEach(b => {
+    const d = new Date(b.createdAt);
+    const yr = isNaN(d) ? 'N/A' : d.getFullYear();
+    if (!map[yr]) map[yr] = { label: String(yr), num: yr, revenue: 0, deposit: 0, outstanding: 0, bookings: 0, pax: 0 };
+    map[yr].bookings++;
+    map[yr].pax += parseInt(b.passengers) || 0;
+    if (b.status === 'confirmed') map[yr].revenue += parseFloat(b.totalAmount) || 0;
+    else { map[yr].deposit += parseFloat(b.depositAmount) || 0; map[yr].outstanding += getOutstandingFromBooking(b); }
+  });
+
+  const rows = Object.values(map).sort((a,b) => a.num - b.num);
+  revState.tableData = rows;
+  revState.rawData = rows;
+  drawBarChart(rows.map(r => ({ label: r.label, value: r.revenue + r.deposit, secondary: r.outstanding })));
+
+  document.getElementById('rev-table-head').innerHTML = `
+    <tr>
+      <th>ปี</th>
+      <th style="text-align:right">จำนวนจอง</th>
+      <th style="text-align:right">ผู้โดยสาร</th>
+      <th style="text-align:right">รายได้ (Confirmed)</th>
+      <th style="text-align:right">มัดจำรับแล้ว</th>
+      <th style="text-align:right">ค้างชำระ</th>
+    </tr>`;
+  renderRevenueTableRows();
+}
+
+function renderRevenueTableRows() {
+  const q = (document.getElementById('rev-search')?.value || '').toLowerCase();
+  const rows = revState.tableData.filter(r => !q || (r.label||r.name||'').toLowerCase().includes(q));
+  const tbody = document.getElementById('rev-table-body');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const totalRev = r.revenue + (r.deposit || 0);
+    return `<tr>
+      <td style="font-size:13px; font-weight:600; color:var(--text-primary);">${r.label || r.name || '—'}</td>
+      <td style="text-align:right; font-size:13px;">${r.bookings}</td>
+      <td style="text-align:right; font-size:13px;">${r.pax} คน</td>
+      <td style="text-align:right; font-size:13px; font-weight:600; color:#7a4fa0;">฿${r.revenue.toLocaleString()}</td>
+      <td style="text-align:right; font-size:13px; color:var(--accent);">${r.deposit > 0 ? '฿'+r.deposit.toLocaleString() : '—'}</td>
+      <td style="text-align:right; font-size:13px; color:var(--pastel-red-deep);">${r.outstanding > 0 ? '฿'+r.outstanding.toLocaleString() : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterRevenueTable() {
+  renderRevenueTableRows();
+}
+
+function drawBarChart(data) {
+  const svg = document.getElementById('rev-chart-svg');
+  const empty = document.getElementById('rev-chart-empty');
+  if (!svg) return;
+
+  const validData = data.filter(d => d.value > 0 || d.secondary > 0);
+  if (!validData.length) {
+    svg.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  svg.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  const W = 700, H = 220, padL = 60, padR = 12, padT = 10, padB = 46;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const maxVal = Math.max(...validData.map(d => d.value + (d.secondary||0)), 1);
+
+  const barGroup = chartW / validData.length;
+  const barW = Math.min(barGroup * 0.6, 48);
+  const colors = { primary: '#7a4fa0', secondary: '#ffb347', grid: 'rgba(180,140,160,0.15)', text: '#7a6270' };
+
+  const yTicks = 4;
+  let gridLines = '';
+  let yLabels = '';
+  for (let i = 0; i <= yTicks; i++) {
+    const val = (maxVal / yTicks) * i;
+    const y = padT + chartH - (chartH * i / yTicks);
+    gridLines += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${colors.grid}" stroke-width="1"/>`;
+    const label = val >= 1000000 ? (val/1000000).toFixed(1)+'M' : val >= 1000 ? (val/1000).toFixed(0)+'K' : val.toFixed(0);
+    yLabels += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="9" fill="${colors.text}" font-family="DM Mono, monospace">${label}</text>`;
+  }
+
+  let bars = '';
+  validData.forEach((d, i) => {
+    const cx = padL + barGroup * i + barGroup / 2;
+    const x = cx - barW / 2;
+
+    // Primary bar (revenue)
+    const hPrimary = Math.max(2, chartH * d.value / maxVal);
+    const yPrimary = padT + chartH - hPrimary;
+    bars += `<rect x="${x}" y="${yPrimary}" width="${barW}" height="${hPrimary}"
+      rx="4" ry="4" fill="${colors.primary}" opacity="0.85"/>`;
+
+    // Secondary bar (outstanding) stacked
+    if (d.secondary > 0) {
+      const hSec = chartH * d.secondary / maxVal;
+      const ySec = yPrimary - hSec;
+      bars += `<rect x="${x}" y="${ySec}" width="${barW}" height="${hSec}"
+        rx="2" ry="2" fill="${colors.secondary}" opacity="0.75"/>`;
+    }
+
+    // Value label on top
+    const totalH = chartH * (d.value + (d.secondary||0)) / maxVal;
+    const topY = padT + chartH - totalH - 4;
+    const valLabel = (d.value + (d.secondary||0)) >= 1000 ? '฿' + ((d.value + (d.secondary||0))/1000).toFixed(0) + 'K' : '฿' + (d.value + (d.secondary||0));
+    bars += `<text x="${cx}" y="${Math.max(topY, padT + 8)}" text-anchor="middle" font-size="8" fill="${colors.text}" font-family="DM Mono,monospace">${valLabel}</text>`;
+
+    // X label
+    const rawLabel = d.label || '';
+    const label = rawLabel.length > 10 ? rawLabel.substring(0, 9) + '…' : rawLabel;
+    bars += `<text x="${cx}" y="${H - padB + 16}" text-anchor="middle" font-size="9" fill="${colors.text}" font-family="Sarabun,sans-serif">${label}</text>`;
+  });
+
+  // Legend
+  const legend = `
+    <rect x="${padL}" y="${H - 12}" width="10" height="8" rx="2" fill="${colors.primary}" opacity="0.85"/>
+    <text x="${padL + 14}" y="${H - 5}" font-size="9" fill="${colors.text}" font-family="Sarabun,sans-serif">Confirmed</text>
+    <rect x="${padL + 80}" y="${H - 12}" width="10" height="8" rx="2" fill="${colors.secondary}" opacity="0.75"/>
+    <text x="${padL + 94}" y="${H - 5}" font-size="9" fill="${colors.text}" font-family="Sarabun,sans-serif">ค้างชำระ</text>`;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = gridLines + yLabels + bars + legend;
+}
+
+function renderRevenueInsights(bookings) {
+  // Payment type breakdown
+  const confirmed = bookings.filter(b => ['confirmed','deposit_confirmed','remaining_uploaded'].includes(b.status));
+  const full    = confirmed.filter(b => b.paymentType !== 'deposit' && b.status === 'confirmed').length;
+  const deposit = confirmed.filter(b => b.paymentType === 'deposit').length;
+  const total   = confirmed.length || 1;
+
+  const breakdownEl = document.getElementById('rev-payment-breakdown');
+  if (breakdownEl) {
+    const bars = [
+      { label: 'จ่ายเต็มจำนวน', count: full, color: 'var(--green)', pct: Math.round(full/total*100) },
+      { label: 'จ่ายมัดจำ', count: deposit, color: 'var(--accent)', pct: Math.round(deposit/total*100) },
+    ];
+    breakdownEl.innerHTML = bars.map(b => `
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:12px; color:var(--text-secondary);">${b.label}</span>
+          <span style="font-size:12px; font-weight:600; color:var(--text-primary);">${b.count} รายการ (${b.pct}%)</span>
+        </div>
+        <div style="height:8px; background:rgba(180,140,160,0.12); border-radius:10px; overflow:hidden;">
+          <div style="height:100%; width:${b.pct}%; background:${b.color}; border-radius:10px; transition:width 0.5s;"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Top 5 trips by revenue
+  const tripMap = {};
+  bookings.filter(b => b.status === 'confirmed').forEach(b => {
+    const k = b.tripName || b.tripId || 'N/A';
+    if (!tripMap[k]) tripMap[k] = 0;
+    tripMap[k] += parseFloat(b.totalAmount) || 0;
+  });
+  const topTrips = Object.entries(tripMap).sort((a,b) => b[1]-a[1]).slice(0, 5);
+  const maxT = topTrips[0]?.[1] || 1;
+  const topEl = document.getElementById('rev-top-trips');
+  if (topEl) {
+    const MEDALS = ['🥇','🥈','🥉','4.','5.'];
+    topEl.innerHTML = topTrips.length ? topTrips.map(([name, rev], i) => `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:16px; width:20px;">${MEDALS[i]}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:12px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+          <div style="height:5px; background:rgba(180,140,160,0.12); border-radius:10px; margin-top:3px;">
+            <div style="height:100%; width:${Math.round(rev/maxT*100)}%; background:linear-gradient(90deg,#7a4fa0,#ff8fa3); border-radius:10px;"></div>
+          </div>
+        </div>
+        <span style="font-size:12px; font-weight:700; color:#7a4fa0; white-space:nowrap;">฿${rev.toLocaleString()}</span>
+      </div>`).join('') : '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:20px;">ยังไม่มีข้อมูล</div>';
+  }
+}
+
+// ── EXPORT REVENUE REPORT (CSV) ─────────────────────────────
+function exportRevenueReport() {
+  const bookings = state.allBookings || [];
+  const view = revState.view;
+  const yr   = revState.year;
+
+  let headers, rows;
+
+  if (view === 'trip') {
+    headers = ['ทริป','จำนวนจอง','ผู้โดยสาร','รายได้ Confirmed','มัดจำรับแล้ว','ค้างชำระ','รวม'];
+    rows = revState.rawData.map(r => [
+      r.label || r.name,
+      r.bookings,
+      r.pax,
+      r.revenue,
+      r.deposit || 0,
+      r.outstanding || 0,
+      r.revenue + (r.deposit || 0)
+    ]);
+  } else if (view === 'month') {
+    headers = ['เดือน ('+yr+')','จำนวนจอง','ผู้โดยสาร','รายได้ Confirmed','มัดจำรับแล้ว','ค้างชำระ'];
+    rows = revState.rawData.map(r => [r.label, r.bookings, r.pax, r.revenue, r.deposit||0, r.outstanding||0]);
+  } else {
+    headers = ['ปี','จำนวนจอง','ผู้โดยสาร','รายได้ Confirmed','มัดจำรับแล้ว','ค้างชำระ'];
+    rows = revState.rawData.map(r => [r.label, r.bookings, r.pax, r.revenue, r.deposit||0, r.outstanding||0]);
+  }
+
+  const totalLine = [
+    'TOTAL',
+    rows.reduce((s,r) => s + (r[1]||0), 0),
+    rows.reduce((s,r) => s + (r[2]||0), 0),
+    rows.reduce((s,r) => s + (r[3]||0), 0),
+    rows.reduce((s,r) => s + (r[4]||0), 0),
+    rows.reduce((s,r) => s + (r[5]||0), 0),
+  ];
+  if (view === 'trip') totalLine.push(totalLine[3] + totalLine[4]);
+
+  const csv = [headers, ...rows, totalLine]
+    .map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+    .join('\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const viewLabel = { trip: 'ByTrip', month: 'Monthly-'+yr, year: 'Yearly' }[view];
+  a.href = url;
+  a.download = `MPG_Revenue_${viewLabel}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  if (typeof showToast === 'function') showToast('success', 'Export สำเร็จ', 'ดาวน์โหลด CSV แล้ว');
+}
+
 </script>
 </body>
 </html>
